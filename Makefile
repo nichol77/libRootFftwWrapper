@@ -5,7 +5,7 @@
 ##############################################################################
 include Makefile.arch
 
-#Site Specific  Flags
+#Site Specific  Flags (adjust to local site)
 SYSINCLUDES	= -I/sw/include
 SYSLIBS         = -L/sw/lib
 OUTLIBDIR          = /home/rjn/utilities/lib

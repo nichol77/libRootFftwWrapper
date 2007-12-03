@@ -1,0 +1,38 @@
+libRootFftwWrapper -- A ROOT wrapper for FFTW3
+Ryan Nichol (rjn@hep.ucl.ac.uk)  -- December 2007
+###############################################################################
+
+Introduction
+===============
+This is a simple wrapper library that provides an interface to FFTW for use with ROOT. 
+
+Prerequisities
+===============
+ROOT (http://root.cern.ch)
+FFTW3 (http://www.fftw.org/)
+
+
+Making  and Installing
+======================
+i) Install both ROOT and FFTW3 are on your system and that ROOTSYS is correctly set (or root-config is in your path) and that the directory containing libfftw3 is in either the system or your own LD_LIBRARY_PATH.
+ii) Edit the site specific section at the top of the Makefile (in general only the install variables need to be set)
+iii) To make type:
+make
+iv) To install in another directory (if desired) type:
+make install
+
+Usage from within ROOT
+=======================
+a) Ensure that the directory containing libRootFftwWrapper.so is in your LD_LIBRARY_PATH.
+b) To load trhe library you can:
+gSystem->Load("libRootFftwWrapper.so");
+c) The FFTWComplex and FFTtools classes should now be accessible from the ROOT prompt or ROOT macro.
+
+FFTtools Description
+======================
+All of the FFTtools functions as static meme=ber functions so they can be called without instantiating the class. Typical usage is:
+TGraph *grPowerSpectrum = makePowerSpectrum(grInput);
+where grInput is a pointer to a TGraph containing the input waveform.
+
+Most of the member functions have fairly descriptive names, the documentation is at present somewhat lacking.
+
