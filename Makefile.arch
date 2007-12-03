@@ -1,0 +1,69 @@
+################################################################################
+####  The magic architechture dependent bits and pieces
+################################################################################
+
+#Global Thingies
+ROOTCONFIG   := root-config
+ARCH         := $(shell $(ROOTCONFIG) --arch)
+PLATFORM     := $(shell $(ROOTCONFIG) --platform)
+
+CC 	= g++
+LD	= g++
+SOFLAGS	= -shared
+OBJSUF	= o
+SRCSUF	= cxx
+DLLSUF  = so
+OPT	= -O2 -g --debug  -Wall -fPIC
+OutPutOpt     = -o # keep whitespace after "-o"
+
+#ROOT Compiler and Linker Flags
+ROOTCFLAGS	:= $(shell $(ROOTCONFIG) --cflags)
+ROOTLDFLAGS	:= $(shell $(ROOTCONFIG) --ldflags)
+ROOTLIBS	:= $(shell $(ROOTCONFIG) --libs)
+ROOTGLIBS	:= $(shell $(ROOTCONFIG) --glibs)
+
+
+#Architechture Dependent Flags
+ifeq ($(ARCH),linuxx8664gcc)
+# AMD Opteron and Intel EM64T (64 bit mode) Linux with gcc 3.x
+CXX           = g++
+CXXFLAGS      = $(OPT2) -Wall -fPIC
+LD            = g++
+LDFLAGS       = $(OPT2)
+SOFLAGS       = -shared
+endif
+
+ifeq ($(ARCH),linux)
+# Linux with egcs, gcc 2.9x, gcc 3.x
+CXX           = g++
+CXXFLAGS      = $(OPT2) -Wall -fPIC
+LD            = g++
+LDFLAGS       = $(OPT2)
+SOFLAGS       = -shared
+endif
+
+ifeq ($(ARCH),macosx)
+# MacOS X with cc (GNU cc 2.95.2 and gcc 3.3)
+MACOSX_MINOR := $(shell sw_vers | sed -n 's/ProductVersion://p' | cut -d . -f 2)
+MACOSXTARGET := MACOSX_DEPLOYMENT_TARGET=10.$(MACOSX_MINOR)
+ifeq ($(MACOSX_MINOR),5)
+MACOSX_MINOR  = 4
+endif
+CXX           = g++
+CXXFLAGS      = $(OPT2) -pipe -Wall -W -Woverloaded-virtual
+LD            = g++
+LDFLAGS       = $(OPT2) -bind_at_load
+# The SOFLAGS will be used to create the .dylib,
+# the .so will be created separately
+DLLSUF       = dylib
+UNDEFOPT      = dynamic_lookup
+ifneq ($(MACOSX_MINOR),4)
+ifneq ($(MACOSX_MINOR),3)
+UNDEFOPT      = suppress
+LD            = g++
+endif
+endif
+SOFLAGS       = -dynamiclib -single_module -undefined $(UNDEFOPT)
+endif
+
+
