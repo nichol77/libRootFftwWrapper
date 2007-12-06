@@ -6,10 +6,16 @@
 include Makefile.arch
 
 #Site Specific  Flags (adjust to local site)
-SYSINCLUDES	= -I/sw/include
-SYSLIBS         = -L/sw/lib
-OUTLIBDIR          = /home/rjn/utilities/lib
-OUTINCDIR          = /home/rjn/utilities/includes
+SYSINCLUDES	= 
+SYSLIBS         = 
+
+ifdef ANITA_UTIL_INSTALL_DIR
+ANITA_UTIL_LIB_DIR=${ANITA_UTIL_INSTALL_DIR}/lib
+ANITA_UTIL_INC_DIR=${ANITA_UTIL_INSTALL_DIR}/includes
+else
+ANITA_UTIL_LIB_DIR=
+ANITA_UTIL_INC_DIR=
+endif
 
 #Generic and Site Specific Flags
 CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES) 
@@ -69,6 +75,10 @@ clean:
 	@rm -f $(TEST)
 
 
-install:	$(ROOT_LIBRARY)
-	@cp $(ROOT_LIBRARY) $(subst .$(DLLSUF),.so,$(ROOT_LIBRARY)) $(OUTLIBDIR)
-	@cp  $(CLASS_HEADERS) $(OUTINCDIR)
+install: $(ROOT_LIBRARY)
+ifeq ($(PLATFORM),macosx)
+	@cp $(ROOT_LIBRARY) $(subst .$(DLLSUF),.so,$(ROOT_LIBRARY)) $(ANITA_UTIL_LIB_DIR)
+else
+	@cp $(ROOT_LIBRARY) $(ANITA_UTIL_LIB_DIR)
+endif
+	@cp  $(CLASS_HEADERS) $(ANITA_UTIL_INC_DIR)

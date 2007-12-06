@@ -42,12 +42,14 @@ public:
     static TGraph *getHilbertTransform(TGraph *grWave);
     static TGraph *getHilbertEnvelope(TGraph *grWave);
 
-    //Utility functions
+    //Utility functions (not necessarily FFT related but they'll live here for now
     static Double_t sumPower(TGraph *gr,Int_t firstBin,Int_t lastBin);
     static Double_t integratePower(TGraph *gr,Int_t firstBin,Int_t lastBin);
     static Double_t sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin);
     static Double_t integrateVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin);
     static Int_t getPeakBin(TGraph *gr); 
+    static Double_t getPeakVal(TGraph *gr, int *index=0);
+    static Double_t getPeakSqVal(TGraph *gr, int *index=0);
     
     //Graph returning utility funcs
     static TGraph *getSimplePowerEnvelopeGraph(TGraph *gr);

@@ -698,6 +698,47 @@ Int_t FFTtools::getPeakBin(TGraph *gr)
   return peakBin;
 }
 
+
+Double_t FFTtools::getPeakVal(TGraph *gr, int *index) 
+{
+   Double_t x,y;
+   gr->GetPoint(0,x,y);
+   Double_t peakVal=y;
+   Int_t peakBin=0;
+   Int_t numPoints=gr->GetN();
+   for(int i=1;i<numPoints;i++) {
+      gr->GetPoint(i,x,y);
+      if(peakVal<y) {
+	 peakVal=y;
+	 peakBin=i;
+      }      
+   }
+   if(index) 
+      *index=peakBin;
+   return peakVal;
+}
+
+Double_t FFTtools::getPeakSqVal(TGraph *gr, int *index) 
+{
+   Double_t x,y;
+   gr->GetPoint(0,x,y);
+   Double_t peakVal=y*y;
+   Int_t peakBin=0;
+   Int_t numPoints=gr->GetN();
+   for(int i=1;i<numPoints;i++) {
+      gr->GetPoint(i,x,y);
+      if(peakVal<y*y) {
+	 peakVal=y*y;
+	 peakBin=i;
+      }      
+   }
+   if(index) 
+      *index=peakBin;
+   return peakVal;
+
+}
+
+
 TGraph *FFTtools::subtractGraphs(TGraph *grA, TGraph *grB) 
 {
   Int_t N1=grA->GetN();
