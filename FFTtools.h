@@ -50,7 +50,8 @@ public:
     static Int_t getPeakBin(TGraph *gr); 
     static Double_t getPeakVal(TGraph *gr, int *index=0);
     static Double_t getPeakSqVal(TGraph *gr, int *index=0);
-    
+    static void getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms);
+
     //Graph returning utility funcs
     static TGraph *getSimplePowerEnvelopeGraph(TGraph *gr);
     static TGraph *smoothFFT(TGraph *gr,Int_t factor) ;

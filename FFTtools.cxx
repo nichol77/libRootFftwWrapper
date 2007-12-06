@@ -738,6 +738,19 @@ Double_t FFTtools::getPeakSqVal(TGraph *gr, int *index)
 
 }
 
+void FFTtools::getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms)
+{
+  Int_t numPoints=gr->GetN();
+  Double_t *y = gr->GetY();
+  Double_t *ySq = new Double_t [numPoints];
+  for(int i=0;i<numPoints;i++) {
+    ySq[i]=y[i]*y[i];
+  }
+  peak=TMath::MaxElement(numPoints,ySq);
+  rms=TMath::RMS(numPoints,ySq);
+  delete [] ySq;
+}
+
 
 TGraph *FFTtools::subtractGraphs(TGraph *grA, TGraph *grB) 
 {
