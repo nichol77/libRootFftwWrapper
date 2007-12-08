@@ -738,7 +738,7 @@ Double_t FFTtools::getPeakSqVal(TGraph *gr, int *index)
 
 }
 
-void FFTtools::getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms)
+void FFTtools::getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index)
 {
   Int_t numPoints=gr->GetN();
   Double_t *y = gr->GetY();
@@ -746,11 +746,26 @@ void FFTtools::getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms)
   for(int i=0;i<numPoints;i++) {
     ySq[i]=y[i]*y[i];
   }
-  peak=TMath::MaxElement(numPoints,ySq);
+  Int_t peakInd=TMath::LocMax(numPoints,ySq);
+  peak=ySq[peakInd];
   rms=TMath::RMS(numPoints,ySq);
+  if(index)
+    *index=peakInd;
   delete [] ySq;
 }
 
+void FFTtools::getPeakRmsRectified(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index)
+{
+  TGraph *grRec = rectifyWave(gr);
+  Int_t numPoints=grRec->GetN();
+  Double_t *y = grRec->GetY();
+  Int_t peakInd=TMath::LocMax(numPoints,y);
+  peak=y[peakInd];
+  rms=TMath::RMS(numPoints,y);
+  if(index)
+    *index=peakInd;
+  delete grRec;
+}
 
 TGraph *FFTtools::subtractGraphs(TGraph *grA, TGraph *grB) 
 {
@@ -906,6 +921,25 @@ TGraph *FFTtools::padWave(TGraph *grWave, Int_t padFactor) {
    delete [] paddedY;
    return grPadded;
 }
+
+
+TGraph *FFTtools::rectifyWave(TGraph *gr, Int_t isNeg) {
+  Int_t sign=1;
+  if(isNeg) 
+    sign=-1;
+
+  Int_t numPoints = gr->GetN();
+  Double_t *x = gr->GetX();
+  Double_t *y = gr->GetY();
+  Double_t *yRec = new Double_t [numPoints];
+  for(int i=0;i<numPoints;i++) {
+    yRec[i]=sign*TMath::Abs(y[i]);
+  }
+  TGraph *grRec = new TGraph(numPoints,x,yRec);
+  delete [] yRec;
+  return grRec;
+}
+
 
 TGraph *FFTtools::getSimplePowerEnvelopeGraph(TGraph *gr) {
   Double_t *ySq = new Double_t [gr->GetN()];

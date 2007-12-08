@@ -50,7 +50,8 @@ public:
     static Int_t getPeakBin(TGraph *gr); 
     static Double_t getPeakVal(TGraph *gr, int *index=0);
     static Double_t getPeakSqVal(TGraph *gr, int *index=0);
-    static void getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms);
+    static void getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms, int *index=0);
+    static void getPeakRmsRectified(TGraph *gr, Double_t &peak, Double_t &rms, int *index=0);
 
     //Graph returning utility funcs
     static TGraph *getSimplePowerEnvelopeGraph(TGraph *gr);
@@ -60,6 +61,7 @@ public:
     static TGraph *ratioSubtractOneGraphs(TGraph *grA, TGraph *grB) ;
     static TGraph *dbGraphs(TGraph *grA, TGraph *grB);
     static TGraph *padWave(TGraph *grA, Int_t padFactor);
+    static TGraph *rectifyWave(TGraph *gr, Int_t makeNeg=0);
 
 };
    
