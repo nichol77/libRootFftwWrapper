@@ -18,6 +18,10 @@ public:
     FFTtools();
     ~FFTtools();    
 
+    
+    //Interpolation Routines that use ROOT::Math::Interpolator
+    static TGraph *getInterpolatedGraph(TGraph *grIn, Double_t deltaT);
+
     //Worker functions that use FFTW
     static double getAbs(FFTWComplex &theNum);
     static double *doInvFFT(int length, FFTWComplex *theInput);
@@ -36,6 +40,7 @@ public:
     static TGraph *makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t padFactor=4);
     static TGraph *makeRawPowerSpectrum(TGraph *grWave);
     static TGraph *getCorrelationGraph(TGraph *gr1, TGraph *gr2);
+    static TGraph *getInterpolatedCorrelationGraph(TGraph *grIn1, TGraph *grIn2, Double_t deltaT);
     static TGraph *makeInverseInverseSpectrum(TGraph *grWave);
     static TGraph *combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double *theWeights=0);
     static TGraph *getBoxCar(TGraph *grWave, Int_t halfWidth);

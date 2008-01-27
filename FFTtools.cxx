@@ -3,10 +3,19 @@
 #include <fstream>
 #include "TSystem.h"
 #include "TMath.h"
+#include "Math/Interpolator.h"
+#include "Math/InterpolationTypes.h"
+
 
 #include <fftw3.h>
 
 using namespace std;
+
+
+
+
+
+
 
 FFTtools::FFTtools()
 {
@@ -14,6 +23,54 @@ FFTtools::FFTtools()
 
 FFTtools::~FFTtools()
 {
+}
+
+TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
+{
+  //Will use the ROOT::Math::Interpolator function to do this.
+  std::vector<double> tVec;
+  std::vector<double> vVec;
+   
+  Int_t numIn=grIn->GetN();
+  Double_t tIn,vIn;
+
+  Double_t startTime=0;
+  Double_t lastTime=0;
+  for (int samp=0;samp<numIn;samp++) {
+    grIn->GetPoint(samp,tIn,vIn);
+    tVec.push_back(tIn);
+    vVec.push_back(vIn);
+    if(samp==0)
+      startTime=tIn;
+    lastTime=tIn;
+   }
+   if(tVec.size()<1) {
+     std::cout << "Insufficent points for interpolation\n";
+     return NULL;
+   }
+
+   ROOT::Math::Interpolator chanInterp(tVec,vVec,ROOT::Math::Interpolation::AKIMA);
+   
+   Int_t roughPoints=Int_t((lastTime-startTime)/deltaT);
+   
+
+   Double_t *newTimes = new Double_t[roughPoints+100]; //Will change this at some point, but for now
+   Double_t *newVolts = new Double_t[roughPoints+100]; //Will change this at some point, but for now
+   Int_t numPoints=0;
+   for(Double_t time=startTime;time<=lastTime;time+=deltaT) {
+      newTimes[numPoints]=time;
+      newVolts[numPoints]=chanInterp.Eval(time);
+      //      std::cout << numPoints << "\t" << newTimes[numPoints]
+      //      		<< "\t" << newVolts[numPoints] << std::endl;
+	       
+      numPoints++;
+   }
+
+   TGraph *grInt = new TGraph(numPoints,newTimes,newVolts);
+   delete [] newTimes;
+   delete [] newVolts;
+   return grInt;
+
 }
 
 
@@ -248,6 +305,21 @@ TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2) {
     return grCor;
 }
 
+
+
+TGraph *FFTtools::getInterpolatedCorrelationGraph(TGraph *grIn1, TGraph *grIn2, Double_t deltaT)
+{
+  TGraph *gr1 = getInterpolatedGraph(grIn1,deltaT);
+  TGraph *gr2 = getInterpolatedGraph(grIn2,deltaT);
+  //  std::cout << gr1 << "\t" << gr2 << "\n"; 
+  //  std::cout << gr1->GetN() << "\t" << gr2->GetN() << "\n"; 
+  TGraph *grCor = getCorrelationGraph(gr1,gr2);
+  //  std::cout << grCor << "\n";
+  ///  std::cout << grCor->GetN() << "\n";
+  delete gr1;
+  delete gr2;
+  return grCor;
+}
 
 double *FFTtools::getCorrelation(int length,float *oldY1, float *oldY2) 
 {

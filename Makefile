@@ -20,7 +20,7 @@ endif
 #Generic and Site Specific Flags
 CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES) 
 LDFLAGS      += $(ROOTLDFLAGS) 
-LIBS          = $(ROOTLIBS) $(SYSLIBS)
+LIBS          = $(ROOTLIBS) -lMathMore $(SYSLIBS)
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 
