@@ -25,6 +25,16 @@ FFTtools::~FFTtools()
 {
 }
 
+Double_t FFTtools::bartlettWindow(Int_t j, Int_t n)
+{ 
+return 1. - TMath::Abs(Double_t(2*j -n)/n);
+}
+
+Double_t FFTtools::welchWindow(Int_t j, Int_t n)
+{ 
+  return 1. -TMath::Power(Double_t(2*j -n)/n,2);
+}
+
 TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
 {
   //Will use the ROOT::Math::Interpolator function to do this.
@@ -479,6 +489,19 @@ TGraph *FFTtools::getBoxCar(TGraph *grWave, Int_t halfWidth)
   delete [] smoothY;
   return grSmooth;
   
+}
+
+TGraph *FFTtools::makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave) {
+  Double_t *oldY=grWave->GetY();
+  Double_t *t = grWave->GetX();
+  Int_t numPoints = grWave->GetN();
+  Double_t *newY = new Double_t [numPoints];
+  for(int i=0;i<numPoints;i++) {
+    newY[i]=oldY[i]*bartlettWindow(i,numPoints);
+  }
+  TGraph *grNew = new TGraph(numPoints,t,newY);
+  delete [] newY;
+  return makePowerSpectrumVoltsSeconds(grNew);
 }
 
 
@@ -1050,4 +1073,53 @@ TGraph *FFTtools::getSimplePowerEnvelopeGraph(TGraph *gr) {
   delete [] yEnvelope;
   delete [] xEnvelope;
   return grEnvelope;
+}
+
+TGraph *FFTtools::makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor, Int_t numFreqs)
+{
+  TGraph *grPad=padWave(grWave,padFactor);  
+  Int_t numTot=grPad->GetN();
+  Double_t *tVals = grPad->GetX();
+  Double_t *vVals = grPad->GetY();
+  Int_t m2=numFreqs*2;
+  Double_t *inTimes = new Double_t[m2];
+  Double_t *inVolts = new Double_t[m2];
+  Double_t *outFreqs= new Double_t[m2];
+  Double_t *outPower= new Double_t[m2];
+  Int_t numSegs=(numTot-1)/numFreqs;
+  Double_t delta= numSegs>1 ? Double_t(numTot-m2)/(numSegs-1.) : 0.;
+  if(numTot < m2) {
+    cerr << "Not enough data points for this many frequency bins" << endl;
+    return 0;
+  }  
+  Int_t numOut=0;
+  for(int i=0;i<m2;i++) {
+    outPower[i]=0;
+  }
+
+  for(int k=0;k<numSegs;k++) {
+    Int_t noff = (Int_t)(k*delta + 0.5);
+    for(int i=0;i<m2;i++) {
+      inTimes[i]=tVals[i+noff];
+      inVolts[i]=vVals[i+noff]*bartlettWindow(i,m2);
+    }
+    TGraph grTemp(m2,inTimes,inVolts);
+    TGraph *grPowTemp = makePowerSpectrumVoltsSeconds(&grTemp);
+    Double_t *tempFreq = grPowTemp->GetX();
+    Double_t *tempPower = grPowTemp->GetY();
+    numOut=grPowTemp->GetN();
+    for(int i=0;i<numOut;i++) {
+      outFreqs[i]=tempFreq[i];
+      outPower[i]+=tempPower[i]; //To divide by numSegs or not that is the question
+    }
+    delete grPowTemp;
+  }  
+  //  std::cout << m2 << "\t" << numOut << "\t" << numSegs << endl;
+
+  TGraph *grRet = new TGraph (numOut,outFreqs,outPower);
+  delete [] inTimes;
+  delete [] inVolts;
+  delete [] outFreqs;
+  delete [] outPower;
+  return grRet;
 }

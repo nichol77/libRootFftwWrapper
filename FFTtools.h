@@ -35,6 +35,8 @@ public:
     static TGraph *makePowerSpectrum(TGraph *grWave);
     static TGraph *makePowerSpectrumPeriodogram(TGraph *grWave);
     static TGraph *makePowerSpectrumVoltsSeconds(TGraph *grWave);
+    static TGraph *makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave);
+    static TGraph *makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor=4, Int_t numFreqs=64);
     static TGraph *makePowerSpectrumVoltsSecondsdB(TGraph *grWave);
     static TGraph *makePowerSpectrumVoltsSecondsPadded(TGraph *grWave, Int_t padFactor=4);
     static TGraph *makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t padFactor=4);
@@ -48,10 +50,10 @@ public:
     static TGraph *getHilbertEnvelope(TGraph *grWave);
 
     //Utility functions (not necessarily FFT related but they'll live here for now
-    static Double_t sumPower(TGraph *gr,Int_t firstBin,Int_t lastBin);
-    static Double_t integratePower(TGraph *gr,Int_t firstBin,Int_t lastBin);
+    static Double_t sumPower(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
+    static Double_t integratePower(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
     static Double_t sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin);
-    static Double_t integrateVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin);
+    static Double_t integrateVoltageSquared(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
     static Int_t getPeakBin(TGraph *gr); 
     static Double_t getPeakVal(TGraph *gr, int *index=0);
     static Double_t getPeakSqVal(TGraph *gr, int *index=0);
@@ -67,6 +69,12 @@ public:
     static TGraph *dbGraphs(TGraph *grA, TGraph *grB);
     static TGraph *padWave(TGraph *grA, Int_t padFactor);
     static TGraph *rectifyWave(TGraph *gr, Int_t makeNeg=0);
+
+    //Window functions
+    static Double_t  bartlettWindow(Int_t j, Int_t n);
+    static Double_t welchWindow(Int_t j, Int_t n);
+
+
 
 };
    
