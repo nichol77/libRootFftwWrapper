@@ -38,6 +38,7 @@ public:
     static TGraph *makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave);
     static TGraph *makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor=4, Int_t numFreqs=64);
     static TGraph *makePowerSpectrumVoltsSecondsdB(TGraph *grWave);
+    static TGraph *makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave);
     static TGraph *makePowerSpectrumVoltsSecondsPadded(TGraph *grWave, Int_t padFactor=4);
     static TGraph *makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t padFactor=4);
     static TGraph *makeRawPowerSpectrum(TGraph *grWave);

@@ -618,6 +618,50 @@ TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
 
 }
 
+TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave)
+{
+
+    double *oldY = grWave->GetY();
+    double *oldX = grWave->GetX();
+    double deltaT=oldX[1]-oldX[0];
+    int length=grWave->GetN();
+    FFTWComplex *theFFT=doFFT(length,oldY);
+
+    int newLength=(length/2)+1;
+
+    double *newY = new double [newLength];
+    double *newX = new double [newLength];
+
+    //    double fMax = 1/(2*deltaT);  // In Hz
+    double deltaF=1/(deltaT*length); //Hz
+    deltaF*=1e3; //MHz
+    //    std::cout << fMax << "\t" << deltaF << "\t" << deltaT << "\t" << length << std::endl;
+
+    double tempF=0;
+    for(int i=0;i<newLength;i++) {
+       float power=pow(getAbs(theFFT[i]),2);
+	if(i>0 && i<newLength-1) power*=2; //account for symmetry
+	power*=deltaT/(length); //For time-integral squared amplitude
+	power*=(1e3*1e3)/1e9;
+	power/=deltaF;//Just to normalise bin-widths
+	//Ends up the same as dt^2, need to integrate the power (multiply by df)
+	//to get a meaningful number out.	
+	
+	if (power>0 ) power=10*TMath::Log10(power);
+	else power=-1000; //no reason
+	newX[i]=tempF;
+	newY[i]=power;
+	tempF+=deltaF;
+    }
+
+
+    TGraph *grPower = new TGraph(newLength,newX,newY);
+    delete [] newY;
+    delete [] newX;
+    return grPower;
+
+
+}
 
 TGraph *FFTtools::makePowerSpectrumVoltsSecondsdB(TGraph *grWave) {
 
