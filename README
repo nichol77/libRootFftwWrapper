@@ -18,8 +18,9 @@ i) Install both ROOT and FFTW3 are on your system and that ROOTSYS is correctly 
 ii) Edit the site specific section at the top of the Makefile (in general only the install variables need to be set)
 iii) To make type:
 make
-iv) To install in another directory (if desired) type:
+iv) To install libRootFftwWrapper set the environmental variable ANITA_UTIL_INSTALL_DIR ro point to your desired installation dir and type:
 make install
+(N.B. the directories $ANITA_UTIL_INSTALL_DIR/include and $ANITA_UTIL_INSTALL_DIR/lib must exist)
 
 Usage from within ROOT
 =======================
