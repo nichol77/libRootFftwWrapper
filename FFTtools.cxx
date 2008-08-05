@@ -59,7 +59,7 @@ TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
      return NULL;
    }
 
-   ROOT::Math::Interpolator chanInterp(tVec,vVec,ROOT::Math::Interpolation::AKIMA);
+   ROOT::Math::Interpolator chanInterp(tVec,vVec,ROOT::Math::Interpolation::kAKIMA);
    
    Int_t roughPoints=Int_t((lastTime-startTime)/deltaT);
    
