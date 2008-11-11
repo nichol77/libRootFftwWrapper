@@ -83,4 +83,4 @@ ifeq ($(PLATFORM),macosx)
 else
 	install -c -m 755 $(ROOT_LIBRARY) $(ANITA_UTIL_LIB_DIR)
 endif
-	install -c -m 755 $(CLASS_HEADERS) $(ANITA_UTIL_INC_DIR)
+	install -c -m 644 $(CLASS_HEADERS) $(ANITA_UTIL_INC_DIR)
