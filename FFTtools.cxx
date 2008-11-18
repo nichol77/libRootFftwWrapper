@@ -839,6 +839,26 @@ Int_t FFTtools::getPeakBin(TGraph *gr)
 }
 
 
+Int_t FFTtools::getPeakBin(TGraph *gr, Int_t firstBin, Int_t lastBin) 
+{
+  if(firstBin<0 || lastBin<0 || firstBin>gr->GetN() || lastBin>gr->GetN() ||
+     (lastBin<firstBin))
+    return -1;
+  Double_t x,y;
+  gr->GetPoint(firstBin,x,y);
+  Double_t peakVal=y;
+  Int_t peakBin=0;
+  for(int i=firstBin;i<lastBin;i++) {
+    gr->GetPoint(i,x,y);
+    if(peakVal<y) {
+      peakVal=y;
+      peakBin=i;
+    }      
+  }
+  return peakBin;
+}
+
+
 Double_t FFTtools::getPeakVal(TGraph *gr, int *index) 
 {
    Double_t x,y;

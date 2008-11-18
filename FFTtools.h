@@ -269,7 +269,14 @@ public:
     \return The index of the bin with peak value.
   */    
   static Int_t getPeakBin(TGraph *gr); 
-  
+ 
+
+  //! Find the peak (maximum positive) bin in a TGraph
+  /*!
+    \param gr A pointer to the input TGraph 
+    \return The index of the bin with peak value.
+  */    
+  static Int_t getPeakBin(TGraph *gr, Int_t firstBin, Int_t lastBin);  
   
   //! Find the peak (maximum positive) in a TGraph.
   /*!
