@@ -385,6 +385,23 @@ public:
 
 
 
+  //! This fucntions just calculates the simple bin by bin dv/dt derivative of the input data.
+  /*!
+    \param numPoints The number of points in the input data (the output will be numPoints-1 in length).
+    \param inputX The input time values.
+    \param inputY The input voltage values.
+    \param outputX The output time values.
+    \param outputY The output voltage values.
+  */       
+  static void takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *inputY, Double_t *outputX, Double_t *outputY);
+
+ //! This returns a TGraph which is the derivative of the input graph
+  /*!
+    \param grIn The input graph.
+    \return The derviative of grIn.
+  */      
+  static TGraph *getDerviative(TGraph *grIn);
+
 };
    
 #endif //FFTTOOLS_H

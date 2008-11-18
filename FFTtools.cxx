@@ -1188,3 +1188,30 @@ TGraph *FFTtools::makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor,
   delete [] outPower;
   return grRet;
 }
+
+void FFTtools::takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *inputY, Double_t *outputX, Double_t *outputY) {
+  int count=0;
+  for(int samp=1;samp<numPoints;samp++) {
+    Double_t deltaT=inputX[samp]-inputX[samp-1];
+    Double_t deltaV=inputY[samp]-inputY[samp-1];
+    outputX[count]=inputX[samp];
+    outputY[count]=deltaV/deltaT;
+    count++;
+  }
+}
+
+TGraph *FFTtools::getDerviative(TGraph *grIn) 
+{
+  Int_t numPoints=grIn->GetN();
+  if(numPoints<2) return NULL;
+  Double_t *xVals=grIn->GetX();
+  Double_t *yVals=grIn->GetY();
+  Double_t *newX = new Double_t [numPoints];
+  Double_t *newY = new Double_t [numPoints];
+  takeDerivative(numPoints,xVals,yVals,newX,newY);
+  TGraph *grDeriv = new TGraph(numPoints-1,newX,newY);
+  delete [] newX;
+  delete [] newY;
+  return grDeriv;
+
+}
