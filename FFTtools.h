@@ -212,7 +212,7 @@ public:
    //! Smooth graph using box car smoothing
   /*!
     \param grWave A pointer to the input TGraph
-    \param halfWidth The halfWidth in samples of the size of the box over which to smooth the input graph (eg. <i>halfWidth</i>=1 means that sample i is the average if i-1, i and i.
+    \param halfWidth The halfWidth in samples of the size of the box over which to smooth the input graph (eg. <i>halfWidth</i>=1 means that sample i is the average if i-1, i and i+1.
     \return A pointer to a TGraph containing the smoothed graph.
   */
   static TGraph *getBoxCar(TGraph *grWave, Int_t halfWidth);
@@ -401,6 +401,15 @@ public:
     \return The derviative of grIn.
   */      
   static TGraph *getDerviative(TGraph *grIn);
+
+ //! This returns a TGraph which has had a simple pass band filter applied
+  /*!
+    \param grWave The input graph.
+    \param minFreq The lowest frequency to pass.
+    \param maxFreq The highest frequency to pass.
+    \return The derviative of grWave.
+  */      
+  static TGraph *simplePassBandFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
 
 };
    

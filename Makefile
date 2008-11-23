@@ -6,12 +6,14 @@
 include Makefile.arch
 
 #Site Specific  Flags (adjust to local site)
-SYSINCLUDES	= -I/usr/include
-SYSLIBS         = -L/usr/lib64
+SYSINCLUDES	= -I/sw/include
+SYSLIBS         = -L/sw/lib64
 
 ifdef ANITA_UTIL_INSTALL_DIR
 ANITA_UTIL_LIB_DIR=${ANITA_UTIL_INSTALL_DIR}/lib
 ANITA_UTIL_INC_DIR=${ANITA_UTIL_INSTALL_DIR}/include
+LD_ANITA_UTIL=-L$(ANITA_UTIL_LIB_DIR)
+INC_ANITA_UTIL=-I$(ANITA_UTIL_INC_DIR)
 else
 ANITA_UTIL_LIB_DIR=/usr/local/lib
 ANITA_UTIL_INC_DIR=/usr/local/include
