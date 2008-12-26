@@ -411,6 +411,15 @@ public:
   */      
   static TGraph *simplePassBandFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
 
+ //! This returns a TGraph which has had a simple notch band filter applied
+  /*!
+    \param grWave The input graph.
+    \param minFreq The lower frequency of the notch.
+    \param maxFreq The upper frequency of the notch.
+    \return The derviative of grWave.
+  */      
+  static TGraph *simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
+
 };
    
 #endif //FFTTOOLS_H
