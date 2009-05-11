@@ -420,6 +420,16 @@ public:
   */      
   static TGraph *simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
 
+  //! This returns a TGraph which has had N simple notch band filters applied
+  /*!
+    \param grWave The input graph.
+    \param numNotches The number of notch regiosn
+    \param minFreq An array of lower frequency of the notches.
+    \param maxFreq An array upper frequency of the notch.
+    \return The derviative of grWave.
+  */      
+  static TGraph *multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[]);
+
 };
    
 #endif //FFTTOOLS_H

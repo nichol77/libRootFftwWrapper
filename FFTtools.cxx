@@ -1295,3 +1295,45 @@ TGraph *FFTtools::simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t m
     return grFiltered;
 
 }
+
+
+TGraph *FFTtools::multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[])
+{
+
+    double *oldY = grWave->GetY();
+    double *oldX = grWave->GetX();
+    double deltaT=oldX[1]-oldX[0];
+    int length=grWave->GetN();
+    FFTWComplex *theFFT=doFFT(length,oldY);
+
+    int newLength=(length/2)+1;
+
+    //    double fMax = 1/(2*deltaT);  // In Hz
+    double deltaF=1/(deltaT*length); //Hz
+    deltaF*=1e3; //MHz
+    //    std::cout << fMax << "\t" << deltaF << "\t" << deltaT << "\t" << length << std::endl;
+
+    double tempF=0;
+    for(int i=0;i<newLength;i++) {
+      //      std::cout << tempF << "\t" << theFFT[i].re << "\t" << theFFT[i].im << "\n";
+      for(int notch=0;notch<numNotches;notch++) {
+	if(tempF>minFreq[notch] && tempF<maxFreq[notch]) {
+	  theFFT[i].re=0;
+	  theFFT[i].im=0;
+	}      
+      }
+      //      std::cout << tempF << "\t" << theFFT[i].re << "\t" << theFFT[i].im << "\n";
+      tempF+=deltaF;
+    }
+
+    double *filteredVals = doInvFFT(length,theFFT);
+
+
+    TGraph *grFiltered = new TGraph(length,oldX,filteredVals);
+    delete [] theFFT;
+    delete [] filteredVals;
+    return grFiltered;
+
+
+
+}
