@@ -1296,6 +1296,32 @@ TGraph *FFTtools::simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t m
 
 }
 
+TGraph *FFTtools::cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime)
+{
+  Int_t numPoints=grWave->GetN();
+  if(numPoints<1) return NULL;
+  Double_t *xVals=grWave->GetX();
+  Double_t *yVals=grWave->GetY();
+  
+  Double_t *outX = new Double_t[numPoints];
+  Double_t *outY = new Double_t[numPoints];
+  Int_t outPoints=0;
+
+
+  for(int i=0;i<numPoints;i++) {
+    if(xVals[i]>=minTime && xVals[i]<=maxTime) {
+      outX[outPoints]=xVals[i];
+      outY[outPoints]=yVals[i];
+      outPoints++;
+    }
+  }
+  
+  TGraph *grCrop = new TGraph(outPoints,outX,outY);
+  delete [] outX;
+  delete [] outY;
+  return grCrop;
+}
+
 
 TGraph *FFTtools::multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[])
 {

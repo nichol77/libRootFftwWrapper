@@ -31,7 +31,7 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 #ROOT stuff
 
-ROOT_LIBRARY = libRootFftwWrapper.${DLLSUF}
+ROOT_LIBRARY = libRootFftwWrapper.${DllSuf}
 LIB_OBJS =  FFTWComplex.o FFTtools.o fftDict.o
 CLASS_HEADERS =   FFTWComplex.h FFTtools.h
 
@@ -48,12 +48,14 @@ $(ROOT_LIBRARY) : $(LIB_OBJS)
 	@echo "Linking $@ ..."
 ifeq ($(PLATFORM),macosx)
 # We need to make both the .dylib and the .so
-	$(LD) $(SOFLAGS) $^ $(OutPutOpt) $@
+		$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@
+ifneq ($(subst $(MACOSX_MINOR),,1234),1234)
 ifeq ($(MACOSX_MINOR),4)
-	ln -sf $@ $(subst .$(DLLSUF),.so,$@)
+		ln -sf $@ $(subst .$(DllSuf),.so,$@)
 else
-	$(LD) -bundle -undefined $(UNDEFOPT) $(LDFLAGS) $^ \
-	 $(OutPutOpt) $(subst .$(DLLSUF),.so,$@)
+		$(LD) -bundle -undefined $(UNDEFOPT) $(LDFLAGS) $^ \
+		   $(OutPutOpt) $(subst .$(DllSuf),.so,$@)
+endif
 endif
 else
 	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIB_OBJS) -o $@

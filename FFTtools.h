@@ -420,6 +420,7 @@ public:
   */      
   static TGraph *simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
 
+
   //! This returns a TGraph which has had N simple notch band filters applied
   /*!
     \param grWave The input graph.
@@ -429,6 +430,17 @@ public:
     \return The derviative of grWave.
   */      
   static TGraph *multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[]);
+
+//! This returns a TGraph which has been cropped in.
+  /*!
+    \param grWave The input graph.
+    \param minTime The lower edge of the time window.
+    \param maxTime The upper edge of the time window.
+    \return The derviative of grWave.
+  */      
+  static TGraph *cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime);
+
+
 
 };
    
