@@ -75,7 +75,7 @@ clean:
 	@rm -f *.${OBJSUF}
 	@rm -f $(LIBRARY)
 	@rm -f $(ROOT_LIBRARY)
-	@rm -f $(subst .$(DLLSUF),.so,$(ROOT_LIBRARY))	
+	@rm -f $(subst .$(DllSuf),.so,$(ROOT_LIBRARY))	
 	@rm -f $(TEST)
 
 
@@ -83,7 +83,7 @@ install: $(ROOT_LIBRARY)
 	install -d $(ANITA_UTIL_INC_DIR)
 	install -d $(ANITA_UTIL_LIB_DIR)
 ifeq ($(PLATFORM),macosx)
-	@install -c -m 755 $(ROOT_LIBRARY) $(subst .$(DLLSUF),.so,$(ROOT_LIBRARY)) $(ANITA_UTIL_LIB_DIR)
+	@install -c -m 755 $(ROOT_LIBRARY) $(subst .$(DllSuf),.so,$(ROOT_LIBRARY)) $(ANITA_UTIL_LIB_DIR)
 else
 	install -c -m 755 $(ROOT_LIBRARY) $(ANITA_UTIL_LIB_DIR)
 endif
