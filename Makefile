@@ -8,6 +8,9 @@ include Makefile.arch
 #Site Specific  Flags (adjust to local site)
 SYSINCLUDES	= -I/sw/include
 SYSLIBS         = -L/sw/lib64
+DLLSUF = ${DllSuf}
+OBJSUF = ${ObjSuf}
+SRCSUF = ${SrcSuf}
 
 ifdef ANITA_UTIL_INSTALL_DIR
 ANITA_UTIL_LIB_DIR=${ANITA_UTIL_INSTALL_DIR}/lib
