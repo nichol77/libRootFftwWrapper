@@ -1363,3 +1363,180 @@ TGraph *FFTtools::multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, D
 
 
 }
+
+//______________________________________________________________
+Double_t FFTtools::getWaveformSNR(TGraph *gr){
+  Double_t dummyPeak;
+  Double_t dummyRms;
+  Double_t snr = getWaveformSNR(gr,dummyPeak,dummyRms);
+  return snr;
+}
+
+
+
+
+//______________________________________________________________
+Double_t FFTtools::getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms)
+{
+  Int_t nRMS=25;
+
+  Int_t nBins = gr->GetN();
+  //  Double_t *xVals = gr->GetX();
+  Double_t *yVals = gr->GetY();
+
+  Double_t mean=0.;
+  Double_t meanSq=0.;
+
+  for(int i=0;i<nRMS;i++){
+    mean+=yVals[i];
+    meanSq+=yVals[i]*yVals[i];
+  }
+  mean/=static_cast<double>(nRMS);
+  meanSq/=static_cast<double>(nRMS);
+
+  Int_t trending=3;
+  Double_t p2p=0;
+  Int_t firstBin=0;
+  Double_t y;
+
+  for(int i=0;i<nBins;i++){
+    y=yVals[i];
+    if(i>0){
+      if(y<yVals[i-1] && trending==0){
+	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	  p2p=TMath::Abs(y-yVals[firstBin]);
+	}
+      }
+      else if(y<yVals[i-1] && (trending==1 || trending==2)){
+	trending=0;
+	firstBin=i-1;
+	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	  p2p=TMath::Abs(y-yVals[firstBin]);
+	}
+      }
+      else if(y>yVals[i-1] && (trending==0 || trending==2)){
+	trending=1;
+	firstBin=i-1;
+	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	  p2p=TMath::Abs(y-yVals[firstBin]);
+	}
+      }
+      else if(y>yVals[i-1] && trending==1){
+	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	  p2p=TMath::Abs(y-yVals[firstBin]);
+	}
+      }
+      else if(y==yVals[i-1]){
+	trending=2;
+      }
+      else if(trending==3){
+	if(y<yVals[i-1]){
+	  trending=0;
+	  firstBin=0;
+	}
+	if(y>yVals[i-1]){
+	  trending=1;
+	  firstBin=0;
+	}
+      }
+      else{
+	std::cout << "trending cock up!" << std::endl;
+	std::cout << "y " << y << " yVals[i] " << yVals[i] << " yVals[i-1] " << yVals[i-1] << std::endl;
+	return -1;
+      }
+    }
+  }
+
+  p2p/=2.;
+  
+  rms=sqrt(meanSq-mean*mean);
+  peakToPeak = p2p;
+
+  return p2p/rms;
+
+}
+
+
+
+
+//______________________________________________________________
+Double_t FFTtools::getWaveformPeak(TGraph *gr)
+{
+
+  Int_t nBins = gr->GetN();
+  Double_t yMax = -9999;
+  Double_t y,x;
+
+  for(int i=0;i<nBins;i++){
+    gr->GetPoint(i,x,y);
+    if(y>yMax)
+      yMax = y;
+  }
+
+  return yMax;
+}
+
+
+
+//______________________________________________________________
+Double_t FFTtools::getEnvelopeSNR(TGraph *gr){
+  Double_t dummyPeak;
+  Double_t dummyRms;
+  Double_t dummyTime;
+  Double_t snr = getEnvelopeSNR(gr,dummyPeak,dummyRms,dummyTime);
+  return snr;
+}
+
+
+
+
+//______________________________________________________________
+Double_t FFTtools::getEnvelopeSNR(TGraph *gr,Double_t &peak,Double_t &rms,Double_t &timeOfPeak)
+{
+
+  Int_t nRMS=25;
+
+  Int_t nBins = gr->GetN();
+  Double_t *xVals = gr->GetX();
+  Double_t *yVals = gr->GetY();
+
+  Double_t mean=0.;
+  Double_t meanSq=0.;
+
+  for(int i=0;i<nRMS;i++){
+    mean+=yVals[i];
+    meanSq+=yVals[i]*yVals[i];
+  }
+  mean/=static_cast<double>(nRMS);
+  meanSq/=static_cast<double>(nRMS);
+
+  Double_t p=0;
+  Double_t t=0;
+  Double_t y;
+  Double_t x;
+
+  for(int i=0;i<nBins;i++){
+    if(yVals[i]<0){
+      std::cout << "this isn't an envelope!!!" << std::endl;
+      return -1;
+    }
+    y=yVals[i];
+    x=xVals[i];
+    if(i>0){
+      if(y>p){
+	p=y;
+	t=x;
+      }
+    }
+  }
+
+  rms=sqrt(meanSq-mean*mean);
+  peak = p;
+  timeOfPeak = t;
+
+  return peak/rms;
+
+}
+
+
+

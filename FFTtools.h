@@ -440,6 +440,13 @@ public:
   */      
   static TGraph *cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime);
 
+  
+  static Double_t getWaveformSNR(TGraph *gr);
+  static Double_t getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms);
+  static Double_t getWaveformPeak(TGraph *gr);
+  static Double_t getEnvelopeSNR(TGraph *gr);
+  static Double_t getEnvelopeSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms,Double_t &timeOfPeak);
+  static TGraph *sumGraphArray(TGraph **gr,int nGraphs);
 
 
 };
