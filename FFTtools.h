@@ -66,8 +66,6 @@ public:
     \return An array of <i>length</i> real numbers
   */
   static double *doInvFFT(int length, FFTWComplex *theInput);
-
-
   //! Computes an FFT of an array of real numbers.
   /*!
     \param length The length of the input array.
@@ -156,6 +154,7 @@ public:
     \param grWave The input time domain waveform with units of millivolts-nanoseconds.
     \return A pointer to a TGraph containing the power spectrum in dB units, the frequency units are MHz. 
   */  
+  static TGraph *makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave);
   static TGraph *makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave);
   //! Returns the power spectral density of the input waveform zero-padded by some factor. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a volts-seconds one.
   /*!
@@ -337,6 +336,25 @@ public:
     \param grB A pointer to the second graph.
     \return A pointer to a TGraph containing the ratio (A/B) of the input graphs.
   */     
+
+
+  /////////////////////////////////////////////////////////////////////////////////////
+  //my added crap, some of it totally needless
+  static TGraph *addGraphs(TGraph *grA, TGraph *grB);
+  static TGraph addGraphsStatic(TGraph *grA, TGraph *grB);
+  static TGraph *setGraph(TGraph *grA);
+  static TGraph setGraphStatic(TGraph *grA);
+  static TGraph *setGraphDynamic(TGraph grA);
+  static TGraph *binGraph(TGraph *grA, Int_t n);
+  static TGraph *forceBinGraph(TGraph *grA, Int_t n, Double_t binsize);
+  static Int_t checkChannelSaturation(TGraph *grA);
+  static TGraph *removeBadBin(TGraph *grA);
+  static TGraph removeBadBinStatic(TGraph grA);
+  static TGraph *dBGraph(TGraph *grA);
+  static TGraph *aveGraph(TGraph *grA, Int_t n);
+  /////////////////////////////////////////////////////////////////////////////////////
+
+
   static TGraph *divideGraphs(TGraph *grA, TGraph *grB);
   //! Returns the one minus the ratio between two graphs (A/B).
   /*!

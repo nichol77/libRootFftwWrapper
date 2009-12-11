@@ -357,7 +357,7 @@ double *FFTtools::getCorrelation(int length,double *oldY1, double *oldY2)
     
 
     int newLength=(length/2)+1;
-//    cout << "newLength " << newLength << endl;
+//     cout << "newLength " << newLength << endl;
     FFTWComplex *tempStep = new FFTWComplex [newLength];
     int no2=length>>1;
     for(int i=0;i<newLength;i++) {
@@ -601,8 +601,8 @@ TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
 
     double tempF=0;
     for(int i=0;i<newLength;i++) {
-       float power=pow(getAbs(theFFT[i]),2);
-	if(i>0 && i<newLength-1) power*=2; //account for symmetry
+      float power=pow(getAbs(theFFT[i]),2);
+      	if(i>0 && i<newLength-1) power*=2; //account for symmetry
 	power*=deltaT/(length); //For time-integral squared amplitude
 	power/=deltaF;//Just to normalise bin-widths
 	//Ends up the same as dt^2, need to integrate the power (multiply by df)
@@ -618,13 +618,108 @@ TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
     delete [] theFFT;
     delete [] newY;
     delete [] newX;
+    ///////THIS BIT COULD DELETE THE POWERSPEC?????????
+    delete [] theFFT;
     return grPower;
 
 }
 
+TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave) {
+
+//   double *oldY = grWave->GetY(); //in millivolts
+//   double *oldX = grWave->GetX(); //in nanoseconds
+//   int length=grWave->GetN();
+
+//   double milli = 0.001;
+//   double nano = 0.000000001;
+
+//   double *oldY2 = new double [length];
+//   double *oldX2 = new double [length];
+
+//   for(int i=0;i<length;i++){
+//     oldY2[i]=oldY[i]*milli; //in volts
+//     oldX2[i]=oldX[i]*nano; // in seconds
+//   }
+
+//   double deltaT=(oldX2[1]-oldX2[0]);
+//   FFTWComplex *theFFT=doFFT(length,oldY2);
+
+//   int newLength=(length/2)+1;
+
+//   double *newY = new double [newLength];
+//   double *newX = new double [newLength];
+
+//   //    double fMax = 1/(2*deltaT);  // In Hz
+//   double deltaF=1/(deltaT*length); //Hz
+//   deltaF*=1e-6; //MHz
+
+
+//   double tempF=0;
+//   for(int i=0;i<newLength;i++) {
+//     float power=pow(getAbs(theFFT[i]),2);
+//     if(i>0 && i<newLength-1) power*=2; //account for symmetry
+//     power*=deltaT/(length); //For time-integral squared amplitude
+//     power/=deltaF;//Just to normalise bin-widths
+//     //Ends up the same as dt^2, need to integrate the power (multiply by df)
+//     //to get a meaningful number out.
+
+//     newX[i]=tempF;
+//     newY[i]=power;
+//     tempF+=deltaF;
+//   }
+
+//   TGraph *grPower = new TGraph(newLength,newX,newY);
+//   delete [] newY;
+//   delete [] newX;
+//   delete [] oldY2;
+//   delete [] oldX2;
+//   ///////THIS BIT COULD DELETE THE POWERSPEC?????????
+//   delete [] theFFT;
+//   return grPower;
+  double *oldY = grWave->GetY();
+  double *oldX = grWave->GetX();
+  double deltaT=oldX[1]-oldX[0];
+  int length=grWave->GetN();
+  FFTWComplex *theFFT=doFFT(length,oldY);
+  
+  int newLength=(length/2)+1;
+  
+  double *newY = new double [newLength];
+  double *newX = new double [newLength];
+  
+  //    double fMax = 1/(2*deltaT);  // In Hz
+  double deltaF=1/(deltaT*length); //Hz
+  deltaF*=1e3; //MHz
+  //    std::cout << fMax << "\t" << deltaF << "\t" << deltaT << "\t" << length << std::endl;
+  
+  double tempF=0;
+  for(int i=0;i<newLength;i++) {
+    float power=pow(getAbs(theFFT[i]),2);
+    if(i>0 && i<newLength-1) power*=2; //account for symmetry
+    power*=deltaT/(length); //For time-integral squared amplitude
+    power*=(1e3*1e3)/1e9;
+    power/=deltaF;//Just to normalise bin-widths
+    //Ends up the same as dt^2, need to integrate the power (multiply by df)
+    //to get a meaningful number out.	
+    
+    //if (power>0 ) power=10*TMath::Log10(power);
+    //else power=-1000; //no reason
+    newX[i]=tempF;
+    newY[i]=power;
+    tempF+=deltaF;
+  }
+
+  TGraph *grPower = new TGraph(newLength,newX,newY);
+  delete [] theFFT;
+  delete [] newY;
+  delete [] newX;
+  return grPower;
+
+}
+
+
 TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave)
 {
-
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
     double deltaT=oldX[1]-oldX[0];
@@ -688,17 +783,23 @@ TGraph *FFTtools::makePowerSpectrumVoltsSecondsdB(TGraph *grWave) {
 
     double tempF=0;
     for(int i=0;i<newLength;i++) {
-       float power=pow(getAbs(theFFT[i]),2);
+       double logpower;
+       double power=pow(getAbs(theFFT[i]),2);
 	if(i>0 && i<newLength-1) power*=2; //account for symmetry
 	power*=deltaT/(length); //For time-integral squared amplitude
 	power/=deltaF;//Just to normalise bin-widths
 	//Ends up the same as dt^2, need to integrate the power (multiply by df)
 	//to get a meaningful number out.	
 	
-	if (power>0 ) power=10*TMath::Log10(power);
-	else power=-1000; //no reason
+	if (power>0 ){
+	  logpower=10*TMath::Log10(power);
+	}
+	else{
+          logpower=-1000; //no reason
+	}	
+
 	newX[i]=tempF;
-	newY[i]=power;
+	newY[i]=logpower;
 	tempF+=deltaF;
     }
 
@@ -708,6 +809,7 @@ TGraph *FFTtools::makePowerSpectrumVoltsSecondsdB(TGraph *grWave) {
     delete [] newY;
     delete [] newX;
     return grPower;
+
 
 }
 
@@ -951,6 +1053,281 @@ TGraph *FFTtools::subtractGraphs(TGraph *grA, TGraph *grB)
   delete [] newY;
   return grDiff;
 }
+
+TGraph *FFTtools::addGraphs(TGraph *grA, TGraph *grB) 
+{
+  Int_t N1=grA->GetN();
+  Int_t N2=grB->GetN();
+  if(N1!=N2){
+    return NULL;
+    //if N1 not equal to N2 just take first 250 bins
+    //N1=250;
+  }
+  Double_t *newY = new Double_t [N1];
+  Double_t xA,xB,yA,yB;
+  for(int i=0;i<N1;i++) {
+    grA->GetPoint(i,xA,yA);
+    grB->GetPoint(i,xB,yB);
+    if(xA!=xB) std::cout << "warning: " << xA << " != " << xB << std::endl;
+    newY[i]=yA+yB;
+  }
+  TGraph *grSum = new TGraph(N1,grA->GetX(),newY);
+  delete [] newY;
+  return grSum;
+}
+
+
+TGraph FFTtools::addGraphsStatic(TGraph *grA, TGraph *grB) 
+{
+  Int_t N1=grA->GetN();
+  Int_t N2=grB->GetN();
+  if(N1!=N2){
+    //return NULL;
+    //if N1 not equal to N2 just take first 250 bins
+    //N1=250;
+    //return NULL;
+  }
+  Double_t *newY = new Double_t [N1];
+  Double_t x,yA,yB;
+  for(int i=0;i<N1;i++) {
+    grA->GetPoint(i,x,yA);
+    grB->GetPoint(i,x,yB);
+    newY[i]=yA+yB;
+  }
+  TGraph grSum;
+  grSum = TGraph(N1,grA->GetX(),newY);
+  delete [] newY;
+  return grSum;
+}
+
+
+
+TGraph *FFTtools::setGraph(TGraph *grA)
+{
+  Int_t N1=grA->GetN();
+  TGraph *grSet = new TGraph(N1,grA->GetX(),grA->GetY());
+  return grSet;
+}
+
+
+TGraph FFTtools::setGraphStatic(TGraph *grA)
+{
+  Int_t N1=grA->GetN();
+  TGraph grSet;
+  grSet = TGraph(N1,grA->GetX(),grA->GetY());
+  return grSet;
+}
+
+
+
+TGraph *FFTtools::setGraphDynamic(TGraph grA)
+{
+  Int_t N1=grA.GetN();
+  TGraph *grSet = new TGraph(N1,grA.GetX(),grA.GetY());
+  return grSet;
+}
+
+
+TGraph *FFTtools::binGraph(TGraph *grA,Int_t n)
+{
+  Int_t nbins=grA->GetN();
+  Double_t *xVals=grA->GetX();
+  Double_t binsize=xVals[1]-xVals[0];
+  Double_t *dummyX = new Double_t [n];
+  //Double_t binsize2=xVals[nbins-1]-xVals[nbins-2];
+  //cout << binsize << endl;
+  //cout << binsize2 << endl;
+  //cout << binsize - binsize2 << endl;
+  //if(binsize!=binsize2){
+  //  cout << "Unequal bin sizes!" << endl;
+  //  return NULL;
+  //}
+  Double_t *newX = new Double_t [n];
+  Double_t *newY = new Double_t [n];
+  if(nbins==n){
+    delete [] newY;
+    delete [] newX;
+    delete [] dummyX;
+    return grA;
+  }
+  else if (n>nbins){
+    for(Int_t i=0;i<nbins;i++){
+      grA->GetPoint(i,dummyX[i],newY[i]);
+      newX[i]=xVals[0]+i*binsize;
+    }
+    for(Int_t i=nbins;i<n;i++){
+      newX[i]=xVals[0]+i*binsize;
+      newY[i]=0;
+    }
+    TGraph *binPlot = new TGraph(n,newX,newY);
+    delete [] newX;
+    delete [] newY;
+    delete [] dummyX;
+    return binPlot;
+  }
+  else{
+    cout << "Trying to remove bins" << endl;
+    delete [] newX;
+    delete [] newY;
+    delete [] dummyX;
+    return NULL;
+  }
+}
+
+TGraph *FFTtools::forceBinGraph(TGraph *grA,Int_t n,Double_t binsize)
+{
+  Int_t nbins=grA->GetN();
+  //rebin with bin size so all plots and ffts have same range and bins
+  Double_t dummyX;
+  Double_t *newX = new Double_t [n];
+  Double_t *newY = new Double_t [n];
+  if(nbins==n){
+    delete [] newX;
+    delete [] newY;
+    return grA;
+  }
+  else if (n>nbins){
+    for(Int_t i=0;i<nbins;i++){
+      grA->GetPoint(i,dummyX,newY[i]);
+      newX[i]=i*binsize;
+    }
+    for(Int_t i=nbins;i<n;i++){
+      newX[i]=i*binsize;
+      newY[i]=0;
+    }
+    TGraph *binPlot = new TGraph(n,newX,newY);
+    delete [] newX;
+    delete [] newY;
+    return binPlot;
+  }
+  else{
+    cout << "Trying to remove bins" << endl;
+    delete [] newX;
+    delete [] newY;
+    return NULL;
+  }
+}
+
+
+Int_t FFTtools::checkChannelSaturation(TGraph *grA)
+{
+  Int_t goodGraph;
+  Int_t nbins=grA->GetN();
+  Double_t *yVals=grA->GetY();
+  for(Int_t i=1;i<nbins;i++){
+    if(yVals[i]>1000){
+      goodGraph=1;
+      return goodGraph;
+    }
+    else if(yVals[i]<1000){
+      goodGraph=1;
+      return goodGraph;
+    }
+  }
+  goodGraph=0;
+  return goodGraph;
+}
+
+
+TGraph *FFTtools::removeBadBin(TGraph *grA)
+{
+  Int_t nbins=grA->GetN();
+  Double_t *xVals=grA->GetX();
+  Double_t *yVals=grA->GetY();
+  Double_t *newX = new Double_t [nbins];
+  Double_t *newY = new Double_t [nbins];
+  Int_t newBins;
+  //set first new point
+  newX[0]=xVals[0];
+  newY[0]=yVals[0];
+  Int_t j=1;
+  for(Int_t i=1;i<nbins;i++){
+    //check if x[i] point is more than the last NEW x[j] point, if so then set new x point
+    if(xVals[i]>newX[j-1]){
+      newX[j]=xVals[i];
+      newY[j]=yVals[i];
+      j=j+1;
+    }
+  }
+  for(Int_t k=1;k<j;k++){
+    //now check that the y value is not more than +/-1V (1000mV) - if it is then is a saturated voltage entry, so set to be the same as the adjacent (previous) y value
+    //note that the first newY point is left alone, as is first newX point in previous loop
+    if(newY[k]>1000){
+      //cout << k << " " << newY[k] << "\t";
+      newY[k]=newY[k-1];
+      //cout << newY[k-1] << endl;
+    }
+    else if(newY[k]<-1000){
+      newY[k]=newY[k-1];
+    }
+  }
+  newBins=j;
+  TGraph *binPlot = new TGraph(newBins,newX,newY);
+  delete [] newX;
+  delete [] newY;
+  return binPlot;
+}
+
+
+TGraph FFTtools::removeBadBinStatic(TGraph grA)
+{
+  Int_t nbins=grA.GetN();
+  Double_t *xVals=grA.GetX();
+  Double_t *yVals=grA.GetY();
+  Double_t *newX = new Double_t [nbins];
+  Double_t *newY = new Double_t [nbins];
+  Int_t newBins;
+  newX[0]=xVals[0];
+  Int_t j=1;
+  for(Int_t i=1;i<nbins;i++){
+    //assumes that point after bad point is greater than x[i-3] if it is greater than x[i-1] (the bad point) and x[i-2] (point before the bad point)
+    //changed to just check if x[i] point is more than the last x[j] point recorded
+    if(xVals[i]>xVals[j-1]){
+      newX[j]=xVals[i];
+      newY[j]=yVals[i];
+      j=j+1;
+    }
+  }
+  newBins=j;
+  TGraph binPlot = TGraph(newBins,newX,newY);
+  delete [] newX;
+  delete [] newY;
+  return binPlot;
+}
+
+
+TGraph *FFTtools::aveGraph(TGraph *grA,Int_t n)
+{
+  Int_t nbins=grA->GetN();
+  Double_t *xVals=grA->GetX();
+  Double_t *newY = new Double_t [nbins];
+  Double_t x,yA;
+  for(Int_t i=0;i<nbins;i++) {
+    grA->GetPoint(i,x,yA);
+    newY[i]=yA/n;
+  }
+  TGraph *grAve = new TGraph(nbins,xVals,newY);
+  delete [] newY;
+  return grAve;
+}
+
+
+TGraph *FFTtools::dBGraph(TGraph *grA)
+{
+  Int_t nbins=grA->GetN();
+  Double_t *xVals=grA->GetX();
+  Double_t *newY = new Double_t [nbins];
+  Double_t x,yA;
+  for(Int_t i=0;i<nbins;i++) {
+    grA->GetPoint(i,x,yA);
+    newY[i]=10*log10(yA);
+  }
+  TGraph *dBgr = new TGraph(nbins,xVals,newY);
+  delete [] newY;
+  return dBgr;
+}
+
+
 
 TGraph *FFTtools::divideGraphs(TGraph *grA, TGraph *grB) 
 {
@@ -1307,7 +1684,6 @@ TGraph *FFTtools::cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime)
   Double_t *outY = new Double_t[numPoints];
   Int_t outPoints=0;
 
-
   for(int i=0;i<numPoints;i++) {
     if(xVals[i]>=minTime && xVals[i]<=maxTime) {
       outX[outPoints]=xVals[i];
@@ -1344,6 +1720,7 @@ TGraph *FFTtools::multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, D
       //      std::cout << tempF << "\t" << theFFT[i].re << "\t" << theFFT[i].im << "\n";
       for(int notch=0;notch<numNotches;notch++) {
 	if(tempF>minFreq[notch] && tempF<maxFreq[notch]) {
+	  std::cout << "notching " << tempF << " notch num " << notch << " min " << minFreq[notch] << " max " << maxFreq[notch] << std::endl;
 	  theFFT[i].re=0;
 	  theFFT[i].im=0;
 	}      
