@@ -18,6 +18,12 @@ ExeSuf        =
 DllSuf        = so
 OutPutOpt     = -o # keep whitespace after "-o"
 
+OBJSUF = $(ObjSuf)
+SRCSUF = $(SrcSuf)
+DLLSUF = $(DllSuf)
+
+
+
 ifeq (debug,$(findstring debug,$(ROOTBUILD)))
 OPT           = -g
 OPT2          = -g
