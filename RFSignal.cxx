@@ -98,3 +98,10 @@ void RFSignal::fillFreqStuff()
     tempF+=deltaF;
   }
 }
+
+Int_t RFSignal::getNumFreqs()
+{
+  if(!fGotFreqs)
+    fillFreqStuff();
+  return fNumFreqs;
+}

@@ -20,6 +20,7 @@ public:
   Double_t *getMags();
   Double_t *getPhases();
   FFTWComplex *getComplexNums();
+  Int_t getNumFreqs();
 
  private:  
   void fillFreqStuff();
