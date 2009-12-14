@@ -6,6 +6,7 @@
 
 #pragma link C++ class FFTWComplex+;
 #pragma link C++ class FFTtools+;
+#pragma link C++ class RFSignal+;
 
 #endif
 

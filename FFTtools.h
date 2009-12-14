@@ -74,6 +74,14 @@ public:
   */
   static FFTWComplex *doFFT(int length,double *theInput);    
 
+
+  //! Converts inputMag (linear units) to time domain by means of hilbert transform assuming R_signal = 1/sqrt(2) (R_mag - i R^_mag);
+  /*!
+    \param inputMag TGraph containg the inputMagnitude
+    \return TGraph of the time domain signal
+  */
+  static TGraph *convertMagnitudeToTimeDomain(TGraph *inputMag);    
+
   //! Computes the correlation of two subsets of TGraphs
   /*!
     \param gr1 The first TGraph in the correlation.

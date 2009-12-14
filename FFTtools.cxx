@@ -133,6 +133,7 @@ double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
     }
     for(int i=0;i<length;i++) {
 	theOutput[i]=0;
+
     }
     
     fftw_execute(thePlan);
@@ -619,7 +620,6 @@ TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
     delete [] newY;
     delete [] newX;
     ///////THIS BIT COULD DELETE THE POWERSPEC?????????
-    delete [] theFFT;
     return grPower;
 
 }
@@ -848,11 +848,11 @@ TGraph *FFTtools::makeRawPowerSpectrum(TGraph *grWave) {
 
     double tempF=0;
     for(int i=0;i<newLength;i++) {
-       float power=pow(getAbs(theFFT[i]),2);
-	if(i>0 && i<newLength-1) power*=2; //account for symmetry
-	newX[i]=tempF;
-	newY[i]=power;
-	tempF+=deltaF;
+      float power=pow(getAbs(theFFT[i]),2);
+      if(i>0 && i<newLength-1) power*=2; //account for symmetry
+      newX[i]=tempF;
+      newY[i]=power;
+      tempF+=deltaF;
     }
 
 
@@ -1915,5 +1915,53 @@ Double_t FFTtools::getEnvelopeSNR(TGraph *gr,Double_t &peak,Double_t &rms,Double
 
 }
 
+
+
+TGraph *FFTtools::convertMagnitudeToTimeDomain(TGraph *inputMag)
+{
+  Double_t *freqs=inputMag->GetX();
+  Double_t *newVmmhz=inputMag->GetY();
+  Int_t numFreqs=inputMag->GetN();
+  Double_t *vmhz = new Double_t [numFreqs];
+  Int_t numPoints=2*(numFreqs-1);
+  FFTWComplex *freqDom = new FFTWComplex [numFreqs];
+  Double_t df=freqs[1]-freqs[0];
+  for(int i=0;i<numFreqs;i++) {
+    vmhz[i]=newVmmhz[i]/1e6;
+    //    freqDom[i].re=vmhz[i];
+    //    freqDom[i].im=0;
+    freqDom[i].im=vmhz[i];
+    freqDom[i].re=0;
+  }
+  Double_t *tempV=FFTtools::doInvFFT(numPoints,freqDom);
+  Double_t *newT = new Double_t [numPoints];
+  Double_t *newV = new Double_t [numPoints];
+  Double_t dt=1./(numPoints*df);
+  for(int i=0;i<numPoints;i++) {
+    if(i<numPoints/2) {
+      Int_t tempInd=(numPoints/2)-(i+1);
+      //      std::cout << "First: " << i << "\t" << tempInd << "\n";
+      newT[tempInd]=-i*dt;
+      newV[tempInd]=tempV[i]*df*numPoints/sqrt(2);
+      //The sqrt(2) is for the positive and negative frequencies
+    }
+    else {
+      Int_t tempInd=numPoints+(numPoints/2)-(i+1);
+      //      std::cout << "Second: " << i << "\t" << tempInd << "\n";
+      newT[tempInd]=(numPoints-i)*dt;
+      newV[tempInd]=tempV[i]*df*numPoints/sqrt(2);
+      //The sqrt(2) is for the positive and negative frequencies
+    }
+  }
+ //  for(int i=0;i<numPoints;i++) {
+//     std::cout << i << "\t" << newT[i] << "\n";
+//   }
+  TGraph *grWave = new TGraph(numPoints,newT,newV);
+  delete [] vmhz;
+  delete [] newT;
+  delete [] newV;
+  return grWave;
+
+}
 
 
