@@ -1968,3 +1968,80 @@ Double_t FFTtools::simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Doub
 {
   return ((y2 - y1)* ((x - x1) / (x2-x1)) + y1);
 }
+
+TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
+{
+  Int_t numPointsA=grA->GetN();
+  Int_t numPointsB=grB->GetN();
+
+  Double_t *tA=grA->GetX();
+  Double_t *inA=grA->GetY();
+  Double_t *inB=grB->GetY();
+
+  Double_t t0=tA[0];
+  Double_t deltaT=tA[1]-tA[0];
+
+  //First up make them the same size
+  Int_t numPoints=numPointsA;
+  if(numPointsB>numPoints) { 
+    numPoints=numPointsB;
+  }
+  Double_t *A= new Double_t[numPoints];
+  Double_t *B= new Double_t[numPoints];
+  Double_t *T= new Double_t[numPoints];
+
+  for(int i=0;i<numPoints;i++) {
+    Int_t indA=(i-(numPoints-numPointsA)/2);
+    T[i]=t0+indA*deltaT;
+    if(indA<0 || indA>=numPointsA)
+	A[i]=0;
+    else
+      A[i]=inA[indA];
+
+    Int_t indB=(i-(numPoints-numPointsB)/2);
+    if(indB<0 || indB>=numPointsB)
+	B[i]=0;
+    else
+      B[i]=inB[indB];
+
+    //    std::cout << i << "\t" << indA << "\t" << indB <<  "\t" << A[i] << "\t" << B[i] << "\n";
+  }
+  
+  Int_t numFreqs=(numPoints/2)+1;
+  FFTWComplex *fftA=doFFT(numPoints,A);
+  FFTWComplex *fftB=doFFT(numPoints,B);
+  FFTWComplex *fftAB= new FFTWComplex [numFreqs];
+  Double_t freq=0;
+  Double_t deltaF=1./(numPoints*deltaT);
+  for(int i=0;i<numFreqs;i++) {
+    fftAB[i]=fftA[i]*fftB[i];
+    //    std::cout << freq << "\t" << fftAB[i].getAbs() << "\t" << fftA[i].getAbs() << "\t" << fftB[i].getAbs()
+    //	      << "\t" << fftA[i].getAbs()*fftB[i].getAbs() << "\n";
+    //    std::cout << freq << "\t" << fftAB[i].getPhase() << "\t" << fftA[i].getPhase() << "\t" << fftB[i].getPhase()
+    //	      << "\t" << fftA[i].getPhase()+fftB[i].getPhase() << "\n";
+    freq+=deltaF;
+  }
+  
+  Double_t *AB=doInvFFT(numPoints,fftAB);
+  Double_t *newAB = new Double_t[numPoints];
+  for(int i=0;i<numPoints;i++) {
+    if(i<numPoints/2) {
+      newAB[i]=AB[(numPoints/2)+i];
+    }
+    else {
+      newAB[i]=AB[i-(numPoints/2)];
+    }
+  }
+  TGraph *grConv = new TGraph(numPoints,T,newAB);
+  delete [] fftAB;
+  delete [] fftA;
+  delete [] fftB;				
+  delete [] A;
+  delete [] B;
+  delete [] T;
+  delete [] AB;
+  delete [] newAB;
+  
+  return grConv;
+}
+

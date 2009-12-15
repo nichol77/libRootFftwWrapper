@@ -28,10 +28,10 @@ public:
   void extractFromComplex();
   Int_t fGotFreqs;
   Int_t fNumFreqs;
-  Double_t *fFreqs;
-  Double_t *fMags;
-  Double_t *fPhases;
-  FFTWComplex *fComplexNums;
+  Double_t *fFreqs;  //[fNumFreqs]
+  Double_t *fMags; //[fNumFreqs]
+  Double_t *fPhases; //[fNumFreqs]
+  FFTWComplex *fComplexNums; //[fNumFreqs]
   
 ClassDef(RFSignal,2) ///< ROOT macro for persistence. 
 

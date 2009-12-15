@@ -1,4 +1,4 @@
-
+#include <iostream>
 #include "RFSignal.h"
 #include "FFTtools.h"
 
@@ -18,17 +18,19 @@ RFSignal::RFSignal(TGraph *grWave)
 RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums) 
   :TGraph(2*(numFreqs-1))
 {
-  Double_t deltaF=freqVals[1]-freqVals[0];
+  ///  std::cerr << "Here\t" << numFreqs << "\t" << fNpoints << "\n";
   fNumFreqs=numFreqs;
   fComplexNums = new FFTWComplex [numFreqs];
   fFreqs = new Double_t[numFreqs];
-  Double_t temp=0;
+  fPhases = new Double_t[numFreqs];
+  fMags = new Double_t[numFreqs];
+  //  std::cerr << "Here still\t" << numFreqs << "\t" << fNpoints << "\n";
   for(int i=0;i<fNumFreqs;i++) {
-    fFreqs[i]=temp;
+    //    std::cerr << i << "\t" << fFreqs << "\t" << fComplexNums << ;
+    fFreqs[i]=freqVals[i];
     fComplexNums[i]=complexNums[i];
     fPhases[i]=fComplexNums[i].getPhase();
     fMags[i]=fComplexNums[i].getAbsSq();
-    temp+=deltaF;
   }
   extractFromComplex();
 }
@@ -127,6 +129,7 @@ Int_t RFSignal::getNumFreqs()
 
 void RFSignal::extractFromComplex()
 {
+  //  std::cout << "Here also\n";
   fGotFreqs=1;
   double deltaF=fFreqs[1]-fFreqs[0];
   double deltaT=1./(deltaF*fNpoints);
@@ -135,11 +138,12 @@ void RFSignal::extractFromComplex()
   for(int i=0;i<fNpoints;i++) {
     fX[i]=temp;
     temp+=deltaT;
-    if(i<fNpoints/2) {
-      fY[i]=fVoltVals[fNpoints/2+i];
-    }
-    else {
-      fY[i]=fVoltVals[i-fNpoints/2];
-    }
+    fY[i]=fVoltVals[i];
+//     if(i<fNpoints/2) {
+//       fY[i]=fVoltVals[fNpoints/2+i];
+//     }
+//     else {
+//       fY[i]=fVoltVals[i-fNpoints/2];
+//     }
   }
 }

@@ -52,6 +52,14 @@ public:
   */
   static TGraph *getInterpolatedGraph(TGraph *grIn, Double_t deltaT);
 
+  //! Convolution
+  /*!
+    \param grA A pointer to the input TGraph A.
+    \param grB A pointer to the input TGraph B
+    \return A pointer to the convolution of A and B stored in a TGraph, it is the users responsibility to delete this after use.
+  */
+  static TGraph *getConvolution(TGraph *grA, TGraph *grB);
+
   //! Returns the magnitude of a complex number.
   /*!
     \param theNum The complex number.
