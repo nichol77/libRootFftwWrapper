@@ -19,6 +19,9 @@ public:
    double getAbsSq() {
      return (re*re+im*im);
    }
+   double getPhase() {
+     return TMath::ATan2(im,re);
+   }
 };
 
 #endif // FFTWCOMPLEX_H

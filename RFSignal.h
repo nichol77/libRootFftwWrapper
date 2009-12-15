@@ -13,6 +13,7 @@ public:
   RFSignal(); ///<Default constructor
   RFSignal(TGraph *grWave); ///<Assignnment constructor
   RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals);
+  RFSignal(Int_t numPoints, Double_t *freqVals,FFTWComplex *complexNums);
   ~RFSignal(); ///<Destructor
   
   TGraph *getFreqMagGraph();
@@ -24,6 +25,7 @@ public:
 
  private:  
   void fillFreqStuff();
+  void extractFromComplex();
   Int_t fGotFreqs;
   Int_t fNumFreqs;
   Double_t *fFreqs;

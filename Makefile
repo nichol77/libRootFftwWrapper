@@ -35,8 +35,8 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 #ROOT stuff
 
 ROOT_LIBRARY = libRootFftwWrapper.${DllSuf}
-LIB_OBJS =  FFTWComplex.o FFTtools.o RFSignal.o fftDict.o
-CLASS_HEADERS =   FFTWComplex.h FFTtools.h RFSignal.h
+LIB_OBJS =  FFTWComplex.o FFTtools.o RFSignal.o RFFilter.o fftDict.o
+CLASS_HEADERS =   FFTWComplex.h FFTtools.h RFSignal.h RFFilter.h
 
 all : $(ROOT_LIBRARY) 
 

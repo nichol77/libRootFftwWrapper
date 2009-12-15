@@ -473,6 +473,7 @@ public:
   static Double_t getEnvelopeSNR(TGraph *gr);
   static Double_t getEnvelopeSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms,Double_t &timeOfPeak);
 
+  static Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
 
 };
    

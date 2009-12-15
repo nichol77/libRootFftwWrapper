@@ -15,6 +15,24 @@ RFSignal::RFSignal(TGraph *grWave)
   ///<Assignnment constructor
 }
 
+RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums) 
+  :TGraph(2*(numFreqs-1))
+{
+  Double_t deltaF=freqVals[1]-freqVals[0];
+  fNumFreqs=numFreqs;
+  fComplexNums = new FFTWComplex [numFreqs];
+  fFreqs = new Double_t[numFreqs];
+  Double_t temp=0;
+  for(int i=0;i<fNumFreqs;i++) {
+    fFreqs[i]=temp;
+    fComplexNums[i]=complexNums[i];
+    fPhases[i]=fComplexNums[i].getPhase();
+    fMags[i]=fComplexNums[i].getAbsSq();
+    temp+=deltaF;
+  }
+  extractFromComplex();
+}
+
 RFSignal::RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals)
   :TGraph(numPoints,tVals,vVals),fGotFreqs(0)
 {
@@ -83,7 +101,7 @@ void RFSignal::fillFreqStuff()
 
   //    double fMax = 1/(2*deltaT);  // In Hz
   double deltaF=1/(deltaT*length); //Hz
-  deltaF*=1e-6; //MHz
+  //  deltaF*=1e-6; //MHz //Lets keep frequency in hz
   
   double tempF=0;
   for(int i=0;i<fNumFreqs;i++) {
@@ -104,4 +122,24 @@ Int_t RFSignal::getNumFreqs()
   if(!fGotFreqs)
     fillFreqStuff();
   return fNumFreqs;
+}
+
+
+void RFSignal::extractFromComplex()
+{
+  fGotFreqs=1;
+  double deltaF=fFreqs[1]-fFreqs[0];
+  double deltaT=1./(deltaF*fNpoints);
+  double temp=0;
+  double *fVoltVals = FFTtools::doInvFFT(fNpoints,fComplexNums);
+  for(int i=0;i<fNpoints;i++) {
+    fX[i]=temp;
+    temp+=deltaT;
+    if(i<fNpoints/2) {
+      fY[i]=fVoltVals[fNpoints/2+i];
+    }
+    else {
+      fY[i]=fVoltVals[i-fNpoints/2];
+    }
+  }
 }

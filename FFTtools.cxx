@@ -1964,4 +1964,7 @@ TGraph *FFTtools::convertMagnitudeToTimeDomain(TGraph *inputMag)
 
 }
 
-
+Double_t FFTtools::simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t x)
+{
+  return ((y2 - y1)* ((x - x1) / (x2-x1)) + y1);
+}
