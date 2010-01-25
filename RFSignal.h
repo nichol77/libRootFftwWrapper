@@ -4,9 +4,9 @@
 #include "FFTWComplex.h"
 
 
-//!  This is a wrapper class for a complex number
+//!  This is a wrapper class for an RF Signal
 /*!
-  And that's it.
+  At the moment it doesn't do very much but tis might change in the future
 */
 class RFSignal : public TGraph {
 public:
