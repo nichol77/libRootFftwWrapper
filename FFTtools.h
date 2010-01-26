@@ -116,6 +116,27 @@ public:
   */
   static double *getCorrelation(int length,double *oldY1, double *oldY2);
 
+
+  //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
+  /*!
+    \param numGraphs Number of graphs to avergae
+    \param thePtrPtr A pointer to a two-dimensional array of TGraphs <i>*grPtrArray[numGraphs]</i>.
+    \return A pointer to a graph containing the averaged waveform.
+  */
+  static TGraph *correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr);
+
+  //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
+  /*!
+    \param deltaTInt The time-step to interpolate to before doing the correlation and averaging
+    \param numGraphs Number of graphs to avergae
+    \param thePtrPtr A pointer to a two-dimensional array of TGraphs <i>*grPtrArray[numGraphs]</i>.
+    \return A pointer to a graph containing the averaged waveform.
+  */
+  
+  static TGraph *interpolateCorrelateAndAverage(Double_t deltaTInt,
+						Int_t numGraphs,
+						TGraph **grPtrPtr);
+  
   //! Returns the time domain result of a frequency domain sum of a number of arrays. As of writing this documentation, I'm not sure why this would be interesting.
   /*!
     \param numArrays The number of arrays to sum.
@@ -352,7 +373,16 @@ public:
     \param grB A pointer to the second graph.
     \return A pointer to a TGraph containing the ratio (A/B) of the input graphs.
   */     
+  static TGraph *divideGraphs(TGraph *grA, TGraph *grB);
 
+  
+  //! Returns a graph translated by deltaT. Such that t'=t+dt
+  /*!
+    \param grWave A pointer to the input graph.
+    \param deltaT The amount to move time axis by
+    \return A pointer to a TGraph containing the translated graph
+  */     
+  static TGraph *translateGraph(TGraph *grWave, Double_t deltaT);
 
   /////////////////////////////////////////////////////////////////////////////////////
   //my added crap, some of it totally needless
@@ -371,7 +401,6 @@ public:
   /////////////////////////////////////////////////////////////////////////////////////
 
 
-  static TGraph *divideGraphs(TGraph *grA, TGraph *grB);
   //! Returns the one minus the ratio between two graphs (A/B).
   /*!
     \param grA A pointer to the first graph.
@@ -393,6 +422,13 @@ public:
     \return A pointer to the zero padded TGraph.
   */     
   static TGraph *padWave(TGraph *grA, Int_t padFactor);
+  //! Zero pad a wave making it up to newLength points.
+  /*!
+    \param grA A pointer to the input graph.
+    \param newLength The new length the graph should be (it gets zero padded on either side)
+    \return A pointer to the zero padded TGraph.
+  */     
+  static TGraph *padWaveToLength(TGraph *grA, Int_t newLength);
   //! Rectify a waveform, optionally returning an all negative waveform.
   /*!
     \param gr A pointer to the input graph.

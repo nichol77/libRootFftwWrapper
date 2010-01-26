@@ -1329,6 +1329,19 @@ TGraph *FFTtools::dBGraph(TGraph *grA)
 
 
 
+TGraph *FFTtools::translateGraph(TGraph *grWave, Double_t deltaT)
+{
+  Int_t N = grWave->GetN();
+  Double_t *X=grWave->GetX();
+  Double_t *Y=grWave->GetY();
+  Double_t *newX = new Double_t[N];
+  for(int i=0;i<N;i++)
+    newX[i]=X[i]+deltaT;
+  TGraph *grOut = new TGraph(N,newX,Y);
+  delete [] newX;
+  return grOut;
+}
+
 TGraph *FFTtools::divideGraphs(TGraph *grA, TGraph *grB) 
 {
   Int_t N1=grA->GetN();
@@ -1464,6 +1477,36 @@ TGraph *FFTtools::padWave(TGraph *grWave, Int_t padFactor) {
    delete [] paddedY;
    return grPadded;
 }
+
+
+TGraph *FFTtools::padWaveToLength(TGraph *grWave, Int_t newLength) {
+   double *oldY = grWave->GetY();
+   double *oldX = grWave->GetX();
+   double deltaT=oldX[1]-oldX[0];
+   int realLength = grWave->GetN();
+   if(newLength<realLength) {
+     std::cerr << "Can't pad waveform of length " << realLength 
+	       << " to " << newLength << " you need to crop not pad\n";
+     return NULL;
+   }
+   int length = newLength;
+   double *paddedY = new double [length];
+   double *paddedX = new double [length];
+   int newStart=(newLength-realLength)/2;   
+   for(int i=0;i<length;i++) {
+      int waveIndex=i-newStart;
+      paddedY[i]=0;
+      paddedX[i]=(waveIndex*deltaT)+oldX[0];
+      if(waveIndex>=0 && waveIndex<realLength) {
+	 paddedY[i]=oldY[waveIndex];
+      }
+   }
+   TGraph *grPadded = new TGraph(length,paddedX,paddedY);
+   delete [] paddedX;
+   delete [] paddedY;
+   return grPadded;
+}
+
 
 
 TGraph *FFTtools::rectifyWave(TGraph *gr, Int_t isNeg) {
@@ -2045,3 +2088,79 @@ TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
   return grConv;
 }
 
+TGraph *FFTtools::interpolateCorrelateAndAverage(Double_t deltaTInt,Int_t numGraphs, TGraph **grPtrPtr)
+{
+  TGraph **grInt = new TGraph* [numGraphs];
+  for(int i=0;i<numGraphs;i++)
+    grInt[i]=getInterpolatedGraph(grPtrPtr[0],deltaTInt);
+  TGraph *grAvg=correlateAndAverage(numGraphs,grInt);
+  for(int i=0;i<numGraphs;i++)
+    delete grInt[i];
+  delete [] grInt;
+  return grAvg;
+
+}
+
+TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
+{
+  //Assume they are all at same sampling rate
+  if(numGraphs<2) return NULL;
+  TGraph *grA = grPtrPtr[0];
+  Int_t numPoints=grA->GetN();  
+  Double_t *timeVals= grA->GetX();
+  Double_t *safeTimeVals = new Double_t[numPoints];
+  Double_t *sumVolts = new Double_t [numPoints];
+  for(int i=0;i<numPoints;i++) 
+    safeTimeVals[i]=timeVals[i];  
+  
+  int countWaves=1;
+  for(int i=1;i<numGraphs;i++) {
+    TGraph *grB = grPtrPtr[i];
+    if(grB->GetN()<numPoints)
+      numPoints=grB->GetN();
+    TGraph *grCorAB = FFTtools::getCorrelationGraph(grA,grB);
+
+    Int_t peakBin = FFTtools::getPeakBin(grCorAB);
+    //    Double_t *deltaTVals=grCorAB->GetX();
+    //    cout << peakBin << "\t" << grCorAB->GetN() << endl;
+    Int_t offset=peakBin-(grCorAB->GetN()/2);
+    //    cout << deltaTVals[peakBin] << "\t" << safeTimeVals[offset] << endl;
+ 
+    Double_t *aVolts = grA->GetY();
+    Double_t *bVolts = grB->GetY();
+
+    for(int i=0;i<numPoints;i++) {
+      int aIndex=i;
+      int bIndex=i-offset;
+      
+      if(bIndex>=0 && bIndex<numPoints) {
+	sumVolts[i]=(aVolts[aIndex]+bVolts[bIndex]);
+      }
+      else {
+	sumVolts[i]=aVolts[aIndex];
+      }
+    }
+    
+
+    TGraph *grComAB = new TGraph(numPoints,safeTimeVals,sumVolts);
+
+    delete grB;
+    delete grCorAB;
+    delete grA;
+    grA=grComAB;
+    countWaves++;
+
+  }
+  for(int i=0;i<numPoints;i++) {
+    sumVolts[i]/=countWaves;
+  }
+  Double_t meanVal=TMath::Mean(numPoints,sumVolts);
+  for(int i=0;i<numPoints;i++) {
+    sumVolts[i]-=meanVal;
+  }
+  delete grA;
+  TGraph *grRet = new TGraph(numPoints,safeTimeVals,sumVolts);
+  delete [] safeTimeVals;
+  delete [] sumVolts;
+  return grRet;
+}
