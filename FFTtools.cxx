@@ -734,14 +734,14 @@ TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave)
     //    double fMax = 1/(2*deltaT);  // In Hz
     double deltaF=1/(deltaT*length); //Hz
     deltaF*=1e3; //MHz
-    //    std::cout << fMax << "\t" << deltaF << "\t" << deltaT << "\t" << length << std::endl;
+    //    std::cout  << deltaF << "\t" << deltaT << "\t" << length << std::endl;
 
     double tempF=0;
     for(int i=0;i<newLength;i++) {
        float power=pow(getAbs(theFFT[i]),2);
-	if(i>0 && i<newLength-1) power*=2; //account for symmetry
+       if(i>0 && i<newLength-1) power*=2; //Changed form 2 by RJN 29/01/10 //account for symmetry
 	power*=deltaT/(length); //For time-integral squared amplitude
-	power*=(1e3*1e3)/1e9;
+	//	power/=(1e3*1e3*1e9); //This bit converts from mv*mv*ns to v*v*s
 	power/=deltaF;//Just to normalise bin-widths
 	//Ends up the same as dt^2, need to integrate the power (multiply by df)
 	//to get a meaningful number out.	
@@ -2114,8 +2114,8 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
     safeTimeVals[i]=timeVals[i];  
   
   int countWaves=1;
-  for(int i=1;i<numGraphs;i++) {
-    TGraph *grB = grPtrPtr[i];
+  for(int graphNum=1;graphNum<numGraphs;graphNum++) {
+    TGraph *grB = grPtrPtr[graphNum];
     if(grB->GetN()<numPoints)
       numPoints=grB->GetN();
     TGraph *grCorAB = FFTtools::getCorrelationGraph(grA,grB);
@@ -2129,24 +2129,25 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
     Double_t *aVolts = grA->GetY();
     Double_t *bVolts = grB->GetY();
 
-    for(int i=0;i<numPoints;i++) {
-      int aIndex=i;
-      int bIndex=i-offset;
+    for(int ind=0;ind<numPoints;ind++) {
+      int aIndex=ind;
+      int bIndex=ind-offset;
       
       if(bIndex>=0 && bIndex<numPoints) {
-	sumVolts[i]=(aVolts[aIndex]+bVolts[bIndex]);
+	sumVolts[ind]=(aVolts[aIndex]+bVolts[bIndex]);
       }
       else {
-	sumVolts[i]=aVolts[aIndex];
+	sumVolts[ind]=aVolts[aIndex];
       }
     }
     
 
     TGraph *grComAB = new TGraph(numPoints,safeTimeVals,sumVolts);
 
-    delete grB;
+    //    delete grB;
     delete grCorAB;
-    delete grA;
+    if(graphNum>1)
+      delete grA;
     grA=grComAB;
     countWaves++;
 
