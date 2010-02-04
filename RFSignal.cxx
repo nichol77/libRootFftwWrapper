@@ -2,10 +2,17 @@
 #include "RFSignal.h"
 #include "FFTtools.h"
 
+//Maybe need to add and RFSignal::RFSignal(RFSignal thingy)
+
 RFSignal::RFSignal() 
   : fGotFreqs(0),fMvNs(0)
 {
 //Default Constructor
+  fGotFreqs=0;
+  fComplexNums=0;
+  fFreqs=0;
+  fPhases=0;
+  fMags=0;
 }
 
 
@@ -13,6 +20,12 @@ RFSignal::RFSignal(TGraph *grWave,Int_t mvNs)
   :TGraph(*grWave),fGotFreqs(0),fMvNs(mvNs)
 {
   ///<Assignnment constructor
+  fGotFreqs=0;
+  fComplexNums=0;
+  fFreqs=0;
+  fPhases=0;
+  fMags=0;
+  fillFreqStuff();
 }
 
 RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,Int_t mvNs) 
@@ -22,6 +35,8 @@ RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,
   fNumFreqs=numFreqs;
   fComplexNums = new FFTWComplex [numFreqs];
   fFreqs = new Double_t[numFreqs];
+  //  std::cerr << "New fFreqs RFSignal::RFSignal(numFreqs,...)\t" << fFreqs << "\n";
+
   fPhases = new Double_t[numFreqs];
   fMags = new Double_t[numFreqs];
   //  std::cerr << "Here still\t" << numFreqs << "\t" << fNpoints << "\n";
@@ -39,12 +54,20 @@ RFSignal::RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals,Int_t mvNs)
   :TGraph(numPoints,tVals,vVals),fGotFreqs(0),fMvNs(mvNs)
 {
   ///<Assignnment constructor
+  fGotFreqs=0;
+  fComplexNums=0;
+  fFreqs=0;
+  fPhases=0;
+  fMags=0;
+  fillFreqStuff();
 }
 
 RFSignal::~RFSignal() 
 {
 //Default destructor
   if(fGotFreqs) {
+    //    std::cerr << fFreqs << "\t" << fMags << "\t" << fPhases 
+    //	      << "\t" << fComplexNums << "\n";
     delete [] fFreqs;
     delete [] fMags;
     delete [] fPhases;
@@ -102,6 +125,7 @@ void RFSignal::fillFreqStuff()
   fNumFreqs=(length/2)+1;  
   fMags = new double [fNumFreqs];
   fFreqs = new double [fNumFreqs];
+  //  std::cerr << "New fFreqs RFSignal::fillFreqStuff\t" << fFreqs << "\n";
   fPhases = new Double_t[fNumFreqs];
 
   //    double fMax = 1/(2*deltaT);  // In Hz
