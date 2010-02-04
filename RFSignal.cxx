@@ -183,6 +183,7 @@ void RFSignal::extractFromComplex()
 //       fY[i]=fVoltVals[i-fNpoints/2];
 //     }
   }
+  delete [] fVoltVals;
 }
 
 void RFSignal::addToSignal(RFSignal *grSignal)

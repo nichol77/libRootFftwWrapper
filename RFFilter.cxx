@@ -136,6 +136,8 @@ void RFFilter::constructFilter(int numFreqs,double *freqs, double *coefficients,
     grFreqPhase->SetNameTitle("grFreqPhase","grFreqPhase");
     grFreqPhase->Write();
   }
+  delete [] fVoltVals;
+  delete [] fTimeVals;
 
 } //RFFilter(double low, double high, int power_of_2, int maxCoeff, double df, int filter_type)
 
@@ -211,12 +213,16 @@ RFSignal *RFFilter::filter(RFSignal *signal)
   Int_t numFreqs=signal->getNumFreqs();
   Double_t *theFreqs= new Double_t [numFreqs];
   FFTWComplex *theComplexVals=new FFTWComplex [numFreqs];
-  for(int i=0;i<numFreqs;i++) {
-    theFreqs[i]=signal->getFreqs()[i];
-    theComplexVals[i]=signal->getComplexNums()[i];
+  Double_t *inFreqs=signal->getFreqs();
+  FFTWComplex *inComplex=signal->getComplexNums();
+  for(int i=0;i<numFreqs;i++) {    
+    theFreqs[i]=inFreqs[i];
+    theComplexVals[i]=inComplex[i];
   }
+  //HAck by RJN for testing
   this->filter(numFreqs,theFreqs,theComplexVals);
   RFSignal *retVal = new RFSignal(numFreqs,theFreqs,theComplexVals);
+  //RFSignal *retVal = new RFSignal(signal->GetN(),signal->GetX(),signal->GetY());
   delete [] theFreqs;
   delete [] theComplexVals;
   return retVal;
@@ -282,5 +288,6 @@ void RFFilter::filter(Int_t numFreqs,double *sig_freq,FFTWComplex *complexVals) 
 	}
       //std::cout<<"sig_mag["<<i<<"] = "<<sig_mag[i]<<", sig_phase["<<i<<"] = "<<sig_phase[i]<<std::endl;
     } //for
-
+  delete [] sig_phase;
+  delete [] sig_mag;
 } //FrequencyDomain RFFilter::filter(FrequencyDomain &signal) const
