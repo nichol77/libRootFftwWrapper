@@ -14,6 +14,8 @@ public:
    FFTWComplex& operator=(const FFTWComplex &rhs);
    FFTWComplex& operator*(const FFTWComplex &rhs);
    FFTWComplex& operator*=(const FFTWComplex &rhs);
+   FFTWComplex& operator+(const FFTWComplex &rhs);
+   FFTWComplex& operator+=(const FFTWComplex &rhs);
    FFTWComplex& operator/(const FFTWComplex &rhs);
    FFTWComplex& operator/=(const FFTWComplex &rhs);
    void setMagPhase(double mag, double phase);

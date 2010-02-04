@@ -44,6 +44,20 @@ FFTWComplex& FFTWComplex::operator*=(const FFTWComplex &rhs)
 }
 
 
+FFTWComplex& FFTWComplex::operator+(const FFTWComplex &rhs)
+{
+  return FFTWComplex(*this) += rhs;
+}
+
+FFTWComplex& FFTWComplex::operator+=(const FFTWComplex &rhs)
+{
+  FFTWComplex other(rhs);
+  this->re+=other.re;
+  this->im+=other.im;
+  return *this;
+}
+
+
 FFTWComplex& FFTWComplex::operator/(const FFTWComplex &rhs)
 {
   return FFTWComplex(*this) /= rhs;

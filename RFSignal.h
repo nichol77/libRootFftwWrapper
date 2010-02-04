@@ -11,9 +11,9 @@
 class RFSignal : public TGraph {
 public:
   RFSignal(); ///<Default constructor
-  RFSignal(TGraph *grWave); ///<Assignnment constructor
-  RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals);
-  RFSignal(Int_t numPoints, Double_t *freqVals,FFTWComplex *complexNums);
+  RFSignal(TGraph *grWave, Int_t mvNs=0); ///<Assignnment constructor
+  RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals, Int_t mvNs=0);
+  RFSignal(Int_t numFreqs, Double_t *freqVals,FFTWComplex *complexNums, Int_t mvNs=0);
   ~RFSignal(); ///<Destructor
   
   TGraph *getFreqMagGraph();
@@ -22,12 +22,14 @@ public:
   Double_t *getPhases();
   FFTWComplex *getComplexNums();
   Int_t getNumFreqs();
+  void addToSignal(RFSignal *grSignal);
 
  private:  
   void fillFreqStuff();
   void extractFromComplex();
   Int_t fGotFreqs;
   Int_t fNumFreqs;
+  Int_t fMvNs;
   Double_t *fFreqs;  //[fNumFreqs]
   Double_t *fMags; //[fNumFreqs]
   Double_t *fPhases; //[fNumFreqs]

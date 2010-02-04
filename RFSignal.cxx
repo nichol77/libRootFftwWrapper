@@ -3,20 +3,20 @@
 #include "FFTtools.h"
 
 RFSignal::RFSignal() 
-  : fGotFreqs(0)
+  : fGotFreqs(0),fMvNs(0)
 {
 //Default Constructor
 }
 
 
-RFSignal::RFSignal(TGraph *grWave)
- :TGraph(*grWave),fGotFreqs(0)
+RFSignal::RFSignal(TGraph *grWave,Int_t mvNs)
+  :TGraph(*grWave),fGotFreqs(0),fMvNs(mvNs)
 {
   ///<Assignnment constructor
 }
 
-RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums) 
-  :TGraph(2*(numFreqs-1))
+RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,Int_t mvNs) 
+  :TGraph(2*(numFreqs-1)),fMvNs(mvNs)
 {
   ///  std::cerr << "Here\t" << numFreqs << "\t" << fNpoints << "\n";
   fNumFreqs=numFreqs;
@@ -35,8 +35,8 @@ RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums)
   extractFromComplex();
 }
 
-RFSignal::RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals)
-  :TGraph(numPoints,tVals,vVals),fGotFreqs(0)
+RFSignal::RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals,Int_t mvNs)
+  :TGraph(numPoints,tVals,vVals),fGotFreqs(0),fMvNs(mvNs)
 {
   ///<Assignnment constructor
 }
@@ -94,15 +94,21 @@ void RFSignal::fillFreqStuff()
   fGotFreqs=1;
   //Calcualte FFT and then...
   double deltaT=fX[1]-fX[0]; //From TGraph
+  if(fMvNs)
+    deltaT/=1e9; //Convert to s
   int length=fNpoints; //From TGraph
   fComplexNums=FFTtools::doFFT(length,fY);
   
   fNumFreqs=(length/2)+1;  
   fMags = new double [fNumFreqs];
   fFreqs = new double [fNumFreqs];
+  fPhases = new Double_t[fNumFreqs];
 
   //    double fMax = 1/(2*deltaT);  // In Hz
   double deltaF=1/(deltaT*length); //Hz
+  if(fMvNs)
+    deltaF/=1e6; 
+
   //  deltaF*=1e-6; //MHz //Lets keep frequency in hz
   
   double tempF=0;
@@ -115,6 +121,7 @@ void RFSignal::fillFreqStuff()
     //to get a meaningful number out.    
     fFreqs[i]=tempF;
     fMags[i]=power;
+    fPhases[i]=fComplexNums[i].getPhase();
     tempF+=deltaF;
   }
 }
@@ -133,8 +140,14 @@ void RFSignal::extractFromComplex()
   fGotFreqs=1;
   double deltaF=fFreqs[1]-fFreqs[0];
   double deltaT=1./(deltaF*fNpoints);
+  if(fMvNs)
+    deltaT*=1e3;
   double temp=0;
+  //  std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
+    //	    << "\n";
   double *fVoltVals = FFTtools::doInvFFT(fNpoints,fComplexNums);
+  //  std::cout << "RFSignal: V " << fVoltVals[0] << "\t" << fVoltVals[1] 
+  //	    << "\n";
   for(int i=0;i<fNpoints;i++) {
     fX[i]=temp;
     temp+=deltaT;
@@ -147,3 +160,18 @@ void RFSignal::extractFromComplex()
 //     }
   }
 }
+
+void RFSignal::addToSignal(RFSignal *grSignal)
+{
+  if(grSignal->GetN()!=this->GetN()) {
+    std::cout << "Different RFSignal sizes can't add\n";
+    return;
+  }
+  FFTWComplex *otherNums = grSignal->getComplexNums();
+  for(int i=0;i<fNumFreqs;i++) {
+    fComplexNums[i]+=otherNums[i];
+  }
+  extractFromComplex();
+}
+
+

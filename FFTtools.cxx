@@ -697,7 +697,7 @@ TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave) {
     float power=pow(getAbs(theFFT[i]),2);
     if(i>0 && i<newLength-1) power*=2; //account for symmetry
     power*=deltaT/(length); //For time-integral squared amplitude
-    power*=(1e3*1e3)/1e9;
+    //    power*=(1e3*1e3)/1e9;
     power/=deltaF;//Just to normalise bin-widths
     //Ends up the same as dt^2, need to integrate the power (multiply by df)
     //to get a meaningful number out.	
