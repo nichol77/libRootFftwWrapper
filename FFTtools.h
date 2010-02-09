@@ -10,6 +10,7 @@
 
 //My includes
 #include "FFTWComplex.h"
+#include "RFSignal.h"
 
 /*! \mainpage ROOT FFTW Wrapper
  *
@@ -59,6 +60,13 @@ public:
     \return A pointer to the convolution of A and B stored in a TGraph, it is the users responsibility to delete this after use.
   */
   static TGraph *getConvolution(TGraph *grA, TGraph *grB);
+  //! Convolution
+  /*!
+    \param grA A pointer to the input RFSignal A.
+    \param grB A pointer to the input RFSignal B
+    \return A pointer to the convolution of A and B stored in a TGraph, it is the users responsibility to delete this after use.
+  */
+  static RFSignal *getConvolution(RFSignal *grA, RFSignal *grB);
 
   //! Returns the magnitude of a complex number.
   /*!

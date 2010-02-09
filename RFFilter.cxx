@@ -122,7 +122,7 @@ void RFFilter::constructFilter(int numFreqs,double *freqs, double *coefficients,
   fComplexNums = FFTtools::doFFT(fNumTimes,fVoltVals);
   
   for(int i=0;i<fNumFreq;i++) {
-    fMagnitude[i]=fComplexNums[i].getAbsSq();
+    fMagnitude[i]=fComplexNums[i].getAbs();
     fPhase[i]=fComplexNums[i].getPhase();
   }
 
@@ -140,6 +140,22 @@ void RFFilter::constructFilter(int numFreqs,double *freqs, double *coefficients,
   delete [] fTimeVals;
 
 } //RFFilter(double low, double high, int power_of_2, int maxCoeff, double df, int filter_type)
+
+
+int RFFilter::updateFilter(int numFreqs,double *freqs,double *coefficients)
+{
+  if(numFreqs!=fNumFreq) {
+    std::cout << "Have to make a new filter\n";
+    return 0;
+    //Could actually put something here that fixes this
+  }
+  for(int i=0;i<fNumFreq;i++) {
+    fMagnitude[i]=coefficients[i];
+    fComplexNums[i].setMagPhase(fMagnitude[i],fPhase[i]);
+  }
+  return 1;
+  //Done
+}
 
 // RFFilter::RFFilter(const RFFilter & rhs) 
 //   : N(rhs.N),
@@ -245,7 +261,7 @@ void RFFilter::filter(Int_t numFreqs,double *sig_freq,FFTWComplex *complexVals) 
   int curr_index=0;
   for (int i=0;i<numFreqs;++i)
     { 
-      sig_mag[i]=complexVals[i].getAbsSq();
+      sig_mag[i]=complexVals[i].getAbs();
       sig_phase[i]=complexVals[i].getPhase();
 
       //Find the signal frequency in the filter array
@@ -287,6 +303,7 @@ void RFFilter::filter(Int_t numFreqs,double *sig_freq,FFTWComplex *complexVals) 
 	  sig_phase[i] = 0;
 	}
       //std::cout<<"sig_mag["<<i<<"] = "<<sig_mag[i]<<", sig_phase["<<i<<"] = "<<sig_phase[i]<<std::endl;
+      complexVals[i].setMagPhase(sig_mag[i],sig_phase[i]);
     } //for
   delete [] sig_phase;
   delete [] sig_mag;

@@ -54,7 +54,13 @@ class RFFilter {
   RFSignal *filter(RFSignal *signal);
   void filter(Int_t numFreqs,double *freqs,FFTWComplex *complexVals); ///This one here changes the input arrays
   int getDebugMode() {return fDebugMode;}
+  int updateFilter(int numFreqs,double *freqs,double *coefficients);
 
+  int getNumFreqs() {return fNumFreq;}
+  Double_t *getFreqs() {return fFrequency;}
+  Double_t *getMags() {return fMagnitude;}
+  Double_t *getPhases() {return fPhase;}
+  FFTWComplex *getComplexNums() {return fComplexNums;}
 
  private:
   //Does the work of constructing the filter, so the two similar constructors don't have to repeat code.

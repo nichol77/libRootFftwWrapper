@@ -2088,6 +2088,51 @@ TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
   return grConv;
 }
 
+
+
+RFSignal *FFTtools::getConvolution(RFSignal *grA, RFSignal *grB)
+{
+  Int_t numPointsA=grA->GetN();
+  Int_t numPointsB=grB->GetN();
+  if(numPointsA!=numPointsB) {
+    TGraph *grRet =getConvolution((TGraph*)grA,(TGraph*)grB);
+    RFSignal *rfRet = new RFSignal(grRet);
+    delete grRet;
+    return rfRet;
+  }
+
+  Double_t *tA=grA->GetX();
+  Double_t deltaT=tA[1]-tA[0];
+
+  Int_t numPoints=numPointsA;
+  Int_t numFreqs=grA->getNumFreqs();
+  FFTWComplex *fftA=grA->getComplexNums();
+  FFTWComplex *fftB=grB->getComplexNums();
+  FFTWComplex *fftAB= new FFTWComplex [numFreqs];
+  Double_t freq=0;
+  Double_t deltaF=1./(numPoints*deltaT);
+  for(int i=0;i<numFreqs;i++) {
+    fftAB[i]=fftA[i]*fftB[i];
+    freq+=deltaF;
+  }
+  
+  Double_t *AB=doInvFFT(numPoints,fftAB);
+  Double_t *newAB = new Double_t[numPoints];
+  for(int i=0;i<numPoints;i++) {
+    if(i<numPoints/2) {
+      newAB[i]=AB[(numPoints/2)+i];
+    }
+    else {
+      newAB[i]=AB[i-(numPoints/2)];
+    }
+  }
+  RFSignal *grConv = new RFSignal(numPoints,tA,newAB);
+  delete [] fftAB;				
+  delete [] AB;
+  delete [] newAB;  
+  return grConv;
+}
+
 TGraph *FFTtools::interpolateCorrelateAndAverage(Double_t deltaTInt,Int_t numGraphs, TGraph **grPtrPtr)
 {
   TGraph **grInt = new TGraph* [numGraphs];

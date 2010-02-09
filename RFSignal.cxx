@@ -1,5 +1,6 @@
 #include <iostream>
 #include "RFSignal.h"
+#include "RFFilter.h"
 #include "FFTtools.h"
 
 //Maybe need to add and RFSignal::RFSignal(RFSignal thingy)
@@ -16,6 +17,26 @@ RFSignal::RFSignal()
 }
 
 
+RFSignal::RFSignal(RFSignal *rfWave)
+  :TGraph(*((TGraph*)rfWave))
+{
+  ///<Assignnment constructor
+  fGotFreqs=1;
+  fNumFreqs=rfWave->getNumFreqs();
+  fComplexNums = new FFTWComplex [fNumFreqs];
+  fFreqs = new Double_t[fNumFreqs];
+  fPhases = new Double_t[fNumFreqs];
+  fMags = new Double_t[fNumFreqs];
+  
+  for(int i=0;i<fNumFreqs;i++) {
+    fComplexNums[i]=rfWave->getComplexNums()[i];
+    fFreqs[i]=rfWave->getFreqs()[i];
+    fPhases[i]=rfWave->getPhases()[i];
+    fMags[i]=rfWave->getMags()[i];
+  }  
+}
+
+
 RFSignal::RFSignal(TGraph *grWave,Int_t mvNs)
   :TGraph(*grWave),fGotFreqs(0),fMvNs(mvNs)
 {
@@ -25,7 +46,7 @@ RFSignal::RFSignal(TGraph *grWave,Int_t mvNs)
   fFreqs=0;
   fPhases=0;
   fMags=0;
-  fillFreqStuff();
+  //  fillFreqStuff();
 }
 
 RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,Int_t mvNs) 
@@ -45,7 +66,7 @@ RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,
     fFreqs[i]=freqVals[i];
     fComplexNums[i]=complexNums[i];
     fPhases[i]=fComplexNums[i].getPhase();
-    fMags[i]=fComplexNums[i].getAbsSq();
+    fMags[i]=fComplexNums[i].getAbs();
   }
   extractFromComplex();
 }
@@ -59,7 +80,7 @@ RFSignal::RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals,Int_t mvNs)
   fFreqs=0;
   fPhases=0;
   fMags=0;
-  fillFreqStuff();
+  //  fillFreqStuff();
 }
 
 RFSignal::~RFSignal() 
@@ -144,7 +165,8 @@ void RFSignal::fillFreqStuff()
     //Ends up the same as dt^2, need to integrate the power (multiply by df)
     //to get a meaningful number out.    
     fFreqs[i]=tempF;
-    fMags[i]=power;
+    //Grrrh do we want mags or not, I say yes to mags
+    fMags[i]=fComplexNums[i].getAbs();
     fPhases[i]=fComplexNums[i].getPhase();
     tempF+=deltaF;
   }
@@ -195,8 +217,70 @@ void RFSignal::addToSignal(RFSignal *grSignal)
   FFTWComplex *otherNums = grSignal->getComplexNums();
   for(int i=0;i<fNumFreqs;i++) {
     fComplexNums[i]+=otherNums[i];
+    fPhases[i]=fComplexNums[i].getPhase();
+    fMags[i]=fComplexNums[i].getAbs();
   }
   extractFromComplex();
 }
 
+void RFSignal::applyFilter(RFFilter *theFilter)
+{
+  Int_t filterNumFreqs=theFilter->getNumFreqs();
+  if (filterNumFreqs==0) {
+    std::cerr<<"[RFFilter::filter] Error!  Trying to use an uninitialized filter!\n";
+    return;
+  }
+  Double_t *filterFreqs=theFilter->getFreqs();
+  Double_t *filterMags=theFilter->getMags();
+  Double_t *filterPhases=theFilter->getPhases();
 
+  double temp_mag;
+  double temp_phase;
+  int curr_index=0;
+  for (int i=0;i<fNumFreqs;++i)
+    { 
+
+      //Find the signal frequency in the filter array
+      while (curr_index+1 < filterNumFreqs && filterFreqs[curr_index+1] < fFreqs[i])
+	curr_index++;
+
+      if (curr_index+1 < filterNumFreqs)
+	{
+	  if (!(filterFreqs[curr_index] <= fFreqs[i] && filterFreqs[curr_index+1] >= fFreqs[i]))
+	    { //Error checking.
+	      std::cout<<"Error!  Found incorrect frequency inside RFFilter operator()!  Filter not applied.\n";
+	      std::cout<<"curr_index = "<<curr_index<<", filterFreqs[curr_index] = "<<filterFreqs[curr_index]<<", filterNumFreqs = "<<filterNumFreqs<<", fFreqs["<<i<<"] = "<<fFreqs[i]<<std::endl;
+	      return;
+	    }
+
+	  if (filterFreqs[curr_index+1] != fFreqs[i])
+	    {
+	      temp_mag = FFTtools::simpleInterploate(filterFreqs[curr_index],filterMags[curr_index],
+						     filterFreqs[curr_index+1],filterMags[curr_index+1],
+						     fFreqs[i]);
+	      temp_phase = FFTtools::simpleInterploate(filterFreqs[curr_index],filterPhases[curr_index],
+						       filterFreqs[curr_index+1],filterPhases[curr_index+1],
+						       fFreqs[i]);
+	      //This is probably wrong for filterPhases, will fix later
+	  
+	      fMags[i] *= temp_mag;
+	      fPhases[i] += temp_phase;
+	    }
+	  else
+	    {
+	      fMags[i] *= filterMags[curr_index+1];
+	      fPhases[i] += filterPhases[curr_index+1];
+	    }
+	} //if requested frequency is covered by the filter
+      else
+	{
+	  //Set signal to 0 in all regions not covered by filter.
+	  fMags[i] = 0;
+	  fPhases[i] = 0;
+	}
+      fComplexNums[i].setMagPhase(fMags[i],fPhases[i]);
+      //std::cout<<"sig_mag["<<i<<"] = "<<sig_mag[i]<<", sig_phase["<<i<<"] = "<<sig_phase[i]<<std::endl;
+    } //for
+
+
+}
