@@ -392,23 +392,6 @@ public:
   */     
   static TGraph *translateGraph(TGraph *grWave, Double_t deltaT);
 
-  /////////////////////////////////////////////////////////////////////////////////////
-  //my added crap, some of it totally needless
-  static TGraph *addGraphs(TGraph *grA, TGraph *grB);
-  static TGraph addGraphsStatic(TGraph *grA, TGraph *grB);
-  static TGraph *setGraph(TGraph *grA);
-  static TGraph setGraphStatic(TGraph *grA);
-  static TGraph *setGraphDynamic(TGraph grA);
-  static TGraph *binGraph(TGraph *grA, Int_t n);
-  static TGraph *forceBinGraph(TGraph *grA, Int_t n, Double_t binsize);
-  static Int_t checkChannelSaturation(TGraph *grA);
-  static TGraph *removeBadBin(TGraph *grA);
-  static TGraph removeBadBinStatic(TGraph grA);
-  static TGraph *dBGraph(TGraph *grA);
-  static TGraph *aveGraph(TGraph *grA, Int_t n);
-  /////////////////////////////////////////////////////////////////////////////////////
-
-
   //! Returns the one minus the ratio between two graphs (A/B).
   /*!
     \param grA A pointer to the first graph.
