@@ -26,10 +26,12 @@ public:
   Int_t getNumFreqs();
   void addToSignal(RFSignal *grSignal);
   void applyFilter(RFFilter *theFilter);
+  void updateTimeDomain();//because we could operate on freq domain once it has already been extracted!
 
  private:  
   void fillFreqStuff();
   void extractFromComplex();
+  void reExtractFromComplex();
   Int_t fGotFreqs;
   Int_t fNumFreqs;
   Int_t fMvNs;

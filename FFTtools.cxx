@@ -50,6 +50,7 @@ TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
     grIn->GetPoint(samp,tIn,vIn);
     tVec.push_back(tIn);
     vVec.push_back(vIn);
+    //std::cout << "samp " << samp << " t " << tIn << " v " << vIn << " this-last " << tIn-tVec[tVec.size()-2] << std::endl;
     if(samp==0)
       startTime=tIn;
     lastTime=tIn;
@@ -619,7 +620,6 @@ TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
     delete [] theFFT;
     delete [] newY;
     delete [] newX;
-    ///////THIS BIT COULD DELETE THE POWERSPEC?????????
     return grPower;
 
 }
@@ -2003,6 +2003,7 @@ TGraph *FFTtools::convertMagnitudeToTimeDomain(TGraph *inputMag)
   delete [] vmhz;
   delete [] newT;
   delete [] newV;
+  delete [] freqDom;
   return grWave;
 
 }
@@ -2070,9 +2071,11 @@ TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
   for(int i=0;i<numPoints;i++) {
     if(i<numPoints/2) {
       newAB[i]=AB[(numPoints/2)+i];
+      //newAB[i]=AB[i];
     }
     else {
       newAB[i]=AB[i-(numPoints/2)];
+      //newAB[i]=AB[i];
     }
   }
   TGraph *grConv = new TGraph(numPoints,T,newAB);
@@ -2095,12 +2098,14 @@ RFSignal *FFTtools::getConvolution(RFSignal *grA, RFSignal *grB)
   Int_t numPointsA=grA->GetN();
   Int_t numPointsB=grB->GetN();
   if(numPointsA!=numPointsB) {
+    std::cout << "gr method " << numPointsA << " " << numPointsB << "\n";
     TGraph *grRet =getConvolution((TGraph*)grA,(TGraph*)grB);
     RFSignal *rfRet = new RFSignal(grRet);
     delete grRet;
     return rfRet;
   }
 
+//   std::cout << "rf method " << numPointsA << " " << numPointsB << "\n";
   Double_t *tA=grA->GetX();
   Double_t deltaT=tA[1]-tA[0];
 
@@ -2121,9 +2126,11 @@ RFSignal *FFTtools::getConvolution(RFSignal *grA, RFSignal *grB)
   for(int i=0;i<numPoints;i++) {
     if(i<numPoints/2) {
       newAB[i]=AB[(numPoints/2)+i];
+      //newAB[i]=AB[i];
     }
     else {
       newAB[i]=AB[i-(numPoints/2)];
+      //newAB[i]=AB[i];
     }
   }
   RFSignal *grConv = new RFSignal(numPoints,tA,newAB);

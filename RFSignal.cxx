@@ -180,8 +180,13 @@ Int_t RFSignal::getNumFreqs()
 }
 
 
+void RFSignal::updateTimeDomain(){
+  reExtractFromComplex();
+}
+
 void RFSignal::extractFromComplex()
 {
+//   std::cout << "EXTRACT:\n";
   //  std::cout << "Here also\n";
   fGotFreqs=1;
   double deltaF=fFreqs[1]-fFreqs[0];
@@ -189,11 +194,13 @@ void RFSignal::extractFromComplex()
   if(fMvNs)
     deltaT*=1e3;
   double temp=0;
-  //  std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
-    //	    << "\n";
+//   std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
+//     	    << "\n";
+//   std::cout << "RFSignal: dT " << deltaT << " dF " << deltaF
+// 	    << "\n";
   double *fVoltVals = FFTtools::doInvFFT(fNpoints,fComplexNums);
-  //  std::cout << "RFSignal: V " << fVoltVals[0] << "\t" << fVoltVals[1] 
-  //	    << "\n";
+//   std::cout << "RFSignal: V " << fVoltVals[0] << "\t" << fVoltVals[1] 
+// 	    << "\n";
   for(int i=0;i<fNpoints;i++) {
     fX[i]=temp;
     temp+=deltaT;
@@ -212,6 +219,8 @@ void RFSignal::addToSignal(RFSignal *grSignal)
 {
   if(grSignal->GetN()!=this->GetN()) {
     std::cout << "Different RFSignal sizes can't add\n";
+    std::cout << "Adding " << grSignal->GetN() << " to " << this->GetN() << "\n";
+    std::cout << "wave adding " << grSignal->getNumFreqs() << " to " << this->getNumFreqs() << "\n";
     return;
   }
   FFTWComplex *otherNums = grSignal->getComplexNums();
@@ -222,6 +231,10 @@ void RFSignal::addToSignal(RFSignal *grSignal)
   }
   extractFromComplex();
 }
+
+
+
+
 
 void RFSignal::applyFilter(RFFilter *theFilter)
 {
@@ -237,8 +250,13 @@ void RFSignal::applyFilter(RFFilter *theFilter)
   double temp_mag;
   double temp_phase;
   int curr_index=0;
+//   std::cout << "numFreqs " << fNumFreqs << " numTime " << fNpoints << std::endl;
+//   std::cout << "filterNumFreqs " << filterNumFreqs << std::endl;
   for (int i=0;i<fNumFreqs;++i)
     { 
+
+//       if(filterFreqs[i]>200e6 && filterFreqs[i]<300e6)
+// 	std::cout << "freq " << filterFreqs[i] << "\tsignal freq " << fFreqs[i] << " mag " << fMags[i] << " phase " << fPhases[i] << std::endl;
 
       //Find the signal frequency in the filter array
       while (curr_index+1 < filterNumFreqs && filterFreqs[curr_index+1] < fFreqs[i])
@@ -279,8 +297,47 @@ void RFSignal::applyFilter(RFFilter *theFilter)
 	  fPhases[i] = 0;
 	}
       fComplexNums[i].setMagPhase(fMags[i],fPhases[i]);
+
+//       if(filterFreqs[i]>200e6 && filterFreqs[i]<300e6)
+// 	std::cout << "\t\t\tsignal freq " << fFreqs[i] << " mag " << fMags[i] << " phase " << fPhases[i] << std::endl;
       //std::cout<<"sig_mag["<<i<<"] = "<<sig_mag[i]<<", sig_phase["<<i<<"] = "<<sig_phase[i]<<std::endl;
     } //for
 
+//   std::cout << "numFreqs " << fNumFreqs << " numTime " << fNpoints << std::endl;
+//   std::cout << "filterNumFreqs " << filterNumFreqs << std::endl;
+  reExtractFromComplex();
+}
 
+
+
+
+void RFSignal::reExtractFromComplex()
+{
+//   std::cout << "REEXTRACT:\n";
+  //  std::cout << "Here also\n";
+  fGotFreqs=1;
+  double deltaF=fFreqs[1]-fFreqs[0];
+  double deltaT=1./(deltaF*fNpoints);
+//   if(fMvNs)
+//     deltaT*=1e3;
+  double temp=0;
+//   std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
+//     	    << "\n";
+//   std::cout << "RFSignal: dT " << deltaT << " dF " << deltaF
+// 	    << "\n";
+  double *fVoltVals = FFTtools::doInvFFT(fNpoints,fComplexNums);
+//   std::cout << "RFSignal: V " << fVoltVals[0] << "\t" << fVoltVals[1] 
+// 	    << "\n";
+  for(int i=0;i<fNpoints;i++) {
+//     fX[i]=temp;
+//     temp+=deltaT;
+    fY[i]=fVoltVals[i];
+//     if(i<fNpoints/2) {
+//       fY[i]=fVoltVals[fNpoints/2+i];
+//     }
+//     else {
+//       fY[i]=fVoltVals[i-fNpoints/2];
+//     }
+  }
+  delete [] fVoltVals;
 }
