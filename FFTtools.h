@@ -53,6 +53,14 @@ public:
   */
   static TGraph *getInterpolatedGraph(TGraph *grIn, Double_t deltaT);
 
+  //! Interpolation Routines that zeropads the FFT
+  /*!
+    \param grIn A pointer to the input TGraph.
+    \param deltaT The desired period (1/rate) of the interpolated waveform.
+    \return A pointer to ther interpolated TGraph, it is the users responsibility to delete this after use.
+  */
+  static TGraph *getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT);
+
   //! Convolution
   /*!
     \param grA A pointer to the input TGraph A.

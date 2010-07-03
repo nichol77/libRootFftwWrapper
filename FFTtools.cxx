@@ -87,6 +87,53 @@ TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
 
 
 
+TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
+{
+   
+  Int_t numIn=grIn->GetN();
+  Double_t *tIn=grIn->GetX();
+  Double_t *vIn=grIn->GetY();
+  Double_t oldDt=tIn[1]-tIn[0];
+  if(deltaT>oldDt)
+    return getInterpolatedGraph(grIn,deltaT);
+  
+  FFTWComplex *theFFt = doFFT(numIn,vIn);
+  Int_t fftLength=(numIn/2)+1;
+  Int_t newFFTLength=(oldDt/deltaT)*fftLength;
+  FFTWComplex *thePaddedFft = new FFTWComplex[newFFTLength];
+  Int_t numPoints=(newFFTLength-1)*2;
+  //  std::cerr << numIn << "\t" << fftLength << "\t" << newFFTLength << "\n";
+  Double_t scaleFactor=Double_t(numPoints)/Double_t(numIn);
+  for(int i=0;i<newFFTLength;i++) {
+    if(i<fftLength) {
+      thePaddedFft[i]=theFFt[i];
+      thePaddedFft[i]*=FFTWComplex(scaleFactor,0);
+    }
+    else {
+      thePaddedFft[i].re=0;
+      thePaddedFft[i].im=0;
+    }
+  }
+  
+  Double_t *newTimes = new Double_t[numPoints]; //Will change this at some point, but for now
+  Double_t *newVolts = doInvFFT(numPoints,thePaddedFft);
+  for(Int_t i=0;i<numPoints;i++) {
+    newTimes[i]=tIn[0]+deltaT*(i-1);
+    //    std::cout << i<< "\t" << newTimes[i]
+    //	      << "\t" << newVolts[i] << std::endl;	       
+  }
+
+   TGraph *grInt = new TGraph(numPoints,newTimes,newVolts);
+   delete [] newTimes;
+   delete [] newVolts;
+   delete [] theFFt;
+   delete [] thePaddedFft;
+   return grInt;
+
+}
+
+
+
 FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
   //Here is what the sillyFFT program should be doing;    
     fftw_complex *theOutput = new fftw_complex [(length/2)+1];
@@ -124,6 +171,7 @@ FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
 double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
   // This is what sillyFFT should be doing
   //    //Takes account of normailisation 
+  // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry
     fftw_complex *newInput = new fftw_complex [(length/2)+1];
     double *theOutput = new double [length]; 
     fftw_plan thePlan = fftw_plan_dft_c2r_1d(length,newInput,theOutput,FFTW_MEASURE);
