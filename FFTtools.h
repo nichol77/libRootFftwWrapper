@@ -25,7 +25,7 @@
  * 
  * \section install_sec Installation
  * -# Checkout the code from the SVN repository, eg.: <BR><PRE>svn co https://delos.mps.ohio-state.edu/anitaGround/libRootFftwWrapper/trunk myRootFftwWrapperDir</PRE>
- * -# Define the ANITA_UTIL_INSTALL_DIR to point to the location you want the library installed (the library files will end up in (ANITA_UTIL_INSTALL_DIR)/lib and the header files in (ANITA_UTIL_INSTALL_DIR)/include).
+ * -# Define the ANITA_UTIL_INSTALL_DIR (or ARA_UTIL_INSTALL_DIR) to point to the location you want the library installed (the library files will end up in (ANITA_UTIL_INSTALL_DIR)/lib and the header files in (ANITA_UTIL_INSTALL_DIR)/include).
  * -# Do <PRE>make</PRE><PRE>make install</PRE>
  * \section manual_sec Manual
  * If you are averse to reading web pages (and who wouldn't be) you can download a <a href="manual/libRootFftwWrapper.pdf">pdf copy of the reference material</a> but be warned it won't be a thrilling read.
