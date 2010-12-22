@@ -6,10 +6,10 @@
 include Makefile.arch
 
 #Site Specific  Flags (adjust to local site)
-OUTLIBDIR          = ~mottram/work/install/lib
-OUTINCDIR          = ~mottram/work/install/includes
-SYSINCLUDES	= -I/usr/include
-SYSLIBS         = -L/usr/lib64
+OUTLIBDIR          = 
+OUTINCDIR          = 
+SYSINCLUDES	= 
+SYSLIBS         = 
 DLLSUF = ${DllSuf}
 OBJSUF = ${ObjSuf}
 SRCSUF = ${SrcSuf}
