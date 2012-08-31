@@ -307,7 +307,7 @@ public:
     \return The value of the sum.
   */  
   static Double_t sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin); 
-  //! The integral of the v^2*dt in a waveform.
+  //! The integral of the v^2*dt in a waveform. Now works for unevenly sampled waeforms
   /*!
     \param gr A pointer to the input TGraph 
     \param firstBin The first bin to include in the integral.

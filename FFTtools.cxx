@@ -964,18 +964,21 @@ Double_t FFTtools::sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin)
 Double_t FFTtools::integrateVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin)
 {
   Double_t integral=0;
-  Double_t time,volts;
-  gr->GetPoint(1,time,volts);
-  Double_t dt=time;
-  gr->GetPoint(0,time,volts);
-  dt-=time;
+  Double_t this_time=0, next_time=0, this_v=0, next_v=0, dt=0;
+  
   if(firstBin<0) firstBin=0;
-  if(lastBin<0) lastBin=gr->GetN()-1;
-  for(int i=firstBin;i<=lastBin;i++) {
-    gr->GetPoint(i,time,volts);
-    integral+=volts*volts*dt;
+  if(lastBin<0) lastBin = gr->GetN()-1;
+  for(int samp=firstBin; samp<lastBin; samp++){
+    gr->GetPoint(samp, this_time, this_v);
+    gr->GetPoint(samp+1, next_time, next_v);
+    dt=next_time-this_time;
+    integral+=this_v*this_v*dt;
   }
+  //Now account for the last bin -- just use the last dt calculated
+  integral+=next_v*next_v*dt;
+  
   return integral;
+
 }
 
 Int_t FFTtools::getPeakBin(TGraph *gr) 
