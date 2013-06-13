@@ -470,6 +470,12 @@ public:
     \return The derviative of grIn.
   */      
   static TGraph *getDerviative(TGraph *grIn);
+ //! This returns a TGraph which is the derivative of the input graph
+  /*!
+    \param grIn The input graph.
+    \return The derviative of grIn.
+  */      
+  static TGraph *getDerivative(TGraph *grIn);
 
  //! This returns a TGraph which has had a simple pass band filter applied
   /*!

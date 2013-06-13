@@ -1403,7 +1403,13 @@ void FFTtools::takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *input
   }
 }
 
+//Legacy misspelling
 TGraph *FFTtools::getDerviative(TGraph *grIn) 
+{
+  return getDerivative(grIn);
+}
+
+TGraph *FFTtools::getDerivative(TGraph *grIn)
 {
   Int_t numPoints=grIn->GetN();
   if(numPoints<2) return NULL;
