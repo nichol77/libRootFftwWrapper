@@ -288,7 +288,7 @@ TGraph *FFTtools::combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double 
 
 
 
-TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2) {
+TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset) {
    //Now we'll extend this up to a power of 2
     int length=gr1->GetN();
     int length2=gr2->GetN();
@@ -338,6 +338,10 @@ TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2) {
 
 
     //    offset+=waveOffset;
+    if(zeroOffset) {
+       *zeroOffset=N/2;
+       (*zeroOffset)+=Int_t(waveOffset/deltaT);
+    }
 
     double *xVals = new double [N];
     double *yVals = new double [N];
@@ -417,9 +421,9 @@ double *FFTtools::getCorrelation(int length,double *oldY1, double *oldY2)
 	double imFFT2=theFFT2[i].im;
 
 	//Real part of output 
-	tempStep[i].re=(reFFT1*reFFT2+imFFT1*imFFT2)/double(no2);
+	tempStep[i].re=(reFFT1*reFFT2+imFFT1*imFFT2)/double(no2/2);
 	//Imaginary part of output 
-	tempStep[i].im=(imFFT1*reFFT2-reFFT1*imFFT2)/double(no2);
+	tempStep[i].im=(imFFT1*reFFT2-reFFT1*imFFT2)/double(no2/2);
     }
 //    cout << "finished messing around" << endl;
     double *theOutput=doInvFFT(length,tempStep);

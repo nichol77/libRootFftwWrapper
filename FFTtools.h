@@ -236,7 +236,7 @@ public:
     \param gr2 The second input TGraph
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i>.
   */    
-  static TGraph *getCorrelationGraph(TGraph *gr1, TGraph *gr2);
+  static TGraph *getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
    //! Returns the correlation of two interpolated TGraphs
   /*!
     \param grIn1 The first input TGraph
@@ -516,12 +516,40 @@ public:
   static TGraph *cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime);
 
   
-  static Double_t getWaveformSNR(TGraph *gr);
+  //! This returns the SNR ratio of the input waveform
+  /*!
+    \param gr The input graph.
+    \return The SNR of the input waveform, where S is half of the peak-to-peak and N is the RMS of the first 25 ns.
+  */      
+  static Double_t getWaveformSNR(TGraph *gr); 
+  //! This returns the SNR ratio of the input waveform
+  /*!
+    \param gr The input graph.
+    \param peakToPeak A reference to a double which will be set to half of the peak-to-peak
+    \param rms A reference to a double which will be set to the RMS of teh first 25 samples
+    \return The SNR of the input waveform, where S is half of the peak-to-peak and N is the RMS of the first 25 samples.
+  */     
   static Double_t getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms);
+
+  //! This returns the largest (i.e most positive, or least negative) value
+  /*!
+    \param gr The input graph.
+    \return The peak
+  */      
   static Double_t getWaveformPeak(TGraph *gr);
   static Double_t getEnvelopeSNR(TGraph *gr);
   static Double_t getEnvelopeSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms,Double_t &timeOfPeak);
 
+
+  //! Linear interpolate to find the value at some point near two known points
+  /*!
+    \param x1 x value of point 1
+    \param y1 y value of point 1
+    \param x2 x value of point 2
+    \param y2 y value of point 2
+    \param x is the point of interest
+    \return y
+  */      
   static Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
 
 };
