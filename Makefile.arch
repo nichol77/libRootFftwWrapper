@@ -6,14 +6,26 @@
 #
 # Author: Fons Rademakers, 29/2/2000
 
-ROOTCONFIG   := root-config
+RC           := root-config
+ifneq ($(shell which $(RC) 2>&1 | sed -ne "s@.*/$(RC)@$(RC)@p"),$(RC))
+ifneq ($(ROOTSYS),)
+RC1          := $(ROOTSYS)/bin/root-config
+ifneq ($(shell which $(RC1) 2>&1 | sed -ne "s@.*/$(RC)@$(RC)@p"),$(RC))
+$(error Please make sure $(RC1) can be found in path)
+else
+RC           := $(RC1)
+endif
+else
+$(error Please make sure $(RC) can be found in path)
+endif
+endif
 
-ARCH         := $(shell $(ROOTCONFIG) --arch)
-PLATFORM     := $(shell $(ROOTCONFIG) --platform)
-ALTCC        := $(shell $(ROOTCONFIG) --cc)
-ALTCXX       := $(shell $(ROOTCONFIG) --cxx)
-ALTF77       := $(shell $(ROOTCONFIG) --f77)
-ALTLD        := $(shell $(ROOTCONFIG) --ld)
+ARCH         := $(shell $(RC) --arch)
+PLATFORM     := $(shell $(RC) --platform)
+ALTCC        := $(shell $(RC) --cc)
+ALTCXX       := $(shell $(RC) --cxx)
+ALTF77       := $(shell $(RC) --f77)
+ALTLD        := $(shell $(RC) --ld)
 
 #CXX           =
 ObjSuf        = o
@@ -26,7 +38,7 @@ ifeq (debug,$(findstring debug,$(ROOTBUILD)))
 OPT           = -g
 OPT2          = -g
 else
-ifneq ($(findstring debug, $(strip $(shell $(ROOTCONFIG) --config))),)
+ifneq ($(findstring debug, $(strip $(shell $(RC) --config))),)
 OPT           = -g
 OPT2          = -g
 else
@@ -35,12 +47,12 @@ OPT2          = -O2
 endif
 endif
 
-ROOTCFLAGS   := $(shell $(ROOTCONFIG) --cflags)
-ROOTLDFLAGS  := $(shell $(ROOTCONFIG) --ldflags)
-ROOTLIBS     := $(shell $(ROOTCONFIG) --libs)
-ROOTGLIBS    := $(shell $(ROOTCONFIG) --glibs)
-HASTHREAD    := $(shell $(ROOTCONFIG) --has-thread)
-ROOTDICTTYPE := $(shell $(ROOTCONFIG) --dicttype)
+ROOTCFLAGS   := $(shell $(RC) --cflags)
+ROOTLDFLAGS  := $(shell $(RC) --ldflags)
+ROOTLIBS     := $(shell $(RC) --libs)
+ROOTGLIBS    := $(shell $(RC) --glibs)
+HASTHREAD    := $(shell $(RC) --has-thread)
+ROOTDICTTYPE := $(shell $(RC) --dicttype)
 ROOTCINT     := rootcint
 
 ifeq ($(PLATFORM),macosx)
@@ -88,18 +100,8 @@ LDFLAGS       = $(OPT2)
 SOFLAGS       = -shared
 endif
 
-ifeq ($(ARCH),aix)
-# IBM AIX xlC 4.x
-CXX           = xlC
-CXXFLAGS      = $(OPT)
-LD            = xlC
-LDFLAGS       = $(OPT)
-SOFLAGS       =
-DllSuf        = a
-endif
-
 ifeq ($(ARCH),aix5)
-# IBM AIX xlC 5.x
+# IBM AIX >5.x xlC
 CXX           = xlC
 CXXFLAGS      = $(OPT)
 LD            = xlC
@@ -109,7 +111,7 @@ DllSuf        = a
 endif
 
 ifeq ($(ARCH),aixgcc)
-# IBM AIX with GCC
+# IBM AIX >5.x with GCC
 CXX           = g++
 CXXFLAGS      = $(OPT)
 LD            = g++
@@ -144,15 +146,6 @@ CXXFLAGS      = $(OPT) -KPIC
 LD            = CC
 LDFLAGS       = $(OPT)
 SOFLAGS       = -G
-endif
-
-ifeq ($(ARCH),solarisgcc)
-# Solaris gcc
-CXX           = g++
-CXXFLAGS      = $(OPT) -fPIC
-LD            = g++
-LDFLAGS       = $(OPT)
-SOFLAGS       = -shared
 endif
 
 ifeq ($(ARCH),sgicc)
@@ -367,6 +360,7 @@ CXX           = g++
 CXXFLAGS      = $(OPT2) -pipe -Wall -W -Woverloaded-virtual
 LD            = g++
 LDFLAGS       = $(OPT2) -mmacosx-version-min=$(MACOSXTARGET)
+EXPLLINKLIBS  = $(ROOTLIBS) $(ROOTGLIBS)
 # The SOFLAGS will be used to create the .dylib,
 # the .so will be created separately
 ifeq ($(subst $(MACOSX_MINOR),,1234),1234)
@@ -374,12 +368,10 @@ DllSuf        = so
 else
 DllSuf        = dylib
 endif
-UNDEFOPT      = dynamic_lookup
 ifneq ($(subst $(MACOSX_MINOR),,12),12)
-UNDEFOPT      = suppress
 LD            = g++
 endif
-SOFLAGS       = -dynamiclib -single_module -undefined $(UNDEFOPT) -install_name $(CURDIR)/
+SOFLAGS       = -dynamiclib -single_module -install_name $(CURDIR)/
 endif
 
 ifeq ($(ARCH),macosxicc)
@@ -391,6 +383,7 @@ CXX           = icc
 CXXFLAGS      = $(OPT) -fPIC -wd1476
 LD            = icpc
 LDFLAGS       = $(OPT2) -mmacosx-version-min=$(MACOSXTARGET)
+EXPLLINKLIBS  = $(ROOTLIBS) $(ROOTGLIBS)
 # The SOFLAGS will be used to create the .dylib,
 # the .so will be created separately
 ifeq ($(subst $(MACOSX_MINOR),,1234),1234)
@@ -398,7 +391,7 @@ DllSuf        = so
 else
 DllSuf        = dylib
 endif
-SOFLAGS       = -dynamiclib -single_module -undefined dynamic_lookup -install_name $(CURDIR)/
+SOFLAGS       = -dynamiclib -single_module -install_name $(CURDIR)/
 endif
 
 ifeq ($(ARCH),macosx64)
@@ -408,6 +401,7 @@ CXX           = g++
 CXXFLAGS      = $(OPT2) -pipe -Wall -W -Woverloaded-virtual
 LD            = g++
 LDFLAGS       = $(OPT2) -mmacosx-version-min=$(MACOSXTARGET)
+EXPLLINKLIBS  = $(ROOTLIBS) $(ROOTGLIBS)
 # The SOFLAGS will be used to create the .dylib,
 # the .so will be created separately
 ifeq ($(subst $(MACOSX_MINOR),,1234),1234)
@@ -415,7 +409,7 @@ DllSuf        = so
 else
 DllSuf        = dylib
 endif
-SOFLAGS       = -dynamiclib -single_module -undefined dynamic_lookup -install_name $(CURDIR)/
+SOFLAGS       = -dynamiclib -single_module -install_name $(CURDIR)/
 endif
 
 ifeq ($(ARCH),win32)
@@ -432,7 +426,7 @@ ifeq (debug,$(findstring debug,$(ROOTBUILD)))
 CXXOPT        = -Z7
 LDOPT         = -debug
 else
-ifneq ($(findstring debug, $(strip $(shell $(ROOTCONFIG) --config))),)
+ifneq ($(findstring debug, $(strip $(shell $(RC) --config))),)
 CXXOPT        = -Z7
 LDOPT         = -debug
 else
@@ -440,14 +434,14 @@ CXXOPT        = -O2
 LDOPT         = -opt:ref
 endif
 endif
-ROOTINCDIR   := -I$(shell cygpath -m `$(ROOTCONFIG) --incdir`)
+ROOTINCDIR   := -I$(shell cygpath -m `$(RC) --incdir`)
 CXXFLAGS      = $(CXXOPT) -nologo $(ROOTINCDIR) -FIw32pragma.h
 LD            = link
 LDFLAGS       = $(LDOPT) -nologo
 SOFLAGS       = -DLL
 
 EXPLLINKLIBS  = $(ROOTLIBS) $(ROOTGLIBS)
-ifneq (,$(findstring $(VC_MAJOR),14 15 16))
+ifneq (,$(findstring $(VC_MAJOR),14 15))
 MT_EXE        = mt -nologo -manifest $@.manifest -outputresource:$@\;1; rm -f $@.manifest
 MT_DLL        = mt -nologo -manifest $@.manifest -outputresource:$@\;2; rm -f $@.manifest
 else

@@ -34,7 +34,7 @@ endif
 #Generic and Site Specific Flags
 CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES) 
 LDFLAGS      += $(ROOTLDFLAGS) 
-LIBS          = $(ROOTLIBS) -lMathMore $(SYSLIBS)
+LIBS          = $(ROOTLIBS) -lMathMore $(SYSLIBS) -lfftw3
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 
@@ -52,7 +52,7 @@ all : $(ROOT_LIBRARY)
 fftDict.C: $(CLASS_HEADERS)
 	@echo "Generating dictionary ..."
 	@ rm -f *Dict* 
-	rootcint $@ -c $(CXXFLAGS) $(CLASS_HEADERS) LinkDef.h
+	rootcint $@ -c -I$(shell $(RC) --incdir) $(CLASS_HEADERS) LinkDef.h
 
 
 #The library
@@ -60,7 +60,7 @@ $(ROOT_LIBRARY) : $(LIB_OBJS)
 	@echo "Linking $@ ..."
 ifeq ($(PLATFORM),macosx)
 # We need to make both the .dylib and the .so
-		$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@
+		$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(LIBS) $(OutPutOpt) $@
 ifneq ($(subst $(MACOSX_MINOR),,1234),1234)
 ifeq ($(MACOSX_MINOR),4)
 		ln -sf $@ $(subst .$(DllSuf),.so,$@)
