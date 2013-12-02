@@ -242,17 +242,17 @@ public:
 
    //! Returns the normalised correlation of two TGraphs
   /*!
-    \param gr1 The first input TGraph
-    \param gr2 The second input TGraph
-    \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correclation.
+    \param gr1 The first input TGrap  (must be zero meaned)
+    \param gr2 The second input TGraph (must be zero meaned)
+    \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correlation and by the product of the RMS of the input graphs.
   */    
   static TGraph *getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
 
 
    //! Returns the correlation of two interpolated TGraphs
   /*!
-    \param grIn1 The first input TGraph
-    \param grIn2 The second input TGraph
+    \param grIn1 The first input TGraph 
+    \param grIn2 The second input TGraph 
     \param deltaT The desired time step for the interpolated graphs
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i>, after each is interpolated to have a timestep of <i>deltaT</i>.
   */      
