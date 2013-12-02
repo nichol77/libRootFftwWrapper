@@ -237,6 +237,18 @@ public:
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i>.
   */    
   static TGraph *getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
+
+
+
+   //! Returns the normalised correlation of two TGraphs
+  /*!
+    \param gr1 The first input TGraph
+    \param gr2 The second input TGraph
+    \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correclation.
+  */    
+  static TGraph *getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
+
+
    //! Returns the correlation of two interpolated TGraphs
   /*!
     \param grIn1 The first input TGraph

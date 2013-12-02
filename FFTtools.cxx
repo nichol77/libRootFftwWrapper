@@ -288,6 +288,50 @@ TGraph *FFTtools::combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double 
 
 
 
+TGraph *FFTtools::getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset) {
+  //Will also assume these graphs are zero meaned... may fix this assumption
+   //Now we'll extend this up to a power of 2
+  int length=gr1->GetN();
+  Double_t *y1=gr1->GetY();
+  int length2=gr2->GetN();
+  Double_t *y2=gr2->GetY();
+  Double_t denom=gr1->GetRMS(2)*gr2->GetRMS(2);
+  
+  int N=int(TMath::Power(2,int(TMath::Log2(length))+2));
+  if(N<length2)
+    N=int(TMath::Power(2,int(TMath::Log2(length2))+2));
+  
+  //Will really assume that N's are equal for now
+  int firstRealSamp=1+(N-2*length)/2;
+  int lastRealSamp=firstRealSamp+2*(length-1);
+  TGraph *grCor = getCorrelationGraph(gr1,gr2,zeroOffset);
+  Double_t *corVal=grCor->GetY();
+  Double_t norm1=0;
+  Double_t norm2=0;
+  
+  for(int i=0;i<N;i++) {
+    if(i>=firstRealSamp && i<=lastRealSamp) {
+      if(i<=N/2) {
+	norm1+=(y1[i-firstRealSamp]*y1[i-firstRealSamp]);
+	norm2+=(y2[length-1-(i-firstRealSamp)]*y2[length-1-(i-firstRealSamp)]);
+	corVal[i]/=(sqrt(1+(i-firstRealSamp))*denom);
+	//	std::cout << i << "\t" << 1+(i-firstRealSamp) << "\n";
+      }
+      else if(i<N-1) {
+	norm1-=(y1[i-1-(N/2)]*y1[i-1-(N/2)]);
+	norm2-=(y2[length-(i-(N/2))]*y2[length-(i-(N/2))]);
+	corVal[i]/=denom*sqrt(1+lastRealSamp-i);
+	//	std::cout << i << "\t" << (1+lastRealSamp-i) << "\n";
+      }
+    }
+  }
+
+  return grCor;
+}
+
+
+
+
 TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset) {
    //Now we'll extend this up to a power of 2
     int length=gr1->GetN();
