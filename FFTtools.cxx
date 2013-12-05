@@ -286,7 +286,87 @@ TGraph *FFTtools::combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double 
     
 }
 
+TGraph *FFTtools::getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *gr2,  Int_t *zeroOffset, Int_t useDtRange, Double_t dtMin, Double_t dtMax) {
+  //Will also assume these graphs are zero meaned... may fix this assumption
+   //Now we'll extend this up to a power of 2
+  int length=gr1->GetN();
+  Double_t *y1=gr1->GetY();
+  int length2=gr2->GetN();
+  if(length2<length) length=length2;
+  Double_t *y2=gr2->GetY();
+  Double_t denom=gr1->GetRMS(2)*gr2->GetRMS(2);
+  
+  Double_t *x1=gr1->GetX();
+  Double_t *x2=gr1->GetX();
+    
+  double deltaT=x1[1]-x1[0];
+  double waveOffset=x1[0]-x2[0];
 
+  
+  int N=2*length-1;
+  
+
+  if(zeroOffset) {
+    *zeroOffset=N/2;
+    (*zeroOffset)+=Int_t(waveOffset/deltaT);
+  }
+
+  //Will really assume that N's are equal for now
+  //  int firstRealSamp=1+(N-2*length)/2;
+  //  int lastRealSamp=firstRealSamp+2*(length-1);
+  int firstRealSamp=0;
+  int lastRealSamp=N-1;
+  int minDtIndex=0;
+  int maxDtIndex=N-1;
+  if(useDtRange) {
+    minDtIndex=TMath::Floor((dtMin-waveOffset)/deltaT)+(N/2);
+    if(minDtIndex<0) minDtIndex=0;
+    maxDtIndex=TMath::Ceil((dtMax-waveOffset)/deltaT)+(N/2);
+    if(maxDtIndex<0) maxDtIndex=0;
+    //    std::cout << minDtIndex << "\t" << maxDtIndex << "\t" << waveOffset << "\t" << deltaT << "\t" << dtMin << "\t" << dtMax << "\t" << N << "\t" << TMath::Floor((dtMin-waveOffset)/deltaT) << "\n";
+  }
+    
+
+
+  
+  double *xVals = new double [N];
+  double *corVals= new double [N];
+  for(int i=minDtIndex;i<=maxDtIndex;i++) {
+    //    if(i<minDtIndex || i>maxDtIndex) continue;
+    int dtIndex=(i-minDtIndex);
+
+
+    xVals[dtIndex]=((i-N/2)*deltaT)+waveOffset;
+    corVals[dtIndex]=0;
+    if(i>=firstRealSamp && i<=lastRealSamp) {
+      //if (i-firstRealSamp)==0 only one entry in correlation
+      Int_t firstIndex=(i-firstRealSamp);
+      Int_t secondIndex=length-1;
+      if(firstIndex>length-1) {
+	int offset=firstIndex-(length-1);
+	firstIndex=length-1;
+	secondIndex-=offset;
+      }
+
+      Int_t numSamples=0;
+      //firstIndex+1;
+      //if(secondIndex<firstIndex)
+      //	numSamples=secondIndex+1;
+      for(;firstIndex>=0 && secondIndex>=0;firstIndex--) {
+	//	std::cout << i << "\t"  << firstIndex << "\t" << secondIndex << "\n";
+	corVals[dtIndex]+=y1[firstIndex]*y2[secondIndex];
+	numSamples++;
+	secondIndex--;
+      }
+      corVals[dtIndex]/=denom*sqrt(numSamples);
+    }      
+  }
+
+  TGraph *grCor = new TGraph((maxDtIndex-minDtIndex)+1,xVals,corVals);
+  delete [] xVals;
+  delete [] corVals;
+  return grCor;
+}
 
 TGraph *FFTtools::getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset) {
   //Will also assume these graphs are zero meaned... may fix this assumption
@@ -314,14 +394,15 @@ TGraph *FFTtools::getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t 
       if(i<=N/2) {
 	norm1+=(y1[i-firstRealSamp]*y1[i-firstRealSamp]);
 	norm2+=(y2[length-1-(i-firstRealSamp)]*y2[length-1-(i-firstRealSamp)]);
-	corVal[i]/=(sqrt(1+(i-firstRealSamp))*denom);
-	//	std::cout << i << "\t" << 1+(i-firstRealSamp) << "\n";
+	int effN=1+(i-firstRealSamp);
+	corVal[i]/=(sqrt(effN)*denom);
       }
       else if(i<N-1) {
 	norm1-=(y1[i-1-(N/2)]*y1[i-1-(N/2)]);
 	norm2-=(y2[length-(i-(N/2))]*y2[length-(i-(N/2))]);
-	corVal[i]/=denom*sqrt(1+lastRealSamp-i);
-	//	std::cout << i << "\t" << (1+lastRealSamp-i) << "\n";
+	int effN=(1+lastRealSamp-i);
+	corVal[i]/=(sqrt(effN)*denom);
+
       }
     }
   }

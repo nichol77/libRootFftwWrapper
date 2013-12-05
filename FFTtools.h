@@ -248,6 +248,16 @@ public:
   */    
   static TGraph *getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
 
+   //! Returns the normalised correlation of two TGraphs
+  /*!
+    \param gr1 The first input TGrap  (must be zero meaned)
+    \param gr2 The second input TGraph (must be zero meaned)
+    \param zeroOffset A pointer to an integer where the sample corresponding to zero offset will be stored
+    \param useDtRange A flag to enable the setting of a limited range of deltat's to try
+    \param dtMin The minimum delta-t to include in the correlation, the maximum delta-t to include in the correlation
+    \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correlation and by the product of the RMS of the input graphs.
+  */  
+  static TGraph *getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0, Int_t useDtRange=0, Double_t dtMin=-1000, Double_t dtMax=1000);
 
    //! Returns the correlation of two interpolated TGraphs
   /*!
