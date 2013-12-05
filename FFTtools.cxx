@@ -297,7 +297,7 @@ TGraph *FFTtools::getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *g
   Double_t denom=gr1->GetRMS(2)*gr2->GetRMS(2);
   
   Double_t *x1=gr1->GetX();
-  Double_t *x2=gr1->GetX();
+  Double_t *x2=gr2->GetX();
     
   double deltaT=x1[1]-x1[0];
   double waveOffset=x1[0]-x2[0];
