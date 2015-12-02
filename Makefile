@@ -5,11 +5,16 @@
 ##############################################################################
 include Makefile.arch
 
+
+#If you have the 64-bit version of fftw installed, try this to help CINT out.
+#CINTFLAGS=-DFFTW_64_BIT
+
+
 #Site Specific  Flags (adjust to local site)
 OUTLIBDIR          = 
 OUTINCDIR          = 
-SYSINCLUDES	= 
-SYSLIBS         = 
+SYSINCLUDES	= -I/usr/local/include
+SYSLIBS         = -L/usr/local/lib
 DLLSUF = ${DllSuf}
 OBJSUF = ${ObjSuf}
 SRCSUF = ${SrcSuf}
@@ -44,15 +49,21 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 #ROOT stuff
 
 ROOT_LIBRARY = libRootFftwWrapper.${DllSuf}
-LIB_OBJS =  FFTWComplex.o FFTtools.o RFSignal.o RFFilter.o fftDict.o
-CLASS_HEADERS =   FFTWComplex.h FFTtools.h RFSignal.h RFFilter.h
+LIB_OBJS =  FFTWComplex.o FFTtools.o RFSignal.o RFFilter.o FFTtoolsWisdomManager.o fftDict.o
+CLASS_HEADERS =   FFTWComplex.h FFTtools.h RFSignal.h FFTtoolsWisdomManager.h RFFilter.h
+BINARIES = testFFTtools
 
-all : $(ROOT_LIBRARY) 
+all : $(ROOT_LIBRARY) $(BINARIES)
+
+$(BINARIES): %: %.$(SRCSUF) $(ROOT_LIBRARY) 
+	@echo "<**Compiling**> "
+	@echo $<
+	$(LD) $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< $(ROOT_LIBRARY) -o $@
 
 fftDict.C: $(CLASS_HEADERS)
 	@echo "Generating dictionary ..."
 	@ rm -f *Dict* 
-	rootcint $@ -c -I$(shell $(RC) --incdir) $(CLASS_HEADERS) LinkDef.h
+	rootcint $@ -c -p -I$(shell $(RC) --incdir) $(SYSINCLUDES) $(CINTFLAGS) $(CLASS_HEADERS) LinkDef.h
 
 
 #The library
@@ -65,12 +76,12 @@ ifneq ($(subst $(MACOSX_MINOR),,1234),1234)
 ifeq ($(MACOSX_MINOR),4)
 		ln -sf $@ $(subst .$(DllSuf),.so,$@)
 else
-		$(LD) -bundle -undefined $(UNDEFOPT) $(LDFLAGS) $^ \
+		$(LD) -bundle -undefined $(UNDEFOPT) $(LDFLAGS) $(LIBS) $^ \
 		   $(OutPutOpt) $(subst .$(DllSuf),.so,$@)
 endif
 endif
 else
-	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIB_OBJS) -o $@
+	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIBS) $(LIB_OBJS) -o $@
 endif
 
 %.$(OBJSUF) : %.$(SRCSUF)

@@ -18,9 +18,15 @@ i) Install both ROOT and FFTW3 are on your system and that ROOTSYS is correctly 
 ii) Edit the site specific section at the top of the Makefile (in general only the install variables need to be set)
 iii) To make type:
 make
-iv) To install libRootFftwWrapper set the environmental variable ANITA_UTIL_INSTALL_DIR ro point to your desired installation dir and type:
+iv) To install libRootFftwWrapper set the environmental variable ANITA_UTIL_INSTALL_DIR to point to your desired installation dir and type:
 make install
 (N.B. the directories $ANITA_UTIL_INSTALL_DIR/include and $ANITA_UTIL_INSTALL_DIR/lib must exist)
+
+v) The FFTtoolsWisdomManager will attempt to save the best FFT plans for future use in a file fftw.wisdom
+   in either the directory pointed to by an environment variable FFTW_WISDOM_DIR or ANITA_UTIL_INSTALL_DIR.
+   By default FFTW_WISDOM_DIR is searched first.
+   One of these variables must point to a directory where the user has read/write permission.
+   (Some users set ANITA_UTIL_INSTALL_DIR to a directory requiring sudo, hence the new FFTW_WISDOM_DIR variable.)
 
 Usage from within ROOT
 =======================

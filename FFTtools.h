@@ -2,15 +2,36 @@
 #ifndef FFTTOOLS_H
 #define FFTTOOLS_H
 
-//#include <fftw3.h>
+#ifdef __CINT__
+#ifdef FFTW_64_BIT // Hack for Hawaii install of FFTW
+typedef struct {char a[16];} __float128; /* 16 chars have the same size as one __float128 */
+#endif
+#endif 
+
+// c++ libraries thingies
+#include <map>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+
+// ROOT
 #include "TGraph.h"
 #include "TROOT.h"
 #include "TMath.h"
 #include "TString.h"
+#include "TSystem.h"
+#include "TMath.h"
+#include "Math/Interpolator.h"
+#include "Math/InterpolationTypes.h"
+
 
 //My includes
 #include "FFTWComplex.h"
 #include "RFSignal.h"
+#include "FFTtoolsWisdomManager.h"
+
+// FFTW
+#include <fftw3.h>
 
 /*! \mainpage ROOT FFTW Wrapper
  *
@@ -39,7 +60,7 @@
 */
 class FFTtools
 {
-public:
+public: 
   FFTtools(); ///<Constructor, not used as all member functions are static
   ~FFTtools();  ///<Destructor, also not used. 
 
@@ -230,6 +251,7 @@ public:
     \return A pointer to a TGraph containing the power spectrum. 
   */    
   static TGraph *makeRawPowerSpectrum(TGraph *grWave);
+
    //! Returns the correlation of two TGraphs
   /*!
     \param gr1 The first input TGraph
@@ -573,6 +595,12 @@ public:
     \return y
   */      
   static Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
+
+
+private:
+  static FFTtoolsWisdomManager myWisdom;
+
+
 
 };
    
