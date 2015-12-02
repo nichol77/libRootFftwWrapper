@@ -45,14 +45,12 @@ typedef struct {char a[16];} __float128; /* 16 chars have the same size as one _
  *  -# <A HREF="http://www.fftw.org/">FFTW 3 -- Fastest Fourier Transform in the West</a>
  * 
  * \section install_sec Installation
- * -# Checkout the code from the SVN repository, eg.: <BR><PRE>svn co https://delos.mps.ohio-state.edu/anitaGround/libRootFftwWrapper/trunk myRootFftwWrapperDir</PRE>
+ * -# Checkout the code from github https://github.com/nichol77/libRootFftwWrapper
  * -# Define the ANITA_UTIL_INSTALL_DIR (or ARA_UTIL_INSTALL_DIR) to point to the location you want the library installed (the library files will end up in (ANITA_UTIL_INSTALL_DIR)/lib and the header files in (ANITA_UTIL_INSTALL_DIR)/include).
  * -# Do <PRE>make</PRE><PRE>make install</PRE>
  * \section manual_sec Manual
  * If you are averse to reading web pages (and who wouldn't be) you can download a <a href="manual/libRootFftwWrapper.pdf">pdf copy of the reference material</a> but be warned it won't be a thrilling read.
  */
-
-
 
 //!  This is the class that holds all the various useful FFT related functions
 /*!
