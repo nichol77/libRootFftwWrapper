@@ -28,7 +28,7 @@ typedef struct {char a[16];} __float128; /* 16 chars have the same size as one _
 //My includes
 #include "FFTWComplex.h"
 #include "RFSignal.h"
-#include "FFTtoolsWisdomManager.h"
+
 
 // FFTW
 #include <fftw3.h>
@@ -594,9 +594,6 @@ public:
   */      
   static Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
 
-
-private:
-  static FFTtoolsWisdomManager myWisdom;
 
 
 

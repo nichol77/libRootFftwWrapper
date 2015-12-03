@@ -2,8 +2,6 @@
 
 using namespace std;
 
-FFTtoolsWisdomManager FFTtools::myWisdom;
-
 FFTtools::FFTtools()
 {
 }
