@@ -31,6 +31,7 @@ typedef struct {char a[16];} __float128; /* 16 chars have the same size as one _
 
 
 // FFTW
+#include <complex>
 #include <fftw3.h>
 
 /*! \mainpage ROOT FFTW Wrapper
@@ -596,6 +597,23 @@ public:
 
 
 
+private:
+  /* Takes care of checking whether a plan exists or not */
+  static bool makeNewPlanIfNeeded(int len);
+
+  /*
+    std::maps which hold all the fftw goodies.
+    The length is the key so we have an easy way to check if a plan already exists.
+    The values are the input/ouput arrays and the plans, real-to-complex and complex-to-real.
+  */
+
+  static std::map<int, fftw_plan> fRealToComplex;
+  static std::map<int, fftw_plan> fComplexToReal;
+  static std::map<int, double*> fReals;
+  // static std::map<int, fftw_complex*> fComplex;
+  static std::map<int, std::complex<double>*> fComplex;
+  
+  
 
 };
    

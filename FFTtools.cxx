@@ -119,104 +119,111 @@ TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
 
 
 
+
+
 // FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
-
-//   myWisdom.makeNewPlanIfNeeded(length);
-  
-//   /* Copy input to fftw plan input */
-//   for(int i=0;i<length;i++) {
-//     myWisdom.fReals[length][i]=theInput[i];
-//   }
-
-//   fftw_execute(myWisdom.fRealToComplex[length]);    
-
-//   FFTWComplex *myOutput = new FFTWComplex [(length/2)+1];
-//   for (int i=0;i<(length/2)+1;i++) {
-//     myOutput[i].re = myWisdom.fComplex[length][i].real();
-//     myOutput[i].im = myWisdom.fComplex[length][i].imag();
-//   }
-//   return myOutput;
-// }
-
-// double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
-
-//   myWisdom.makeNewPlanIfNeeded(length);  
-
-//   /* Copy input to fftw plan */
-//   for(int i=0;i<((length/2)+1);i++) {
-//     myWisdom.fComplex[length][i] = std::complex<double>(theInput[i].re, theInput[i].im);
-//   }
+//   //Here is what the sillyFFT program should be doing;    
+//     fftw_complex *theOutput = new fftw_complex [(length/2)+1];
+//     double *newInput = new double [length]; 
     
-//   fftw_execute(myWisdom.fComplexToReal[length]);
+//     //cout << length  << " " << input[0] << " " << theFFT[0] << endl;
+//     fftw_plan thePlan = fftw_plan_dft_r2c_1d(length,newInput,theOutput,FFTW_MEASURE);
+//     if(!thePlan) {
+// 	cout << "Bollocks" << endl;
+//     }
+        
+//     for(int i=0;i<length;i++) {
+// 	newInput[i]=theInput[i];
+//     }
 
-//   double *theOutput = new double[length]; 
-//   for(int i=0;i<length;i++) {
-//     theOutput[i]= myWisdom.fReals[length][i]/length;
-//   }
-//   return theOutput;
+//     for (int i=0;i<(length/2)+1;i++) {
+// 	theOutput[i][0]=0.;
+// 	theOutput[i][1]=0.;
+//     }
+//     fftw_execute(thePlan);
+//     delete [] newInput; 
+//     fftw_destroy_plan(thePlan);
+    
+
+//     FFTWComplex *myOutput = new FFTWComplex [(length/2)+1];
+//     for (int i=0;i<(length/2)+1;i++) {
+// 	myOutput[i].re=theOutput[i][0];
+// 	myOutput[i].im=theOutput[i][1];
+//     }
+//     delete [] theOutput;
+//     return myOutput;
 // }
-
-
 
 
 FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
   //Here is what the sillyFFT program should be doing;    
-    fftw_complex *theOutput = new fftw_complex [(length/2)+1];
-    double *newInput = new double [length]; 
-    
-    //cout << length  << " " << input[0] << " " << theFFT[0] << endl;
-    fftw_plan thePlan = fftw_plan_dft_r2c_1d(length,newInput,theOutput,FFTW_MEASURE);
-    if(!thePlan) {
-	cout << "Bollocks" << endl;
-    }
-        
-    for(int i=0;i<length;i++) {
-	newInput[i]=theInput[i];
-    }
 
-    for (int i=0;i<(length/2)+1;i++) {
-	theOutput[i][0]=0.;
-	theOutput[i][1]=0.;
-    }
-    fftw_execute(thePlan);
-    delete [] newInput; 
-    fftw_destroy_plan(thePlan);
-    
+  makeNewPlanIfNeeded(length);
+  memcpy(FFTtools::fReals[length], theInput, sizeof(double)*length);
+  fftw_execute(FFTtools::fRealToComplex[length]);
 
-    FFTWComplex *myOutput = new FFTWComplex [(length/2)+1];
-    for (int i=0;i<(length/2)+1;i++) {
-	myOutput[i].re=theOutput[i][0];
-	myOutput[i].im=theOutput[i][1];
-    }
-    delete [] theOutput;
-    return myOutput;
+  const int numFreqs= (length/2)+1;
+  FFTWComplex *myOutput = new FFTWComplex [numFreqs];
+  memcpy(myOutput, FFTtools::fComplex[length], sizeof(fftw_complex)*numFreqs);
+  return myOutput;
 }
 
+
+
+// double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
+//   // This is what sillyFFT should be doing
+//   //    //Takes account of normailisation 
+//   // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry
+//     fftw_complex *newInput = new fftw_complex [(length/2)+1];
+//     double *theOutput = new double [length]; 
+//     fftw_plan thePlan = fftw_plan_dft_c2r_1d(length,newInput,theOutput,FFTW_MEASURE);
+           
+//     for(int i=0;i<((length/2)+1);i++) {
+// 	newInput[i][0]=theInput[i].re;
+// 	newInput[i][1]=theInput[i].im;
+//     }
+//     for(int i=0;i<length;i++) {
+// 	theOutput[i]=0;
+//     }
+    
+//     fftw_execute(thePlan);
+//     delete [] newInput; 
+//     fftw_destroy_plan(thePlan);
+//     for(int i=0;i<length;i++) {
+// 	theOutput[i]/=length;
+//     }
+//     return theOutput;
+// }
 
 double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
   // This is what sillyFFT should be doing
   //    //Takes account of normailisation 
   // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry
-    fftw_complex *newInput = new fftw_complex [(length/2)+1];
-    double *theOutput = new double [length]; 
-    fftw_plan thePlan = fftw_plan_dft_c2r_1d(length,newInput,theOutput,FFTW_MEASURE);
-           
-    for(int i=0;i<((length/2)+1);i++) {
-	newInput[i][0]=theInput[i].re;
-	newInput[i][1]=theInput[i].im;
-    }
-    for(int i=0;i<length;i++) {
-	theOutput[i]=0;
-    }
-    
-    fftw_execute(thePlan);
-    delete [] newInput; 
-    fftw_destroy_plan(thePlan);
-    for(int i=0;i<length;i++) {
-	theOutput[i]/=length;
-    }
-    return theOutput;
+
+
+  makeNewPlanIfNeeded(length);
+  std::complex<double>* tempVals = (std::complex<double>*) FFTtools::fComplex[length];
+  const int numFreqs= (length/2)+1;
+  for(int i=0; i<numFreqs; i++){
+    tempVals[i].real(theInput[i].re);
+    tempVals[i].imag(theInput[i].im);    
+  }
+
+  // Do inverse FFT.
+  fftw_execute(FFTtools::fComplexToReal[length]);
+
+  /* Normalization needed on the inverse transform */
+  double* invFftOutPtr = FFTtools::fReals[length];
+  for(int i=0; i<length; i++){
+    invFftOutPtr[i]/=length;
+  }
+
+  // Copy output array
+  double *theOutput = new double [length];
+  memcpy(theOutput, invFftOutPtr, sizeof(double)*length);
+  return theOutput;
 }
+
 
 
 
@@ -2152,4 +2159,53 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
   delete [] safeTimeVals;
   delete [] sumVolts;
   return grRet;
+}
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// PRIVATE THINGS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/* Define static members */
+/* https://stackoverflow.com/questions/18433752/c-access-private-static-member-from-public-static-method */
+std::map<int, fftw_plan> FFTtools::fRealToComplex;
+std::map<int, fftw_plan> FFTtools::fComplexToReal;
+std::map<int, double*> FFTtools::fReals;
+std::map<int, std::complex<double>*> FFTtools::fComplex;
+
+bool FFTtools::makeNewPlanIfNeeded(int len){
+  /* 
+     Function which checks whether we've encountered a request to do an FFT of this length before.
+     If we haven't then we need a new plan!
+  */
+
+  std::map<int,fftw_plan>::iterator it = FFTtools::fRealToComplex.find(len);
+  if(it==FFTtools::fRealToComplex.end()){
+    // std::cout << len << "\t" << threadInd << std::endl;
+    FFTtools::fReals[len] = (double*) fftw_malloc(sizeof(double)*len);
+    FFTtools::fComplex[len] = (std::complex<double>*) fftw_malloc(sizeof(fftw_complex)*len);
+    FFTtools::fRealToComplex[len] = fftw_plan_dft_r2c_1d(len,
+							 FFTtools::fReals[len],
+							 (fftw_complex*)FFTtools::fComplex[len],
+							 FFTW_MEASURE);
+    FFTtools::fComplexToReal[len] = fftw_plan_dft_c2r_1d(len,
+							 (fftw_complex*)FFTtools::fComplex[len],
+							 FFTtools::fReals[len],
+							 FFTW_MEASURE);
+    return true;
+  }
+  else{
+    return false;
+  }
 }

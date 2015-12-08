@@ -75,8 +75,25 @@ int main(int argc, char* argv[]){
   grPs2->Draw("lsame");
   l1->Draw();
 
-  /* Draw pretty things */
 
+  FFTWComplex* sineFFT1 = FFTtools::doFFT(n, sineWave1);
+  FFTWComplex* sineFFT2 = FFTtools::doFFT(n, sineWave2);
+
+  double* sineWave1Again = FFTtools::doInvFFT(n, sineFFT1);
+  double* sineWave2Again = FFTtools::doInvFFT(n, sineFFT2);  
+  
+  TGraph* gr1Again = new TGraph(n, ts, sineWave1Again);
+  TGraph* gr2Again = new TGraph(n, ts, sineWave2Again);  
+
+  c1->cd(4);
+  gr1Again->SetTitle("Doing a forward and then inverse FFT on the sine waves; t (s); Amplitude (V)");
+  gr1Again->Draw();
+  gr2Again->SetLineColor(kRed);
+  gr2Again->Draw("lsame");
+  
+  
+  /* Draw pretty things */
+  
   c1->Update();
   
   c1->SaveAs(TString::Format("%sOutput.png", argv[0]));
