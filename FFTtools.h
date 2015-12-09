@@ -3,10 +3,15 @@
 #define FFTTOOLS_H
 
 #ifdef __CINT__
-#ifdef FFTW_64_BIT // Hack for Hawaii install of FFTW
+#ifdef FFTW_64_BIT // Hack for Hawaii install of FFTW. Is there ever a reason to now have this defed? 
 typedef struct {char a[16];} __float128; /* 16 chars have the same size as one __float128 */
 #endif
 #endif 
+
+
+// If the following is uncommented, in and out arrays for FFTW are allocated contiguously. 
+#define FFTTOOLS_ALLOCATE_CONTIGUOUS 
+//#define FFTTOOLS_THREAD_SAFE 
 
 // c++ libraries thingies
 #include <map>
@@ -53,16 +58,11 @@ typedef struct {char a[16];} __float128; /* 16 chars have the same size as one _
  * If you are averse to reading web pages (and who wouldn't be) you can download a <a href="manual/libRootFftwWrapper.pdf">pdf copy of the reference material</a> but be warned it won't be a thrilling read.
  */
 
-//!  This is the class that holds all the various useful FFT related functions
 /*!
-  This is the class that holds all the various useful FFT related functions. All of the functions can (and should) be called statically using something like FFTtools::doYourFunkyThing(arg1,arg2).
+  This is the namespace that holds all the various useful FFT related functions. All of the functions canbe called using something like FFTtools::doYourFunkyThing(arg1,arg2).
 */
-class FFTtools
+namespace FFTtools
 {
-public: 
-  FFTtools(); ///<Constructor, not used as all member functions are static
-  ~FFTtools();  ///<Destructor, also not used. 
-
     
   
   //! Interpolation Routines that use ROOT::Math::Interpolator 
@@ -71,7 +71,7 @@ public:
     \param deltaT The desired period (1/rate) of the interpolated waveform.
     \return A pointer to ther interpolated TGraph, it is the users responsibility to delete this after use.
   */
-  static TGraph *getInterpolatedGraph(TGraph *grIn, Double_t deltaT);
+   TGraph *getInterpolatedGraph(TGraph *grIn, Double_t deltaT);
 
   //! Interpolation Routines that zeropads the FFT
   /*!
@@ -79,7 +79,7 @@ public:
     \param deltaT The desired period (1/rate) of the interpolated waveform.
     \return A pointer to ther interpolated TGraph, it is the users responsibility to delete this after use.
   */
-  static TGraph *getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT);
+   TGraph *getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT);
 
   //! Convolution
   /*!
@@ -87,21 +87,21 @@ public:
     \param grB A pointer to the input TGraph B
     \return A pointer to the convolution of A and B stored in a TGraph, it is the users responsibility to delete this after use.
   */
-  static TGraph *getConvolution(TGraph *grA, TGraph *grB);
+   TGraph *getConvolution(TGraph *grA, TGraph *grB);
   //! Convolution
   /*!
     \param grA A pointer to the input RFSignal A.
     \param grB A pointer to the input RFSignal B
     \return A pointer to the convolution of A and B stored in a TGraph, it is the users responsibility to delete this after use.
   */
-  static RFSignal *getConvolution(RFSignal *grA, RFSignal *grB);
+   RFSignal *getConvolution(RFSignal *grA, RFSignal *grB);
 
   //! Returns the magnitude of a complex number.
   /*!
     \param theNum The complex number.
     \return The magnitude of the complex number.
   */
-  static double getAbs(FFTWComplex &theNum);
+   double getAbs(FFTWComplex &theNum);
 
   //! Computes an inverse FFT
   /*!
@@ -109,14 +109,14 @@ public:
     \param theInput The input array of complex numbers of <i>(length/2 +1)</i>
     \return An array of <i>length</i> real numbers
   */
-  static double *doInvFFT(int length, FFTWComplex *theInput);
+   double *doInvFFT(int length, FFTWComplex *theInput);
   //! Computes an FFT of an array of real numbers.
   /*!
     \param length The length of the input array.
     \param theInput The input array of <i>length</i> real numbers.
     \return An array of <i>length/2 + 1</i> complex numbers
   */
-  static FFTWComplex *doFFT(int length,double *theInput);    
+   FFTWComplex *doFFT(int length,double *theInput);    
 
 
   //! Converts inputMag (linear units) to time domain by means of hilbert transform assuming R_signal = 1/sqrt(2) (R_mag - i R^_mag);
@@ -124,7 +124,7 @@ public:
     \param inputMag TGraph containg the inputMagnitude
     \return TGraph of the time domain signal
   */
-  static TGraph *convertMagnitudeToTimeDomain(TGraph *inputMag);    
+   TGraph *convertMagnitudeToTimeDomain(TGraph *inputMag);    
 
   //! Computes the correlation of two subsets of TGraphs
   /*!
@@ -134,7 +134,7 @@ public:
     \param lastIndex The index of the last sample in the sub traces.
     \return The correlation as an array of <i>lastIndex-firstIndex</i> real numbers.
   */
-  static double *getCorrelation(TGraph *gr1, TGraph *gr2,int firstIndex,int lastIndex);
+   double *getCorrelation(TGraph *gr1, TGraph *gr2,int firstIndex,int lastIndex);
   //! Computes the correlation of two arrays
   /*!
     \param length The length of the arrays
@@ -142,7 +142,7 @@ public:
     \param oldY2 The second array in the correlation.
     \return The correlation as an array of <i>length</i> real numbers.
   */
-  static double *getCorrelation(int length,float *oldY1, float *oldY2);
+   double *getCorrelation(int length,float *oldY1, float *oldY2);
   //! Computes the correlation of two arrays
   /*!
     \param length The length of the arrays
@@ -150,7 +150,7 @@ public:
     \param oldY2 The second array in the correlation.
     \return The correlation as an array of <i>length</i> real numbers.
   */
-  static double *getCorrelation(int length,double *oldY1, double *oldY2);
+   double *getCorrelation(int length,double *oldY1, double *oldY2);
 
 
   //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
@@ -159,7 +159,7 @@ public:
     \param thePtrPtr A pointer to a two-dimensional array of TGraphs <i>*grPtrArray[numGraphs]</i>.
     \return A pointer to a graph containing the averaged waveform.
   */
-  static TGraph *correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr);
+   TGraph *correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr);
 
   //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
   /*!
@@ -169,7 +169,7 @@ public:
     \return A pointer to a graph containing the averaged waveform.
   */
   
-  static TGraph *interpolateCorrelateAndAverage(Double_t deltaTInt,
+   TGraph *interpolateCorrelateAndAverage(Double_t deltaTInt,
 						Int_t numGraphs,
 						TGraph **grPtrPtr);
   
@@ -180,7 +180,7 @@ public:
     \param eachLength The length of each array.
     \return The time domain result of the frequency domain summation.
   */
-  static Double_t *combineValuesUsingFFTs(Int_t numArrays, Double_t **thePtrPtr, Int_t eachLength);
+   Double_t *combineValuesUsingFFTs(Int_t numArrays, Double_t **thePtrPtr, Int_t eachLength);
 
   //Higher level functions that take and return TGraphs
   //! Returns the power spectral density. Note the PSD is unormalised (or if you prefer is normalised to the sum squared amplitude of the time domain). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a>
@@ -188,25 +188,25 @@ public:
     \param grWave The input time domain waveform
     \return A pointer to a TGraph containing the power spectrum. 
   */
-  static TGraph *makePowerSpectrum(TGraph *grWave);
+   TGraph *makePowerSpectrum(TGraph *grWave);
   //! Returns the power spectral density. Note the PSD returned is the periodogram (or if you prefer is normalised to the mean squared amplitude of the time domain). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a>
   /*!
     \param grWave The input time domain waveform
     \return A pointer to a TGraph containing the power spectrum. 
   */
-  static TGraph *makePowerSpectrumPeriodogram(TGraph *grWave);
+   TGraph *makePowerSpectrumPeriodogram(TGraph *grWave);
   //! Returns the power spectral density. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a volts-seconds one.
   /*!
     \param grWave The input time domain waveform with units of volts-seconds.
     \return A pointer to a TGraph containing the power spectrum. 
   */  
-  static TGraph *makePowerSpectrumVoltsSeconds(TGraph *grWave);
+   TGraph *makePowerSpectrumVoltsSeconds(TGraph *grWave);
   //! Returns the power spectral density of the input waveform convolved with a Bartlett Window. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a volts-seconds one.
   /*!
     \param grWave The input time domain waveform with units of volts-seconds.
     \return A pointer to a TGraph containing the power spectrum. 
   */  
-  static TGraph *makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave);
+   TGraph *makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave);
   //! Returns the power spectral density of the input waveform. In this one we first zero pad the waveform and then split it up into overlapping segments and convolve each segment with the Bartlett window before summing the resulting PSD's. As the name suggests this function expects the input waveform to be a volts-seconds one. No idea if this one actually works, or where I read oabout this crazy method which is supposed to reduce the variance of the PSD estimator.
   /*!
     \param grWave The input time domain waveform with units of volts-seconds.
@@ -214,42 +214,42 @@ public:
     \param numFreqs The number of frequency bins required in the output, which is related to the length of overlapping segments.
     \return A pointer to a TGraph containing the power spectrum. 
   */    
-  static TGraph *makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor=4, Int_t numFreqs=64);
+   TGraph *makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor=4, Int_t numFreqs=64);
 
   //! Returns the power spectral density in dB units. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a volts-seconds one.
   /*!
     \param grWave The input time domain waveform with units of volts-seconds.
     \return A pointer to a TGraph containing the power spectrum in dB units, the frequency units are MHz. 
   */  
-  static TGraph *makePowerSpectrumVoltsSecondsdB(TGraph *grWave);
+   TGraph *makePowerSpectrumVoltsSecondsdB(TGraph *grWave);
  //! Returns the power spectral density in dB units. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a millivolts-nanoseconds one.
   /*!
     \param grWave The input time domain waveform with units of millivolts-nanoseconds.
     \return A pointer to a TGraph containing the power spectrum in dB units, the frequency units are MHz. 
   */  
-  static TGraph *makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave);
-  static TGraph *makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave);
+   TGraph *makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave);
+   TGraph *makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave);
   //! Returns the power spectral density of the input waveform zero-padded by some factor. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a volts-seconds one.
   /*!
     \param grWave The input time domain waveform with units of volts-seconds.
     \param padFactor The factor by which to zero pad the wave.
     \return A pointer to a TGraph containing the power spectrum. 
   */  
-  static TGraph *makePowerSpectrumVoltsSecondsPadded(TGraph *grWave, Int_t padFactor=4);
+   TGraph *makePowerSpectrumVoltsSecondsPadded(TGraph *grWave, Int_t padFactor=4);
   //! Returns the power spectral density in dB units of the input waveform zero-padded by some factor. Note the PSD returned is normalised and divided by frequency bin width (or if you prefer it is normalised to the time-integral squared amplitude of the time domain and then divided by frequency bin width). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a> As the name suggests this function expects the input waveform to be a volts-seconds one.
   /*!
     \param grWave The input time domain waveform with units of volts-seconds.
     \param padFactor The factor by which to zero pad the wave.
     \return A pointer to a TGraph containing the power spectrum in dB units with MHz as the frequency unit. 
   */    
-  static TGraph *makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t padFactor=4);
+   TGraph *makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t padFactor=4);
   
   //! Returns the power spectral density in completely unormalised unit (as in Parseval's theorem is not obeyed and there is an extra factor of N not removed form the PSD). <a href="http://www.hep.ucl.ac.uk/~rjn/saltStuff/fftNormalisation.pdf">See this short note for my terminology.</a>
   /*!
     \param grWave The input time domain waveform.
     \return A pointer to a TGraph containing the power spectrum. 
   */    
-  static TGraph *makeRawPowerSpectrum(TGraph *grWave);
+   TGraph *makeRawPowerSpectrum(TGraph *grWave);
 
    //! Returns the correlation of two TGraphs
   /*!
@@ -257,7 +257,7 @@ public:
     \param gr2 The second input TGraph
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i>.
   */    
-  static TGraph *getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
+   TGraph *getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
 
 
 
@@ -267,7 +267,7 @@ public:
     \param gr2 The second input TGraph (must be zero meaned)
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correlation and by the product of the RMS of the input graphs.
   */    
-  static TGraph *getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
+   TGraph *getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0);
 
    //! Returns the normalised correlation of two TGraphs
   /*!
@@ -278,7 +278,7 @@ public:
     \param dtMin The minimum delta-t to include in the correlation, the maximum delta-t to include in the correlation
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correlation and by the product of the RMS of the input graphs.
   */  
-  static TGraph *getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0, Int_t useDtRange=0, Double_t dtMin=-1000, Double_t dtMax=1000);
+   TGraph *getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset=0, Int_t useDtRange=0, Double_t dtMin=-1000, Double_t dtMax=1000);
 
    //! Returns the correlation of two interpolated TGraphs
   /*!
@@ -287,13 +287,13 @@ public:
     \param deltaT The desired time step for the interpolated graphs
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i>, after each is interpolated to have a timestep of <i>deltaT</i>.
   */      
-  static TGraph *getInterpolatedCorrelationGraph(TGraph *grIn1, TGraph *grIn2, Double_t deltaT);
+   TGraph *getInterpolatedCorrelationGraph(TGraph *grIn1, TGraph *grIn2, Double_t deltaT);
   //! Returns the inverse FFT of the FFT of the input TGraph. Seems pointless.
   /*!
     \param grWave A pointer to the input TGraph
     \return A pointer to a TGraph containing the inverse FFT of the FFT of <i>grWave</i>.
   */        
-  static TGraph *makeInverseInverseSpectrum(TGraph *grWave);
+   TGraph *makeInverseInverseSpectrum(TGraph *grWave);
   
    //! Returns the time domain result of a frequency domain sum of a number of TGraphs. In the sum each TGraph is weighted by a value. As of writing this documentation, I'm not sure why this would be interesting.
   /*!
@@ -302,7 +302,7 @@ public:
     \param theWeights An optional array of weights with which to sum the TGraphs.
     \return A pointer to a TGraph containing the inverse FFT of the weighted summed FFT of the input graphs.
   */
-  static TGraph *combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double *theWeights=0);
+   TGraph *combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double *theWeights=0);
   
    //! Smooth graph using box car smoothing
   /*!
@@ -310,19 +310,19 @@ public:
     \param halfWidth The halfWidth in samples of the size of the box over which to smooth the input graph (eg. <i>halfWidth</i>=1 means that sample i is the average if i-1, i and i+1.
     \return A pointer to a TGraph containing the smoothed graph.
   */
-  static TGraph *getBoxCar(TGraph *grWave, Int_t halfWidth);
+   TGraph *getBoxCar(TGraph *grWave, Int_t halfWidth);
   //! The Hilbert transform of the input TGraph
   /*!
     \param grWave A pointer to the input TGraph
     \return A pointer to a TGraph containing the Hilbert transform
   */
-  static TGraph *getHilbertTransform(TGraph *grWave);
+   TGraph *getHilbertTransform(TGraph *grWave);
   //! The Hilbert envelope of the input TGraph. This is defined as e_i=sqrt(v_i^2 + h_i^2), where e_i, v_i and h_i are the i-th sample of the envelope, input graph and hilbert transform of the input graph repsectively.
   /*!
     \param grWave A pointer to the input TGraph
     \return A pointer to a TGraph containing the Hilbert envelope function.
   */
-  static TGraph *getHilbertEnvelope(TGraph *grWave);
+   TGraph *getHilbertEnvelope(TGraph *grWave);
 
   //Utility functions (not necessarily FFT related but they'll live here for now
 
@@ -333,7 +333,7 @@ public:
     \param lastBin The last bin to include in the sum.
     \return The summed power
   */
-  static Double_t sumPower(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
+   Double_t sumPower(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
    //! The integral of the power in a TGraph (normally a PSD) (i.e the sum of bin content*bin width)
   /*!
     \param gr A pointer to the input TGraph (normally a PSD)
@@ -341,7 +341,7 @@ public:
     \param lastBin The last bin to include in the integral.
     \return The integral value.
   */
-  static Double_t integratePower(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
+   Double_t integratePower(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
    //! The sum of the voltage squared in a waveform.
   /*!
     \param gr A pointer to the input TGraph 
@@ -349,7 +349,7 @@ public:
     \param lastBin The last bin to include in the sum.
     \return The value of the sum.
   */  
-  static Double_t sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin); 
+   Double_t sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin); 
   //! The integral of the v^2*dt in a waveform. Now works for unevenly sampled waeforms
   /*!
     \param gr A pointer to the input TGraph 
@@ -357,13 +357,13 @@ public:
     \param lastBin The last bin to include in the integral.
     \return The value of the integral.
   */  
-  static Double_t integrateVoltageSquared(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
+   Double_t integrateVoltageSquared(TGraph *gr,Int_t firstBin=-1,Int_t lastBin=-1);
   //! Find the peak (maximum positive) bin in a TGraph
   /*!
     \param gr A pointer to the input TGraph 
     \return The index of the bin with peak value.
   */    
-  static Int_t getPeakBin(TGraph *gr); 
+   Int_t getPeakBin(TGraph *gr); 
  
 
   //! Find the peak (maximum positive) bin in a TGraph
@@ -371,7 +371,7 @@ public:
     \param gr A pointer to the input TGraph 
     \return The index of the bin with peak value.
   */    
-  static Int_t getPeakBin(TGraph *gr, Int_t firstBin, Int_t lastBin);  
+   Int_t getPeakBin(TGraph *gr, Int_t firstBin, Int_t lastBin);  
   
   //! Find the peak (maximum positive) in a TGraph.
   /*!
@@ -379,14 +379,14 @@ public:
     \param index An optional pointer in which the peak bin can be stored.
     \return The peak value.
   */    
-  static Double_t getPeakVal(TGraph *gr, int *index=0);
+   Double_t getPeakVal(TGraph *gr, int *index=0);
   //! Find the peak (v^2) in a TGraph.
   /*!
     \param gr A pointer to the input TGraph.
     \param index An optional pointer in which the peak bin can be stored.
     \return The peak (v^2)value.
   */    
-  static Double_t getPeakSqVal(TGraph *gr, int *index=0);
+   Double_t getPeakSqVal(TGraph *gr, int *index=0);
   //! Find the peak (v^2) and RMS (of v^2) in a TGraph.
   /*!
     \param gr A pointer to the input TGraph.
@@ -394,7 +394,7 @@ public:
     \param rms A reference to a Double_t where the rms value will be stored.
     \param index An optional pointer in which the peak bin can be stored.
   */      
-  static void getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index=0);
+   void getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index=0);
   
   //! Find the peak (v) and RMS (of v) of a rectified TGraph.
   /*!
@@ -403,7 +403,7 @@ public:
     \param rms A reference to a Double_t where the rms value will be stored.
     \param index An optional pointer in which the peak bin can be stored.
   */      
-  static void getPeakRmsRectified(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index=0);
+   void getPeakRmsRectified(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index=0);
 
   //Graph returning utility funcs
   //! Returns the simple power envelope of a waveform. The waveform is first squared and then only local peaks are taken to form the power envelope.
@@ -411,28 +411,28 @@ public:
     \param gr A pointer to the input TGraph.
     \return A pointer to a TGraph containing the power envelope
   */     
-  static TGraph *getSimplePowerEnvelopeGraph(TGraph *gr);
+   TGraph *getSimplePowerEnvelopeGraph(TGraph *gr);
   //! Returns a smoothed FFT where N-bins are averaged to reduce variance.
   /*!
     \param gr A pointer to the input TGraph.
     \param factor The factor by which to smooth (eg. 2 returns a PSD with half as many frequency bins).
     \return A pointer to a TGraph containing the smoothed PSD.
   */     
-  static TGraph *smoothFFT(TGraph *gr,Int_t factor) ;
+   TGraph *smoothFFT(TGraph *gr,Int_t factor) ;
   //! Returns the difference between two graphs (A-B).
   /*!
     \param grA A pointer to the first graph.
     \param grB A pointer to the second graph.
     \return A pointer to a TGraph containing the difference (A-B) between the input graphs.
   */     
-  static TGraph *subtractGraphs(TGraph *grA, TGraph *grB);
+   TGraph *subtractGraphs(TGraph *grA, TGraph *grB);
   //! Returns the ratio between two graphs (A/B).
   /*!
     \param grA A pointer to the first graph.
     \param grB A pointer to the second graph.
     \return A pointer to a TGraph containing the ratio (A/B) of the input graphs.
   */     
-  static TGraph *divideGraphs(TGraph *grA, TGraph *grB);
+   TGraph *divideGraphs(TGraph *grA, TGraph *grB);
 
   
   //! Returns a graph translated by deltaT. Such that t'=t+dt
@@ -441,7 +441,7 @@ public:
     \param deltaT The amount to move time axis by
     \return A pointer to a TGraph containing the translated graph
   */     
-  static TGraph *translateGraph(TGraph *grWave, Double_t deltaT);
+   TGraph *translateGraph(TGraph *grWave, Double_t deltaT);
 
   //! Returns the one minus the ratio between two graphs (A/B).
   /*!
@@ -449,35 +449,35 @@ public:
     \param grB A pointer to the second graph.
     \return A pointer to a TGraph containing the one minus the ratio (1 - A/B) of the input graphs.
   */     
-  static TGraph *ratioSubtractOneGraphs(TGraph *grA, TGraph *grB) ;
+   TGraph *ratioSubtractOneGraphs(TGraph *grA, TGraph *grB) ;
   //! Returns the ratio of two graphs as 10 *log(A/B)
   /*!
     \param grA A pointer to the first graph.
     \param grB A pointer to the second graph.
     \return A pointer to a TGraph containing 10 * log(A/B)
   */     
-  static TGraph *dbGraphs(TGraph *grA, TGraph *grB);
+   TGraph *dbGraphs(TGraph *grA, TGraph *grB);
   //! Zero pad a wave making it a factor of N longer.
   /*!
     \param grA A pointer to the input graph.
     \param padFactor The factor by whcih to increas the length (eg. new length = <i>factor</i> * old length)
     \return A pointer to the zero padded TGraph.
   */     
-  static TGraph *padWave(TGraph *grA, Int_t padFactor);
+   TGraph *padWave(TGraph *grA, Int_t padFactor);
   //! Zero pad a wave making it up to newLength points.
   /*!
     \param grA A pointer to the input graph.
     \param newLength The new length the graph should be (it gets zero padded on either side)
     \return A pointer to the zero padded TGraph.
   */     
-  static TGraph *padWaveToLength(TGraph *grA, Int_t newLength);
+   TGraph *padWaveToLength(TGraph *grA, Int_t newLength);
   //! Rectify a waveform, optionally returning an all negative waveform.
   /*!
     \param gr A pointer to the input graph.
     \param makeNeg An optional parameter which if true will return a negative waveform.
     \return A pointer to the rectified TGraph
   */     
-  static TGraph *rectifyWave(TGraph *gr, Int_t makeNeg=0);
+   TGraph *rectifyWave(TGraph *gr, Int_t makeNeg=0);
   
   //Window functions
   //! The Bartlett window function (it's basically a triangle that peaks in the middle at 1 and goes to zero at the end points)
@@ -486,14 +486,14 @@ public:
     \param n The length of sample.
     \return The value of the window function at index <i>j</i>.
   */       
-  static Double_t  bartlettWindow(Int_t j, Int_t n);
+   Double_t  bartlettWindow(Int_t j, Int_t n);
   //! The Welch window function similar to the Bartlett window except that it falls off from the middle as dx^2 (ie. less steeply).
   /*!
     \param j The index to evaluate the window at
     \param n The length of sample.
     \return The value of the window function at index <i>j</i>.
   */       
-  static Double_t welchWindow(Int_t j, Int_t n);
+   Double_t welchWindow(Int_t j, Int_t n);
 
 
 
@@ -505,20 +505,20 @@ public:
     \param outputX The output time values.
     \param outputY The output voltage values.
   */       
-  static void takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *inputY, Double_t *outputX, Double_t *outputY);
+   void takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *inputY, Double_t *outputX, Double_t *outputY);
 
  //! This returns a TGraph which is the derivative of the input graph
   /*!
     \param grIn The input graph.
     \return The derviative of grIn.
   */      
-  static TGraph *getDerviative(TGraph *grIn);
+   TGraph *getDerviative(TGraph *grIn);
  //! This returns a TGraph which is the derivative of the input graph
   /*!
     \param grIn The input graph.
     \return The derviative of grIn.
   */      
-  static TGraph *getDerivative(TGraph *grIn);
+   TGraph *getDerivative(TGraph *grIn);
 
  //! This returns a TGraph which has had a simple pass band filter applied
   /*!
@@ -527,7 +527,7 @@ public:
     \param maxFreq The highest frequency to pass.
     \return The derviative of grWave.
   */      
-  static TGraph *simplePassBandFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
+   TGraph *simplePassBandFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
 
  //! This returns a TGraph which has had a simple notch band filter applied
   /*!
@@ -536,7 +536,7 @@ public:
     \param maxFreq The upper frequency of the notch.
     \return The derviative of grWave.
   */      
-  static TGraph *simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
+   TGraph *simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq);
 
 
   //! This returns a TGraph which has had N simple notch band filters applied
@@ -547,7 +547,7 @@ public:
     \param maxFreq An array upper frequency of the notch.
     \return The derviative of grWave.
   */      
-  static TGraph *multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[]);
+   TGraph *multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[]);
 
 //! This returns a TGraph which has been cropped in.
   /*!
@@ -556,7 +556,7 @@ public:
     \param maxTime The upper edge of the time window.
     \return The derviative of grWave.
   */      
-  static TGraph *cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime);
+   TGraph *cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime);
 
   
   //! This returns the SNR ratio of the input waveform
@@ -564,7 +564,7 @@ public:
     \param gr The input graph.
     \return The SNR of the input waveform, where S is half of the peak-to-peak and N is the RMS of the first 25 ns.
   */      
-  static Double_t getWaveformSNR(TGraph *gr); 
+   Double_t getWaveformSNR(TGraph *gr); 
   //! This returns the SNR ratio of the input waveform
   /*!
     \param gr The input graph.
@@ -572,16 +572,16 @@ public:
     \param rms A reference to a double which will be set to the RMS of teh first 25 samples
     \return The SNR of the input waveform, where S is half of the peak-to-peak and N is the RMS of the first 25 samples.
   */     
-  static Double_t getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms);
+   Double_t getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms);
 
   //! This returns the largest (i.e most positive, or least negative) value
   /*!
     \param gr The input graph.
     \return The peak
   */      
-  static Double_t getWaveformPeak(TGraph *gr);
-  static Double_t getEnvelopeSNR(TGraph *gr);
-  static Double_t getEnvelopeSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms,Double_t &timeOfPeak);
+   Double_t getWaveformPeak(TGraph *gr);
+   Double_t getEnvelopeSNR(TGraph *gr);
+   Double_t getEnvelopeSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms,Double_t &timeOfPeak);
 
 
   //! Linear interpolate to find the value at some point near two known points
@@ -593,28 +593,10 @@ public:
     \param x is the point of interest
     \return y
   */      
-  static Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
+   Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
 
-
-
-private:
-  /* Takes care of checking whether a plan exists or not */
-  static bool makeNewPlanIfNeeded(int len);
-
-  /*
-    std::maps which hold all the fftw goodies.
-    The length is the key so we have an easy way to check if a plan already exists.
-    The values are the input/ouput arrays and the plans, real-to-complex and complex-to-real.
-  */
-
-  static std::map<int, fftw_plan> fRealToComplex;
-  static std::map<int, fftw_plan> fComplexToReal;
-  static std::map<int, double*> fReals;
-  // static std::map<int, fftw_complex*> fComplex;
-  static std::map<int, std::complex<double>*> fComplex;
-  
   
 
-};
+}
    
 #endif //FFTTOOLS_H

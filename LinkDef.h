@@ -4,8 +4,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ namespace FFTtools;
 #pragma link C++ class FFTWComplex+;
-#pragma link C++ class FFTtools+;
 #pragma link C++ class RFSignal+;
 #pragma link C++ class RFFilter+;
 

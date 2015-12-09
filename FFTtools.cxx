@@ -2,13 +2,6 @@
 
 using namespace std;
 
-FFTtools::FFTtools()
-{
-}
-
-FFTtools::~FFTtools()
-{
-}
 
 Double_t FFTtools::bartlettWindow(Int_t j, Int_t n)
 { 
@@ -118,7 +111,83 @@ TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
 }
 
 
+// this needs a new enough compiler... and c++11 standard
+#ifdef FFTTOOLS_THREAD_SAFE
+#include "TMutex.h" 
+static TMutex plan_mutex; 
+#define STATIC_VAR static thread_local
+#else
+#define STATIC_VAR static thread_local
+#endif 
 
+/*
+  std::maps which hold all the fftw goodies.
+  The length is the key so we have an easy way to check if a plan already exists. 
+  The values are the input/ouput arrays and the plans, real-to-complex and complex-to-real.
+
+
+  The memory for the arrays are actually allocated at the same time so that they are contiguous for better chance of cache coherence. 
+*/
+
+
+STATIC_VAR std::map<int, std::pair<fftw_plan, fftw_plan> > cached_plans; //this caches both plans for a given length
+STATIC_VAR std::map<int, double*> cached_xs;
+STATIC_VAR std::map<int, fftw_complex*> cached_Xs;
+
+static fftw_plan getPlan(int len, bool forward = true){
+  /* 
+     Function which checks whether we've encountered a request to do an FFT of this length before.
+     If we haven't then we need a new plan!
+  */
+
+#ifdef FFTOOLS_THREAD_SAFE
+  plan_mutex.Lock(); 
+#endif 
+
+  std::map<int,std::pair<fftw_plan, fftw_plan> >::iterator it = cached_plans.find(len);
+
+  if(it==cached_plans.end())
+  {
+    
+   
+#ifdef FFTTOOLS_ALLOCATE_CONTIGUOUS
+
+    /* Allocate contiguous memory for both the real and complex arrays 
+     *
+     *  For proper alignment, we ought to pad sizeof(double) * len to whatever the largest SIMD alignment is. 
+     *  Currently that's sizeof(double) * 4, but in the future it might be sizeof(double) * 8; 
+     **/ 
+ 
+    void * mem = fftw_malloc(sizeof(double) * (len + len % 8) +  (1 + len/2) * sizeof(fftw_complex)); 
+    double * mem_x = (double*) mem;  //pointer to real array 
+    fftw_complex * mem_X = (fftw_complex*) (mem_x + len + (len % 8));  //pointer to complex array
+
+//    printf ("%lu %lu\n", ((size_t)mem_x) % 32, ((size_t)mem_X) % 32);  // check that aligned
+#else
+    double * mem_x= fftw_alloc_real(len); 
+    fftw_complex * mem_X= fftw_alloc_complex(len/2+1); 
+#endif
+
+    cached_xs[len] = mem_x;  //insert into maps 
+    cached_Xs[len] = mem_X; 
+
+
+
+    //create plans
+    std::pair<fftw_plan,fftw_plan> plans; 
+    plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_PATIENT);
+    plans.second = fftw_plan_dft_c2r_1d(len,mem_X, mem_x, FFTW_PATIENT); 
+    cached_plans[len] = plans; 
+    return  forward ? plans.first : plans.second;
+  }
+
+#ifdef FFTOOLS_THREAD_SAFE
+    plan_mutex.UnLock(); 
+#endif 
+
+ return forward ? (*it).second.first : (*it).second.second; 
+  
+}
 
 
 // FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
@@ -158,13 +227,14 @@ TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
 FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
   //Here is what the sillyFFT program should be doing;    
 
-  makeNewPlanIfNeeded(length);
-  memcpy(FFTtools::fReals[length], theInput, sizeof(double)*length);
-  fftw_execute(FFTtools::fRealToComplex[length]);
+  fftw_plan plan = getPlan(length, true); 
+  memcpy(cached_xs[length], theInput, sizeof(double)*length);
+
+  fftw_execute(plan);
 
   const int numFreqs= (length/2)+1;
   FFTWComplex *myOutput = new FFTWComplex [numFreqs];
-  memcpy(myOutput, FFTtools::fComplex[length], sizeof(fftw_complex)*numFreqs);
+  memcpy(myOutput, cached_Xs[length], sizeof(fftw_complex)*numFreqs);
   return myOutput;
 }
 
@@ -201,19 +271,12 @@ double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
   // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry
 
 
-  makeNewPlanIfNeeded(length);
-  std::complex<double>* tempVals = (std::complex<double>*) FFTtools::fComplex[length];
-  const int numFreqs= (length/2)+1;
-  for(int i=0; i<numFreqs; i++){
-    tempVals[i].real(theInput[i].re);
-    tempVals[i].imag(theInput[i].im);    
-  }
-
-  // Do inverse FFT.
-  fftw_execute(FFTtools::fComplexToReal[length]);
+  fftw_plan plan= getPlan(length,false);
+  memcpy (cached_Xs[length], theInput, sizeof(fftw_complex) * (length/2 +1)); 
+  fftw_execute(plan);
 
   /* Normalization needed on the inverse transform */
-  double* invFftOutPtr = FFTtools::fReals[length];
+  double* invFftOutPtr = cached_xs[length];
   for(int i=0; i<length; i++){
     invFftOutPtr[i]/=length;
   }
@@ -2171,41 +2234,6 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// PRIVATE THINGS
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
-/* Define static members */
-/* https://stackoverflow.com/questions/18433752/c-access-private-static-member-from-public-static-method */
-std::map<int, fftw_plan> FFTtools::fRealToComplex;
-std::map<int, fftw_plan> FFTtools::fComplexToReal;
-std::map<int, double*> FFTtools::fReals;
-std::map<int, std::complex<double>*> FFTtools::fComplex;
-
-bool FFTtools::makeNewPlanIfNeeded(int len){
-  /* 
-     Function which checks whether we've encountered a request to do an FFT of this length before.
-     If we haven't then we need a new plan!
-  */
-
-  std::map<int,fftw_plan>::iterator it = FFTtools::fRealToComplex.find(len);
-  if(it==FFTtools::fRealToComplex.end()){
-    // std::cout << len << "\t" << threadInd << std::endl;
-    FFTtools::fReals[len] = (double*) fftw_malloc(sizeof(double)*len);
-    FFTtools::fComplex[len] = (std::complex<double>*) fftw_malloc(sizeof(fftw_complex)*len);
-    FFTtools::fRealToComplex[len] = fftw_plan_dft_r2c_1d(len,
-							 FFTtools::fReals[len],
-							 (fftw_complex*)FFTtools::fComplex[len],
-							 FFTW_MEASURE);
-    FFTtools::fComplexToReal[len] = fftw_plan_dft_c2r_1d(len,
-							 (fftw_complex*)FFTtools::fComplex[len],
-							 FFTtools::fReals[len],
-							 FFTW_MEASURE);
-    return true;
-  }
-  else{
-    return false;
-  }
-}
