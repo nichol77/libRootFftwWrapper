@@ -46,7 +46,7 @@ int main(int argc, char* argv[]){
   TCanvas* c1 = new TCanvas("c1", "FFT Frivolities", 1200, 1600);
   c1->Divide(2, 2);
   c1->cd(1);
-  gr1->Draw();
+  gr1->Draw("alp");
   gr2->Draw("l same");
   l1->Draw();
 
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
   grCorr->SetTitle("FFTtools::getCorrelationGraph;offset #deltat (s);Correlation");
   
   c1->cd(2);  
-  grCorr->Draw();
+  grCorr->Draw("alp");
 
 
   TGraph* grPs1 = FFTtools::makePowerSpectrumVoltsSecondsdB(gr1);
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
 
 
   c1->cd(3);
-  grPs1->Draw();
+  grPs1->Draw("alp");
   grPs1->SetTitle("FFTtools::makePowerSpectrumVoltsSecondsdB; Frequency (Hz); Power (dB)");
   grPs2->SetLineColor(kRed);
   grPs2->Draw("lsame");
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]){
 
   c1->cd(4);
   gr1Again->SetTitle("Doing a forward and then inverse FFT on the sine waves; t (s); Amplitude (V)");
-  gr1Again->Draw();
+  gr1Again->Draw("alp");
   gr2Again->SetLineColor(kRed);
   gr2Again->Draw("lsame");
   
