@@ -9,7 +9,7 @@ include Makefile.arch
 include Makefile.config 
 
 #Generic and Site Specific Flags
-CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES) 
+CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES)
 LDFLAGS      += $(ROOTLDFLAGS) 
 LIBS          = $(ROOTLIBS) -lMathMore -lMinuit2 $(SYSLIBS) -lfftw3 
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
@@ -31,12 +31,14 @@ ROOT_LIBRARY = $(LIBDIR)/libRootFftwWrapper.${DllSuf}
 LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
 																			RFSignal.o RFFilter.o \
 						                          FFTWindow.o SineSubtract.o \
-																			DigitalFilter.o fftDict.o) 
+																			DigitalFilter.o RFInterpolate.o\
+																		 	AnalyticSignal.o fftDict.o) 
 
 CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
 																							RFSignal.h RFFilter.h\
 																							FFTWindow.h SineSubtract.h \
-																							DigitalFilter.h) 
+																							RFInterpolate.h DigitalFilter.h\
+																							AnalyticSignal.h) 
 
 BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
 

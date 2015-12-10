@@ -43,6 +43,12 @@
 #pragma link C++ class FFTtools::ChebyshevIFilter; 
 
 
+// signal 
+#pragma link C++ class FFTtools::AnalyticSignal; 
+#pragma link C++ class FFTtools::CompositeSignal; 
+#pragma link C++ class FFTtools::BandlimitedSampledSignal; 
+
+
 
 #endif
 
