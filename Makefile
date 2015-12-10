@@ -99,7 +99,7 @@ clean:
 	@rm -f $(LIBRARY)
 	@rm -f $(ROOT_LIBRARY)
 	@rm -f $(subst .$(DllSuf),.so,$(ROOT_LIBRARY))	
-	@rm -f $(TEST)
+	@rm -f $(BINARIES)
 
 
 install: $(ROOT_LIBRARY)
