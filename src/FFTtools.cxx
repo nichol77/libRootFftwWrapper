@@ -2254,31 +2254,6 @@ double FFTtools::sinc(double x, double eps)
 
 
 
-void FFTtools::IIRFilter(int n, const double * x, double * y, int na, const double * A, int nb, const double * B)
-{
-  int nc = TMath::Max(na,nb); 
-  for (int j = 0; j < n; j++) 
-  {
-      double a0 =A[0];
-      y[j] = 0; 
-      for (int k = 0; k < nc; k++) 
-      {
-        if (j - k < 0) break; 
-
-        if (k < nb)
-        {
-          y[j] += x[j-k] * B[k] ; 
-        }
-
-        if (k > 0 && k < na) 
-        {
-          y[j] -= y[j-k] *A[k]; 
-        }
-      }
-      y[j] /= a0;
-  }
-}
-
 
 void FFTtools::rotate(TGraph *g, int rot) 
 {

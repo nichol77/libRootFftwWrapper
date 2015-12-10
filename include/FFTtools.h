@@ -595,13 +595,7 @@ namespace FFTtools
     \return y
   */      
    Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
-
   
-   /*!
-    * apply IIRFilter with A and B coeffs to x, outputting to y 
-    */ 
-   void IIRFilter(int length, const double * x, double * y, int nA, const double * A, int nB, const double * B); 
-
    /*!
     * Correlation between two FFTs
     * bandpasses between min_i and max_i using butterworth filter of order order

@@ -30,11 +30,13 @@ ROOT_LIBRARY = $(LIBDIR)/libRootFftwWrapper.${DllSuf}
 
 LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
 																			RFSignal.o RFFilter.o \
-						                          FFTWindow.o SineSubtract.o fftDict.o) 
+						                          FFTWindow.o SineSubtract.o \
+																			DigitalFilter.o fftDict.o) 
 
 CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
 																							RFSignal.h RFFilter.h\
-																							FFTWindow.h SineSubtract.h ) 
+																							FFTWindow.h SineSubtract.h \
+																							DigitalFilter.h) 
 
 BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
 
