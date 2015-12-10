@@ -38,6 +38,7 @@ namespace FFTtools
   {
 
     public: 
+      RectangularWindow() {;} 
       virtual double value(double, size_t) const{ return 1; } 
       virtual void apply(size_t, double *) const {;} // noop 
   };
@@ -47,6 +48,7 @@ namespace FFTtools
   class TriangularWindow : public FFTWindowType
   {
     public: 
+      TriangularWindow() {;} 
       virtual double value(double i, size_t N) const;
   };
 
@@ -55,6 +57,7 @@ namespace FFTtools
   class HannWindow  : public FFTWindowType
   {
     public: 
+      HannWindow() {;} 
       virtual double value(double i, size_t N)const;
   };
 
@@ -63,6 +66,7 @@ namespace FFTtools
   class HammingWindow : public FFTWindowType
   {
     public: 
+      HammingWindow() {;} 
       virtual double value(double i, size_t N)const;
   };
 
@@ -71,6 +75,7 @@ namespace FFTtools
   class BlackmanWindow  : public FFTWindowType
   {
     public: 
+      BlackmanWindow() {;} 
       virtual double value(double i, size_t N)const;
   };
 
@@ -79,6 +84,7 @@ namespace FFTtools
   class BlackmanHarrisWindow  : public FFTWindowType
   {
     public: 
+      BlackmanHarrisWindow() {;} 
       virtual double value(double i, size_t N)const;
   };
 
