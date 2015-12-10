@@ -24,7 +24,7 @@
 //sin subtract stuff
 #pragma link C++ class FFTtools::SineSubtract;
 #pragma link C++ class FFTtools::SineFitter;
-#pragma link C++ class FFTtools::SineSubtractResult;
+#pragma link C++ class FFTtools::SineSubtractResult+;
 
 
 // filter stuff
