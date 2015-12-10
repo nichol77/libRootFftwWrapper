@@ -347,7 +347,8 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
     char * Astr = arrString(ntraces,&amp[0]); 
     char * Phstr =arrString(ntraces,&phase[0]); 
     printf("Guesses: f= %f, A=%s, ph=%s", freq, Astr, Phstr); 
-
+    delete [] Astr; 
+    delete [] Phstr; 
     double p[1 + 2*ntraces]; 
     p[0] = freq; 
     for (int i =0; i < ntraces; i++) 
