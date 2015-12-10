@@ -5,36 +5,8 @@
 ##############################################################################
 include Makefile.arch
 
-
-#If you have the 64-bit version of fftw installed, try this to help CINT out.
-#CINTFLAGS=-DFFTW_64_BIT
-
-
-#Site Specific  Flags (adjust to local site)
-OUTLIBDIR          = 
-OUTINCDIR          = 
-SYSINCLUDES	= -I/usr/local/include
-SYSLIBS         = -L/usr/local/lib
-DLLSUF = ${DllSuf}
-OBJSUF = ${ObjSuf}
-SRCSUF = ${SrcSuf}
-
-ifdef ANITA_UTIL_INSTALL_DIR
-UTIL_LIB_DIR=${ANITA_UTIL_INSTALL_DIR}/lib
-UTIL_INC_DIR=${ANITA_UTIL_INSTALL_DIR}/include
-LD_UTIL=-L$(ANITA_UTIL_LIB_DIR)
-INC_UTIL=-I$(ANITA_UTIL_INC_DIR)
-else 
-ifdef ARA_UTIL_INSTALL_DIR
-UTIL_LIB_DIR=${ARA_UTIL_INSTALL_DIR}/lib
-UTIL_INC_DIR=${ARA_UTIL_INSTALL_DIR}/include
-LD_UTIL=-L$(ARA_UTIL_LIB_DIR)
-INC_UTIL=-I$(ARA_UTIL_INC_DIR)
-else
-UTIL_LIB_DIR=/usr/local/lib
-UTIL_INC_DIR=/usr/local/include
-endif
-endif
+ ### all configuration moved to this file 
+include Makefile.config 
 
 #Generic and Site Specific Flags
 CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES) 
@@ -44,30 +16,61 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 
 #Now the bits we're actually compiling
+.PHONY: all clean install doc
 
+LIBDIR=lib
+BUILDDIR=build
+INCLUDEDIR=include
+BINDIR=bin
+VECTORDIR=vectorclass
 
 #ROOT stuff
 
-ROOT_LIBRARY = libRootFftwWrapper.${DllSuf}
-LIB_OBJS =  FFTWComplex.o FFTtools.o RFSignal.o RFFilter.o fftDict.o
-CLASS_HEADERS =   FFTWComplex.h FFTtools.h RFSignal.h RFFilter.h
-BINARIES = testFFTtools
+ROOT_LIBRARY = $(LIBDIR)/libRootFftwWrapper.${DllSuf}
+
+LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
+																			RFSignal.o RFFilter.o \
+						                          fftDict.o) 
+
+CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h RFSignal.h RFFilter.h) 
+
+BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
+
 
 all : $(ROOT_LIBRARY) $(BINARIES)
 
-$(BINARIES): %: %.$(SRCSUF) $(ROOT_LIBRARY) 
+$(BINDIR)/%: test/%.$(SRCSUF) $(ROOT_LIBRARY) Makefile | $(BINDIR) 
 	@echo "<**Compiling**> "
 	@echo $<
-	$(LD) $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< $(ROOT_LIBRARY) -o $@
+	$(LD) -I../include -I./ $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< $(ROOT_LIBRARY) -o $@
 
-fftDict.C: $(CLASS_HEADERS)
+$(LIB_OBJS): | $(BUILDDIR) 
+
+$(BINDIR): 
+	mkdir -p $(BINDIR)
+
+$(BUILDDIR): 
+	mkdir -p $(BUILDDIR)
+
+
+$(LIBDIR): 
+	mkdir -p $(LIBDIR)
+
+#### Download and unzip Agner Fog's VCL vectorization class  
+$(VECTORDIR): 
+	mkdir -p $(VECTORDIR) 
+	curl http://www.agner.org/optimize/vectorclass.zip > $(VECTORDIR)/vectorclass.zip 
+	unzip $(VECTORDIR)/vectorclass.zip -d $(VECTORDIR) 
+
+
+$(BUILDDIR)/fftDict.C: $(CLASS_HEADERS) LinkDef.h | $(BUILDDIR) 
 	@echo "Generating dictionary ..."
 	@ rm -f *Dict* 
 	rootcint $@ -c -p -I$(shell $(RC) --incdir) $(SYSINCLUDES) $(CINTFLAGS) $(CLASS_HEADERS) LinkDef.h
 
 
 #The library
-$(ROOT_LIBRARY) : $(LIB_OBJS) 
+$(ROOT_LIBRARY) : $(LIB_OBJS) | $(LIBDIR) 
 	@echo "Linking $@ ..."
 ifeq ($(PLATFORM),macosx)
 # We need to make both the .dylib and the .so
@@ -84,23 +87,23 @@ else
 	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIBS) $(LIB_OBJS) -o $@
 endif
 
-%.$(OBJSUF) : %.$(SRCSUF)
+$(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
 	@echo "<**Compiling**> "$<
 	$(CXX) $(CXXFLAGS) -c $< -o  $@
 
-%.$(OBJSUF) : %.C
+$(BUILDDIR)/%.$(OBJSUF) : $(BUILDDIR)/%.C
 	@echo "<**Compiling**> "$<
-	$(CXX) $(CXXFLAGS) $ -c $< -o  $@
+	$(CXX) $(CXXFLAGS) -I./ -I../include -c $< -o  $@
 
 
 clean:
-	@rm -f *Dict*
-	@rm -f *.${OBJSUF}
-	@rm -f $(LIBRARY)
-	@rm -f $(ROOT_LIBRARY)
-	@rm -f $(subst .$(DllSuf),.so,$(ROOT_LIBRARY))	
-	@rm -f $(TEST)
+	@rm -rf $(BUILDDIR) 
+	@rm -rf $(BINDIR) 
+	@rm -rf $(LIBDIR) 
 
+
+doc: 
+	doxygen doc/doxynew.config
 
 install: $(ROOT_LIBRARY)
 	install -d $(UTIL_INC_DIR)

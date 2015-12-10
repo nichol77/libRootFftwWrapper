@@ -117,7 +117,7 @@ TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
 static TMutex plan_mutex; 
 #define STATIC_VAR static thread_local
 #else
-#define STATIC_VAR static thread_local
+#define STATIC_VAR static
 #endif 
 
 /*
