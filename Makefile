@@ -45,6 +45,12 @@ BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
 
 all : $(ROOT_LIBRARY) $(BINARIES)
 
+
+#force recompile if any part of Makefile updated 
+Makefile: Makefile.config Makefile.arch 
+	touch Makefile
+
+
 $(BINDIR)/%: test/%.$(SRCSUF) $(ROOT_LIBRARY) Makefile | $(BINDIR) 
 	@echo "<**Compiling**> "
 	@echo $<
