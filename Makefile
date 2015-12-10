@@ -30,9 +30,11 @@ ROOT_LIBRARY = $(LIBDIR)/libRootFftwWrapper.${DllSuf}
 
 LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
 																			RFSignal.o RFFilter.o \
-						                          fftDict.o) 
+						                          FFTWindow.o fftDict.o) 
 
-CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h RFSignal.h RFFilter.h) 
+CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
+																							RFSignal.h RFFilter.h\
+																							FFTWindow.h ) 
 
 BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
 
@@ -65,8 +67,7 @@ $(VECTORDIR):
 
 $(BUILDDIR)/fftDict.C: $(CLASS_HEADERS) LinkDef.h | $(BUILDDIR) 
 	@echo "Generating dictionary ..."
-	@ rm -f *Dict* 
-	rootcint $@ -c -p -I$(shell $(RC) --incdir) $(SYSINCLUDES) $(CINTFLAGS) $(CLASS_HEADERS) LinkDef.h
+	rootcint -f $@ -c -p -I$(shell $(RC) --incdir) $(SYSINCLUDES) $(CINTFLAGS) $(CLASS_HEADERS) LinkDef.h
 
 
 #The library
@@ -89,11 +90,11 @@ endif
 
 $(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
 	@echo "<**Compiling**> "$<
-	$(CXX) $(CXXFLAGS) -c $< -o  $@
+	$(CXX) -I./include $(CXXFLAGS)  -c $< -o  $@
 
 $(BUILDDIR)/%.$(OBJSUF) : $(BUILDDIR)/%.C
 	@echo "<**Compiling**> "$<
-	$(CXX) $(CXXFLAGS) -I./ -I../include -c $< -o  $@
+	$(CXX) -I./include -I./ $(CXXFLAGS) -c $< -o  $@
 
 
 clean:

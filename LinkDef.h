@@ -8,6 +8,7 @@
 #pragma link C++ class FFTWComplex+;
 #pragma link C++ class RFSignal+;
 #pragma link C++ class RFFilter+;
+#pragma link C++ class FFTtools::FFTWindow;
 
 #endif
 
