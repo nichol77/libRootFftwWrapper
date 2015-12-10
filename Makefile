@@ -48,7 +48,7 @@ all : $(ROOT_LIBRARY) $(BINARIES)
 $(BINDIR)/%: test/%.$(SRCSUF) $(ROOT_LIBRARY) Makefile | $(BINDIR) 
 	@echo "<**Compiling**> "
 	@echo $<
-	$(LD) -I../include -I./ $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< $(ROOT_LIBRARY) -o $@
+	$(LD) -Iinclude  $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< $(ROOT_LIBRARY) -o $@
 
 $(LIB_OBJS): | $(BUILDDIR) 
 
