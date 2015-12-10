@@ -1,4 +1,4 @@
-#ifndef __RFINTERPOLATE_H 
+#ifndef __RF_INTERPOLATE_H 
 #define __RF_INTERPOLATE_H 
 
 
