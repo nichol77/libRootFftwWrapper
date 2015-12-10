@@ -1,5 +1,12 @@
 #include "FFTtools.h"
 
+#include "FFTWindow.h"
+#include "TRandom.h" 
+#include <assert.h>
+#include "TF1.h" 
+#include <algorithm>
+
+
 using namespace std;
 
 
@@ -2230,6 +2237,259 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 
 
 
+
+double FFTtools::sinc(double x, double eps) 
+{
+  if (fabs(x)<=eps)
+  {
+    return 1.; 
+  }
+  else
+  {
+    return sin(TMath::Pi()*x) / (TMath::Pi()* x); 
+  }
+
+}
+
+
+
+
+void FFTtools::IIRFilter(int n, const double * x, double * y, int na, const double * A, int nb, const double * B)
+{
+  int nc = TMath::Max(na,nb); 
+  for (int j = 0; j < n; j++) 
+  {
+      double a0 =A[0];
+      y[j] = 0; 
+      for (int k = 0; k < nc; k++) 
+      {
+        if (j - k < 0) break; 
+
+        if (k < nb)
+        {
+          y[j] += x[j-k] * B[k] ; 
+        }
+
+        if (k > 0 && k < na) 
+        {
+          y[j] -= y[j-k] *A[k]; 
+        }
+      }
+      y[j] /= a0;
+  }
+}
+
+
+void FFTtools::rotate(TGraph *g, int rot) 
+{
+  rot *=-1; //because of way trigger cell is defined 
+  int N = g->GetN(); 
+  if (rot < 0) 
+  {
+    rot+= N*(1+(-rot-1)/N);; 
+  }
+  rot %= N; 
+  std::rotate(g->GetY(), g->GetY() + rot, g->GetY() + N); 
+}
+
+
+double * FFTtools::FFTCorrelation(int length, const FFTWComplex * A, const FFTWComplex * B, FFTWComplex * work, int min_i, int max_i, int order)
+{
+
+  int fftlen = length/2 +1; 
+  if (max_i <= 0 || max_i >= fftlen) max_i = fftlen-1; 
+  if (min_i < 0) min_i = 0; 
+
+
+
+  bool work_given = work; 
+  if (!work)
+  {
+    work = new FFTWComplex[fftlen]; 
+  }
+  else
+  {
+    memset(work,0,sizeof(FFTWComplex) * fftlen); 
+  }
+
+  double rmsA = 0; 
+  double rmsB = 0; 
+  for(int i=0;i<fftlen;i++)
+  {
+    double reFFT1=A[i].re;
+    double imFFT1=A[i].im;
+    double reFFT2=B[i].re; 
+    double imFFT2=B[i].im; 
+
+
+
+    double weight = 1; 
+
+    if (min_i > 0) 
+    {
+      weight /= (1 + TMath::Power(double(min_i)/i,2*order)); 
+    }
+
+    if (max_i < fftlen - 1) 
+    {
+      weight /=( 1 +TMath::Power(double(i)/max_i,2*order));     
+    }
+
+
+    if (i > 0)  //don't add DC component to RMS! 
+    {
+      rmsA += weight*(reFFT1 * reFFT1 + imFFT1 * imFFT1) * 2 / (length*length); 
+      rmsB += weight*(reFFT2 * reFFT2 + imFFT2 * imFFT2) * 2 / (length*length); 
+    }
+    work[i].re=weight*(reFFT1*reFFT2+imFFT1*imFFT2)/length;
+    work[i].im=weight*(imFFT1*reFFT2-reFFT1*imFFT2)/length; 
+  }
+
+  double *answer=FFTtools::doInvFFT(length,work);
+
+  double norm = (rmsA && rmsB) ? 1./(sqrt(rmsA*rmsB)) : 1; 
+  for (int i = 0; i< length; i++) 
+  {
+    answer[i] *=norm; 
+  }
+
+  if (!work_given)
+  {
+    delete [] work; 
+  }
+
+  return answer; 
+
+}
+
+
+void FFTtools::applyWindow(TGraph *g, const FFTWindowType* win)
+{
+  win->apply(g->GetN(), g->GetY()); 
+}
+
+
+void FFTtools::inPlaceShift(int N, double *x)
+{
+
+  for (int i = 0; i < N/2; i++) 
+  {
+    double tmp = x[i]; 
+    x[i] = x[i+N/2];
+    x[i+N/2] = tmp; 
+  }
+}
+
+
+double FFTtools::getDt(const TGraph * g, int realN) 
+{
+
+  int n = realN ? realN : g->GetN(); 
+  double x0 = g->GetX()[0]; 
+  double x1 = g->GetX()[g->GetN()-1]; 
+  return (x1-x0)/(n-0.5); 
+}
+
+
+void FFTtools::polySubtract(TGraph *g, int order) 
+{
+  TF1 f("polysub",TString::Format("pol%d",order)); 
+  g->Fit(&f,"NQ"); 
+  for (int i = 0; i < g->GetN(); i++)
+  { 
+    g->GetY()[i]-= f.Eval(g->GetX()[i]); 
+  } 
+}
+
+
+double * FFTtools::directConvolve(int N, const double * x, int M, const double *h,  double *y, int delay, DirectConvolveEdgeBehavior edge) 
+{
+
+
+  if (!y) y = new double[N]; 
+  double start_val = edge == ZEROES_OUTSIDE ? 0 : x[0]; 
+  double end_val = edge == ZEROES_OUTSIDE ? 0 : x[N-1]; 
+  for (int i = 0; i < N; i++) 
+  {
+    y[i] = 0; 
+    for (int j = delay-M/2; j < delay +(M+1)/2; j++) 
+    {
+      double X = 0;
+      if (i + j < 0) 
+      {
+        X = start_val ; 
+      }
+      else if ( i + j >= N) 
+      {
+        X = end_val; 
+      }
+      else 
+      {
+        X = x[i+j]; 
+      }
+
+      y[i] += X * h[delay + M/2+j]; 
+    }
+  }
+
+  return y; 
+}
+
+
+double FFTtools::randomRayleigh(double sigma, TRandom * rng)
+{
+  double u = rng ? rng->Uniform(0,1) : gRandom->Uniform(0,1); 
+  return  sigma * sqrt(-2*log(u)); 
+}
+
+template<typename T> 
+static void unwrap(size_t N, T * vals, T period ) 
+{
+  T adjust = 0; 
+  for (size_t i = 1; i < N; i++) 
+  {
+    if (vals[i] - vals[i-1] + adjust > period/2)
+    {
+      adjust -= period; 
+    }
+    else if (vals[i] - vals[i-1]  + adjust< -period/2)
+    {
+      adjust += period; 
+    }
+
+    vals[i] += adjust; 
+  }
+}
+
+template <typename T> 
+static void wrap(size_t N, T * vals, T period) 
+{
+  for (size_t i = 0; i < N; i++) 
+  {
+    int nsub = floor(vals[i] / period); 
+    vals[i] -= nsub * period; 
+  }
+}
+
+void FFTtools::wrap(size_t N, float * vals, float period) 
+{
+  ::wrap<float>(N, vals, period); 
+}
+
+void FFTtools::unwrap(size_t N, float * vals, float period) 
+{
+  ::unwrap<float>(N, vals, period); 
+}
+
+void FFTtools::wrap(size_t N, double * vals, double period) 
+{
+  ::wrap<double>(N, vals, period); 
+}
+
+void FFTtools::unwrap(size_t N, double * vals, double period) 
+{
+  ::unwrap<double>(N, vals, period); 
+}
 
 
 

@@ -34,6 +34,7 @@ typedef struct {char a[16];} __float128; /* 16 chars have the same size as one _
 #include "FFTWComplex.h"
 #include "RFSignal.h"
 
+class TRandom; 
 
 // FFTW
 #include <complex>
@@ -596,6 +597,76 @@ namespace FFTtools
    Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2,Double_t x);
 
   
+   /*!
+    * apply IIRFilter with A and B coeffs to x, outputting to y 
+    */ 
+   void IIRFilter(int length, const double * x, double * y, int nA, const double * A, int nB, const double * B); 
+
+   /*!
+    * Correlation between two FFTs
+    * bandpasses between min_i and max_i using butterworth filter of order order
+    * work can be used for temporary to avoid allocation of new memory 
+    */
+   double * FFTCorrelation(int waveformlength, const FFTWComplex * A, const FFTWComplex * B, FFTWComplex * work = 0, 
+                           int min_i = 0, int max_i =0, int order=1);  
+
+
+   /*! in place array rotation
+    */
+   void inPlaceShift(int N, double *x); 
+
+
+   /*! inplace graph rotation */ 
+   void rotate(TGraph * g, int rot); 
+
+   /*! does fit to polynomial of order order then subtracts it */
+   void polySubtract(TGraph *g, int order=1); 
+
+
+      
+   /*! direct convolution for kernel can either assume zero's outside boundaries or repetition of first and last values */
+   enum DirectConvolveEdgeBehavior
+   {
+        ZEROES_OUTSIDE, 
+        REPEAT_OUTSIDE
+   }; 
+
+
+    /*!convolution without FFT of x with kernel h. y should have same size as x (it is cropped symmetrically) 
+      if delay = 0, h will be centered around its middle sample, if - M/2 , will be purely causal, etc. 
+    */
+    double * directConvolve(int N, const double *x, int M, const double * h, double *y = 0, int delay = 0,  DirectConvolveEdgeBehavior edge_behavior = ZEROES_OUTSIDE); 
+
+
+    /*! wraps periodic array of doubles */ 
+   void wrap(size_t N, double * vals, double period = 360) ; 
+    /*! wraps periodic array of floats */ 
+   void wrap(size_t N, float * vals, float period = 360) ; 
+
+    /*! unwraps periodic array of doubles */ 
+   void unwrap(size_t N, double * vals, double period = 360) ; 
+
+    /*! unwraps periodic array of floats */ 
+   void unwrap(size_t N, float * vals, float period = 360) ; 
+
+
+   /*! computes reasonable dt from unevenly sampled graph */ 
+   double getDt(const TGraph * g, int realN = 0);  
+
+
+
+   class FFTWindowType; 
+   /*! applies window to graph */ 
+   void applyWindow(TGraph *g, const FFTWindowType *w); 
+
+   
+   /*! random variable from rayleigh distribution */ 
+   double randomRayleigh(double sigma=1, TRandom * rng = 0); 
+
+   /*! sinc function, if |x| < eps, sinc(x) = 1 */ 
+   double sinc(double x, double eps = 0); 
+ 
+
 
 }
    
