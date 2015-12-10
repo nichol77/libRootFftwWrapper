@@ -11,7 +11,7 @@ include Makefile.config
 #Generic and Site Specific Flags
 CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES) 
 LDFLAGS      += $(ROOTLDFLAGS) 
-LIBS          = $(ROOTLIBS) -lMathMore $(SYSLIBS) -lfftw3
+LIBS          = $(ROOTLIBS) -lMathMore -lMinuit2 $(SYSLIBS) -lfftw3 
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
 
@@ -30,11 +30,11 @@ ROOT_LIBRARY = $(LIBDIR)/libRootFftwWrapper.${DllSuf}
 
 LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
 																			RFSignal.o RFFilter.o \
-						                          FFTWindow.o fftDict.o) 
+						                          FFTWindow.o SineSubtract.o fftDict.o) 
 
 CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
 																							RFSignal.h RFFilter.h\
-																							FFTWindow.h ) 
+																							FFTWindow.h SineSubtract.h ) 
 
 BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
 
@@ -90,7 +90,7 @@ endif
 
 $(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
 	@echo "<**Compiling**> "$<
-	$(CXX) -I./include $(CXXFLAGS)  -c $< -o  $@
+	$(CXX) -I./include -I$(VECTORDIR) $(CXXFLAGS)  -c $< -o  $@
 
 $(BUILDDIR)/%.$(OBJSUF) : $(BUILDDIR)/%.C
 	@echo "<**Compiling**> "$<
