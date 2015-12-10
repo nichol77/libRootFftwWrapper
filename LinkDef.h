@@ -47,6 +47,7 @@
 #pragma link C++ class FFTtools::AnalyticSignal; 
 #pragma link C++ class FFTtools::CompositeSignal; 
 #pragma link C++ class FFTtools::BandlimitedSampledSignal; 
+#pragma link C++ class FFTtools::ThermalNoise; 
 
 
 
