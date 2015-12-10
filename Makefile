@@ -100,7 +100,7 @@ endif
 
 $(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
 	@echo "<**Compiling**> "$<
-	$(CXX) -I./include -I$(VECTORDIR) $(CXXFLAGS)  -c $< -o  $@
+	$(CXX) -I./include $(CXXFLAGS)  -c $< -o  $@
 
 $(BUILDDIR)/%.$(OBJSUF) : $(BUILDDIR)/%.C
 	@echo "<**Compiling**> "$<
@@ -108,10 +108,9 @@ $(BUILDDIR)/%.$(OBJSUF) : $(BUILDDIR)/%.C
 
 
 clean:
-	@rm -rf $(BUILDDIR) 
-	@rm -rf $(BINDIR) 
-	@rm -rf $(LIBDIR) 
-
+	rm -rf $(BUILDDIR) 
+	rm -rf $(BINDIR) 
+	rm -rf $(LIBDIR) 
 
 doc: 
 	doxygen doc/doxynew.config
