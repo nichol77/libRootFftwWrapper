@@ -1,15 +1,17 @@
 {
   const int N = 256;  //nsamples
-  const int ntraces = 1; 
+  const int ntraces = 3; 
   double dt = 0.5; // mean sample period
   double jitter = 0.1; //sample timing jitter in nanoseconds
   double rms = 3; //noise rms 
   const int nfreq = 30; //number of CW
   double min_freq = 0.24; 
   double max_freq = 0.25; 
+  double min_noise_freq = 0.2/1.3; // have to convert to units where fnyq = 1 
+  double max_noise_freq = 1.2/1.3; 
   double max_amp = 3.5; //max CW amplitude 
   double min_amp = 6.5; //min CW amplitude 
-  int max_failed_iterations = 15; //settings for sinesubtract 
+  int max_failed_iterations = 25; //settings for sinesubtract 
   double min_power_ratio = 0.01; 
 
 
@@ -27,8 +29,6 @@
 
 
 
-  double x[ntraces][N]; 
-  double y[ntraces][N]; 
 
 
   double f[nfreq]; 
@@ -47,28 +47,21 @@
   }
 
   TGraph * g[ntraces]; 
+
   for (int ti = 0; ti < ntraces; ti++)
   {
-    x[ti][0] = 0; 
+
+    FFTtools::ThermalNoise noise(N*10, min_noise_freq, max_noise_freq, rms, 2); 
+    g[ti] = noise.makeGaussianDtWf(N, dt, jitter); 
     for (int i = 0; i < N; i++) 
     {
-      if (i > 0) 
-      {
-        x[ti][i] = dt * i + gRandom->Uniform(-jitter,jitter); 
-      }
-
-      y[ti][i] = rms ? gRandom->Gaus(0,rms) : 0 ; 
-
       for (int j = 0; j < nfreq; j++) 
       {
-        y[ti][i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* (x[ti][i] + ph[ti][j])); 
+         g[ti]->GetY()[i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* (g[ti]->GetX()[i] + ph[ti][j])); 
       }
-
     }
-
-
-    g[ti] = new TGraph(N,x[ti],y[ti]); 
   }
+
 
   FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,&FFTtools::HAMMING_WINDOW, true); 
   sub->setVerbose(verbose); 
@@ -132,7 +125,7 @@
       printf("Reconstructed CW %d: f =%f+/-%f\n", i, sub.getFreqs()[i], sub.getFreqErrs()[i]); 
       for (int j = 0; j < ntraces; j++)
       {
-        printf("\t(trace %d) A= %f+/-%f, ph = %f+/-%f\n", j+1, recoA[j], recoAerr[j], recoPh[j], recoPhErr[j]); 
+        printf("\t(trace %d) A= %f+/-%f, ph = %f+/-%f\n", j+1, recoA[j], recoAErr[j], recoPh[j], recoPhErr[j]); 
       }
     }
   }
