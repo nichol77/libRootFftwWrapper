@@ -1,17 +1,17 @@
 {
   const int N = 256;  //nsamples
-  const int ntraces = 3; 
-  double dt = 0.5; // mean sample period
+  const int ntraces = 1; 
+  double dt = 0.39; // mean sample period
   double jitter = 0.1; //sample timing jitter in nanoseconds
   double rms = 3; //noise rms 
-  const int nfreq = 30; //number of CW
+  const int nfreq = 10; //number of CW
   double min_freq = 0.24; 
   double max_freq = 0.25; 
-  double min_noise_freq = 0.2/1.3; // have to convert to units where fnyq = 1 
-  double max_noise_freq = 1.2/1.3; 
+  double min_noise_freq = 0.2;
+  double max_noise_freq = 1.2; 
   double max_amp = 3.5; //max CW amplitude 
   double min_amp = 6.5; //min CW amplitude 
-  int max_failed_iterations = 25; //settings for sinesubtract 
+  int max_failed_iterations = 1; //settings for sinesubtract 
   double min_power_ratio = 0.01; 
 
 
@@ -24,20 +24,18 @@
   bool verbose = false; 
   gRandom->SetSeed(0); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
 
-
   //end config
-
-
 
 
 
   double f[nfreq]; 
   double A[ntraces][nfreq]; 
   double ph[ntraces][nfreq]; 
+  double fnyq = 1./(2*dt); 
 
   for (int i = 0; i < nfreq; i++) 
   {
-    f[i] = gRandom->Uniform( min_freq / (2*dt), max_freq/(2*dt)); 
+    f[i] = gRandom->Uniform( min_freq, max_freq); 
     for (int j = 0; j < ntraces; j++)
     {
       A[j][i] = gRandom->Uniform(min_amp,max_amp); 
@@ -51,7 +49,7 @@
   for (int ti = 0; ti < ntraces; ti++)
   {
 
-    FFTtools::ThermalNoise noise(N*10, min_noise_freq, max_noise_freq, rms, 2); 
+    FFTtools::ThermalNoise noise(N*10, min_noise_freq/fnyq, max_noise_freq/fnyq, rms, 2); 
     g[ti] = noise.makeGaussianDtWf(N, dt, jitter); 
     for (int i = 0; i < N; i++) 
     {

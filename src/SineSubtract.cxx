@@ -752,7 +752,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
 #ifdef SINE_SUBTRACT_PROFILE
   printf("Time for SineSubtract::subtractCW(): "); 
-  sw.Print(); 
+  sw.Print("u"); 
   printf("nattempts: %d\n",nattempts); 
 
 #endif
