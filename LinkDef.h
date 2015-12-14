@@ -50,6 +50,7 @@
 #pragma link C++ class FFTtools::ThermalNoise; 
 
 
+#pragma link C++ class FFTtools::Averager; 
 
 #endif
 
