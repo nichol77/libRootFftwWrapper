@@ -54,7 +54,7 @@ Makefile: Makefile.config Makefile.arch
 $(BINDIR)/%: test/%.$(SRCSUF) $(ROOT_LIBRARY) Makefile | $(BINDIR) 
 	@echo "<**Compiling**> "
 	@echo $<
-	$(LD) -Iinclude  $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< $(ROOT_LIBRARY) -o $@
+	$(LD) -Iinclude  $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< -lRootFftwWrapper -o $@
 
 $(LIB_OBJS): | $(BUILDDIR) 
 
