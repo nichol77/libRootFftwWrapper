@@ -6,26 +6,37 @@
 include Makefile.arch
 
  ### all configuration moved to this file 
-include Makefile.config 
-
-#Generic and Site Specific Flags
-CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES)
-LDFLAGS      += $(ROOTLDFLAGS) 
-LIBS          = $(ROOTLIBS) -lMathMore -lMinuit2 $(SYSLIBS) -lfftw3 
-GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
+include Makefile.config
 
 
-#Now the bits we're actually compiling
-.PHONY: all clean install doc
-
+### Package subdirectories
 LIBDIR=lib
 BUILDDIR=build
 INCLUDEDIR=include
 BINDIR=bin
 VECTORDIR=vectorclass
 
-#ROOT stuff
 
+
+
+
+
+#Generic and Site Specific Flags
+CXXFLAGS     += $(ROOTCFLAGS) $(SYSINCLUDES)
+LDFLAGS      += $(ROOTLDFLAGS) -L$(LIBDIR) -L$(UTIL_LIB_DIR)
+LIBS          = $(ROOTLIBS) -lMathMore -lMinuit2 $(SYSLIBS) -lfftw3 
+GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
+
+
+
+
+
+
+#Now the bits we're actually compiling
+.PHONY: all clean install doc
+
+
+#ROOT stuff
 ROOT_LIBRARY = $(LIBDIR)/libRootFftwWrapper.${DllSuf}
 
 LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
@@ -54,7 +65,7 @@ Makefile: Makefile.config Makefile.arch
 $(BINDIR)/%: test/%.$(SRCSUF) $(ROOT_LIBRARY) Makefile | $(BINDIR) 
 	@echo "<**Compiling**> "
 	@echo $<
-	$(LD) -Iinclude  $(CXXFLAGS) $(LDFLAGS) $(LIBS) $< -lRootFftwWrapper -o $@
+	$(LD) -I$(INCLUDEDIR)  $(CXXFLAGS) $(LDFLAGS) $(LIBS) -lRootFftwWrapper $< -o $@
 
 $(LIB_OBJS): | $(BUILDDIR) 
 
@@ -100,11 +111,11 @@ endif
 
 $(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
 	@echo "<**Compiling**> "$<
-	$(CXX) -I./include $(CXXFLAGS)  -c $< -o  $@
+	$(CXX) -I$(INCLUDEDIR) $(CXXFLAGS)  -c $< -o  $@
 
 $(BUILDDIR)/%.$(OBJSUF) : $(BUILDDIR)/%.C
 	@echo "<**Compiling**> "$<
-	$(CXX) -I./include -I./ $(CXXFLAGS) -c $< -o  $@
+	$(CXX) -I$(INCLUDEDIR) -I./ $(CXXFLAGS) -c $< -o  $@
 
 
 clean:
