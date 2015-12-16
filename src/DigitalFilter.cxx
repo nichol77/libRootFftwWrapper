@@ -75,7 +75,15 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
       gamp->SetPoint(i, f, abs(resp) == 0 ? -1000 : 10*log(abs(resp))); 
     }
     double angle = 0; 
-    if (gph || ggroup) angle = 180 * arg(resp) / TMath::Pi(); 
+
+    if (gph || ggroup) 
+    {
+      angle = 180. * (arg(resp) / TMath::Pi()); 
+
+      //round to 6th decimal place
+      angle = rint(angle * 1.e6)/1.e6; 
+      if (angle < 0) angle += 360;
+    }
 
     if (gph)
     {
@@ -96,6 +104,8 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
   }
   if (gph)
   {
+    gph->RemovePoint(n-1); 
+    gph->RemovePoint(0);
     gph->SetTitle("Phase Response"); 
     gph->GetXaxis()->SetTitle("Normalized Frequency (f/f_{nyq})"); 
     gph->GetYaxis()->SetTitle("Phase (deg))");
@@ -112,6 +122,10 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
      ggroup->GetY()[i] = last - current; 
      last = current; 
     }
+
+    ggroup->RemovePoint(n-1); 
+    ggroup->RemovePoint(0);
+    ggroup->RemovePoint(0);
 
     ggroup->SetTitle("Group Delay"); 
     ggroup->GetXaxis()->SetTitle("Normalized Frequency (f/f_{nyq})"); 
