@@ -137,3 +137,8 @@ else
 	install -c -m 755 $(ROOT_LIBRARY) $(UTIL_LIB_DIR)
 endif
 	install -c -m 644 $(CLASS_HEADERS) $(UTIL_INC_DIR)
+
+# Try installing pcm file with library.
+# This is a new thing for ROOT6 and at the present time doesn't seem to matter if this fails.
+# So we will suppress the warning and continue if it fails.
+	-@install -c -m 755 $(BUILDDIR)/fftDict_rdict.pcm $(UTIL_LIB_DIR)
