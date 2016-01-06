@@ -6,7 +6,7 @@ class TGraph;
 #include <complex>
 #include <cstdlib>
 
-/* Digital Filter Implementation 
+/** Digital Filter Implementation 
  *
  * Cosmin Deaconu <cozzyd@kicp.uchicago.edu> 
  *
@@ -16,33 +16,88 @@ namespace FFTtools
 {
     class FFTWindowType; 
 
-    /** Base class for all filters. Any implementing filters must implement filterOut and transfer.
+    /** Base class for all digital filters. Any implementing filters must implement filterOut and transfer.
     */
     class DigitalFilter
     {
      public: 
-        /* Filter w of size n, returning a newly allocated output */ 
+
+        /** 
+         * Filter input, returning a newly allocated output. The caller is responsible for freeing the allocated memory.
+         *
+         * @param n size of waveform 
+         * @param w waveform to filter
+         * @returns newly allocated output 
+         * */ 
         virtual double * filter(size_t n, const double * w) const; 
 
-        /* Filter w of size n, using existing output */ 
+        /** Filter input with previously allocated output. 
+         *
+         * @param n size of waveform to filter
+         * @param w input waveform
+         * @param out output waveform (assumed to be allocated) 
+         *
+         *
+         * */ 
         virtual void filterOut(size_t n, const double * w, double *out) const = 0; 
 
-        /* Filter graph (and y errors, if available) ``in place'' (with temporary allocation)*/ 
+        /** Filter graph (and y errors, if available) ``in place'' (with temporary allocation)
+         *
+         * @param g graph to filter
+         * @param filterErrors true if g->GetEY() should be filtered (if it exists) 
+         *
+         * */ 
         virtual void filterGraph(TGraph * g, bool filterErrors = false) const; 
 
-        /* Filter ``in place'' (with temporary allocation) */
+        /**  Filter ``in place'' (with temporary allocation) 
+         *
+         * @param n size of waveform
+         * @param w input waveform, output will also be written here 
+         *
+         * */
         virtual void filterReplace(size_t n, double * w) const; 
 
-        /* impulse response of size n written to out */
+
+        /** Filter response to unit impulse. A delay may be given which is helpful for acausal filters. 
+         * This works by applying filterOut on an input array with all zeroes and one one at position delay.  
+         * 
+         * @param n number of samples wanted in impulse response
+         * @param out allocated memory where impulse response will be written
+         * @param delay the time (in samples) of the unit impulse 
+         * */ 
         virtual void impulse(size_t n, double * out, size_t delay = 0) const; 
 
-        /* impulse response of size n , allocated and returned */ 
+
+        /** Filter response to unit impulse that allocates new memory. A delay
+         * may be given which is helpful for acausal filters. The user is
+         * responsible for deleting te allocated memory.   
+         *
+         * @param n number of samples wanted in impulse response 
+         * @param delay the time (in samples) of the unit impulse 
+         * @returns a newly allocated array of the impulse response
+         *
+         **/ 
         virtual double * impulse(size_t n, size_t delay = 0) const; 
 
-        /* impulse response as a graph (with optional sampling width */ 
+
+        /** Get impulse response as a newly allocated TGraph. Caller is responsbile for deletion. 
+         *
+         * @param n number of samples wanted in impulse response
+         * @param dt the sample rate of the graph
+         * @param delay the ttime (in samples) of the unit impulse 
+         * @returns a TGraph of the impulse response
+         *
+         **/ 
         TGraph * impulseGraph(size_t n  = 101, double dt = 1, size_t delay = 50) const; 
 
-        /* Fill compute amplitude and phase response. if either TGraph ** is 0, then ignored. If TGraph ** points to a TGraph * that is 0, allocates TGraph. Otherwise replaces TGraphs */ 
+
+        /** Compute amplitude response, phase response and group delay directly from the transfer function, with all the gory ensuing numerical problems.
+         * This method is provided becuase it is more efficient to calculate two (or three) of the responses at once than individually. 
+         *
+         * If any is 0, it is not computed. 
+         * If any TGraph ** points to a TGraph * that points to 0, TGraph of the right size is allocated
+         *
+         */
         virtual void response(size_t n, TGraph ** amplitude_response, TGraph ** phase_response, TGraph ** group_delay = 0) const; 
 
         /* return amplitude response with n points */ 
