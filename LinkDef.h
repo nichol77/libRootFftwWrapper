@@ -43,6 +43,14 @@
 #pragma link C++ class FFTtools::ChebyshevIFilter; 
 
 
+
+// cwt 
+#pragma link C++ class FFTtools::CWT; 
+#pragma link C++ class FFTtools::CWT::MotherWavelet; 
+#pragma link C++ class FFTtools::CWT::Ricker; 
+#pragma link C++ class FFTtools::CWT::Ridger; 
+#pragma link C++ class FFTtools::CWT::Morlet; 
+
 // signal 
 #pragma link C++ class FFTtools::AnalyticSignal; 
 #pragma link C++ class FFTtools::CompositeSignal; 

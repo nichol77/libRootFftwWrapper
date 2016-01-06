@@ -32,13 +32,14 @@ LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
 																			RFSignal.o RFFilter.o \
 						                          FFTWindow.o SineSubtract.o \
 																			DigitalFilter.o RFInterpolate.o\
-																		 	AnalyticSignal.o Averager.o fftDict.o) 
+																		 	AnalyticSignal.o Averager.o \
+																			CWT.o fftDict.o) 
 
 CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
 																							RFSignal.h RFFilter.h\
 																							FFTWindow.h SineSubtract.h \
 																							RFInterpolate.h DigitalFilter.h\
-																							Averager.h AnalyticSignal.h) 
+																							Averager.h AnalyticSignal.h CWT.h) 
 
 BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
 
