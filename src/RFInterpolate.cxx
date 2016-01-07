@@ -573,7 +573,7 @@ double FFTtools::shannonWhitakerInterpolateValue(double t,  const TGraph * g, in
   return val; 
 }
 
-double FFTtools::linearInterpolateValueAndError(double t, const TGraphErrors * g, double * err) 
+double FFTtools::linearInterpolateValueAndError(double t, const TGraph* g, double * err) 
 {
 
   const double * x = g->GetX(); 
