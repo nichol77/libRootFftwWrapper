@@ -142,4 +142,5 @@ endif
 # Try installing pcm file with library.
 # This is a new thing for ROOT6 and at the present time doesn't seem to matter if this fails.
 # So we will suppress the warning and continue if it fails.
-	-@install -c -m 755 $(BUILDDIR)/fftDict_rdict.pcm $(UTIL_LIB_DIR)
+
+	if [ -a $(BUILDDIR)/fftDict_rdict.pcm ];  then install -c -m 755 $(BUILDDIR)/fftDict_rdict.pcm $(UTIL_LIB_DIR); fi; 
