@@ -573,6 +573,56 @@ double FFTtools::shannonWhitakerInterpolateValue(double t,  const TGraph * g, in
   return val; 
 }
 
+double FFTtools::linearInterpolateValueAndError(double t, const TGraphErrors * g, double * err) 
+{
+
+  const double * x = g->GetX(); 
+  const double * y = g->GetY(); 
+  const double * ey = g->GetEY(); 
+  int nx = g->GetN(); 
+  double dt = x[1] - x[0]; 
+
+  int i = (t-x[0])/dt; 
+
+  if (i < 0) 
+  {
+    //stupidly increase error depending on how far away it is 
+    if (err) 
+    {
+      if (ey) 
+        *err = (1+abs(i)) * ey[0]; 
+      else 
+        *err = 0; 
+    }
+    return y[0]; 
+  }
+
+  if (i == nx-1)
+  {
+    if (err) 
+    {
+      if (ey) 
+        *err = (1+i -nx) * ey[nx-1]; 
+      else 
+        *err = 0; 
+    }
+ 
+    return y[nx-1]; 
+  }
+
+  double frac  = (t - x[i])/ dt; 
+      
+  if (err) 
+  {
+    if (ey)
+      *err = sqrt(0.5 * (frac * ey[i+1]* ey[i+1] + (1-frac) * ey[i] * ey[i])); 
+    else 
+      *err = 0; 
+  }
+
+  return frac * y[i+1] + (1-frac) * y[i]; 
+}
+
 double FFTtools::shannonWhitakerInterpolateValueAndError(double t, const TGraphErrors * g, 
   double * err, int max_lobes, const FFTWindowType * win ) 
 {

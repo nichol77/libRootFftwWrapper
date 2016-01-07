@@ -79,6 +79,7 @@ namespace FFTtools
     /** Shannon-Whitaker interpolation of a regular graph */ 
     double shannonWhitakerInterpolateValue(double t, const TGraph * regular_graph, int max_lobe = 0, const FFTWindowType * win = 0); 
     double shannonWhitakerInterpolateValueAndError(double t, const TGraphErrors * regular_graph, double * err, int max_lobe = 0, const FFTWindowType* win = 0); 
+    double linearInterpolateValueAndError(double t, const TGraphErrors * regular_graph, double * err = 0); 
 
     /** Derivative of Shannon-Whitaker interpolation of a regular graph */ 
     double shannonWhitakerInterpolateDerivative(double t, const TGraph * regular_graph); 
