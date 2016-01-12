@@ -590,7 +590,7 @@ double FFTtools::linearInterpolateValueAndError(double t, const TGraph* g, doubl
   double dt = x[1] - x[0]; 
 
   int i = (t-x[0])/dt; 
-  printf("%d\n",i); 
+//  printf("%d\n",i); 
 
   if (i < 0) 
   {
