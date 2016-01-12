@@ -270,6 +270,13 @@ TGraphErrors * FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, doub
                                                         double eps, double weight_exp, double lambda, int lambda_order, double error_scale, 
                                                          TH2 * hA) 
 {
+
+#if !defined(USE_EIGEN) && !defined(USE_ARMADILLO) 
+  static bool already_scolded = false; 
+  if (!already_scolded) printf("WARNING: Strongly recommend compiling with eigen3 (or even armadillo) support when calling getInterpolatedGraphSparseInvert. See Makefile.config in libRootFftwWrapper. \n"); 
+  already_scolded = true; 
+#endif 
+
   const double * xj = g->GetX(); 
   const double * yj = g->GetY(); 
   int n =  g->GetN();
@@ -583,6 +590,7 @@ double FFTtools::linearInterpolateValueAndError(double t, const TGraph* g, doubl
   double dt = x[1] - x[0]; 
 
   int i = (t-x[0])/dt; 
+  printf("%d\n",i); 
 
   if (i < 0) 
   {
@@ -590,21 +598,30 @@ double FFTtools::linearInterpolateValueAndError(double t, const TGraph* g, doubl
     if (err) 
     {
       if (ey) 
-        *err = (1+abs(i)) * ey[0]; 
+      {
+        *err = (1+i*i) * ey[0]; 
+//        printf("%f %d %f\n", t, i, *err); 
+      }
       else 
+      {
         *err = 0; 
+      }
     }
     return y[0]; 
   }
 
-  if (i == nx-1)
+  else if (i >= nx-1)
   {
     if (err) 
     {
       if (ey) 
-        *err = (1+i -nx) * ey[nx-1]; 
+      {
+        *err = (1+(i -nx)*(i-nx)) * ey[nx-1]; 
+      }
       else 
+      {
         *err = 0; 
+      }
     }
  
     return y[nx-1]; 
@@ -615,9 +632,13 @@ double FFTtools::linearInterpolateValueAndError(double t, const TGraph* g, doubl
   if (err) 
   {
     if (ey)
+    {
       *err = sqrt(0.5 * (frac * ey[i+1]* ey[i+1] + (1-frac) * ey[i] * ey[i])); 
+    }
     else 
+    {
       *err = 0; 
+    }
   }
 
   return frac * y[i+1] + (1-frac) * y[i]; 
