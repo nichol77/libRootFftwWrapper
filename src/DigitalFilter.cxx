@@ -173,7 +173,7 @@ void FFTtools::DigitalFilter::filterGraph(TGraph * g, bool filterErrors) const
     double *ey2 = new double[g->GetN()]; 
     for (int i = 0; i < g->GetN(); i++) ey2[i] = g->GetEY()[i]*g->GetEY()[i]; 
     filterOut(g->GetN(), ey2,g->GetEY()); 
-    delete ey2; 
+    delete [] ey2; 
     for (int i = 0; i < g->GetN(); i++) g->GetEY()[i] = sqrt(g->GetEY()[i]); 
   }
 }
