@@ -632,16 +632,36 @@ namespace FFTtools
     double * directConvolve(int N, const double *x, int M, const double * h, double *y = 0, int delay = 0,  DirectConvolveEdgeBehavior edge_behavior = ZEROES_OUTSIDE); 
 
 
-    /*! wraps periodic array of doubles */ 
-   void wrap(size_t N, double * vals, double period = 360) ; 
+    /*! wraps periodic array of doubles. center assumed to be period/2 */ 
+   void wrap(size_t N, double * vals, double period = 360); 
+
+    /*! wraps periodic array of doubles. */ 
+   void wrap(size_t N, double * vals, double period, double center); 
+
     /*! wraps periodic array of floats */ 
-   void wrap(size_t N, float * vals, float period = 360) ; 
+   void wrap(size_t N, float * vals, float period, float center); 
 
-    /*! unwraps periodic array of doubles */ 
-   void unwrap(size_t N, double * vals, double period = 360) ; 
+    /*! wraps periodic array of floats. center assumed to be period/2 */ 
+   void wrap(size_t N, float * vals, float period = 360); 
 
-    /*! unwraps periodic array of floats */ 
-   void unwrap(size_t N, float * vals, float period = 360) ; 
+
+   /*! Wraps a value to be within period. Center assumed to be period/2 */ 
+   double wrap(double val, double period = 360); 
+
+   /*!Wraps a value to be within period centered at center.*/ 
+   double wrap(double val, double period, double center); 
+
+    /*! unwraps periodic array of doubles. */ 
+   void unwrap(size_t N, double * vals, double period, double center ); 
+
+    /*! unwraps periodic array of doubles. center assumed to be period/2 */ 
+   void unwrap(size_t N, double * vals, double period = 360); 
+
+    /*! unwraps periodic array of floats. */ 
+   void unwrap(size_t N, float * vals, float period, float center ); 
+
+    /*! unwraps periodic array of floats. center assumed to be period/2 */ 
+   void unwrap(size_t N, float * vals, float period); 
 
 
    /*! computes reasonable dt from unevenly sampled graph */ 

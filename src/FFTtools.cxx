@@ -2418,16 +2418,17 @@ double FFTtools::randomRayleigh(double sigma, TRandom * rng)
 }
 
 template<typename T> 
-static void unwrap(size_t N, T * vals, T period ) 
+static void unwrap(size_t N, T * vals, T period, T center ) 
 {
   T adjust = 0; 
+  T start = center - period/2; 
   for (size_t i = 1; i < N; i++) 
   {
-    if (vals[i] - vals[i-1] + adjust > period/2)
+    if (vals[i] - vals[i-1] + adjust - start > period/2)
     {
       adjust -= period; 
     }
-    else if (vals[i] - vals[i-1]  + adjust< -period/2)
+    else if (vals[i] - vals[i-1]  + adjust - start< -period/2)
     {
       adjust += period; 
     }
@@ -2435,15 +2436,28 @@ static void unwrap(size_t N, T * vals, T period )
     vals[i] += adjust; 
   }
 }
+template <typename T> 
+static void unwrap(size_t N, T * vals, T period) 
+{
+  unwrap<T>(N,vals,period,period/2); 
+}
+
+template <typename T> 
+static void wrap(size_t N, T * vals, T period, T center) 
+{
+  T start = center - period/2; 
+  for (size_t i = 0; i < N; i++) 
+  {
+    int nsub = floor((vals[i]-start) / period); 
+    vals[i] -= nsub * period; 
+  }
+}
 
 template <typename T> 
 static void wrap(size_t N, T * vals, T period) 
 {
-  for (size_t i = 0; i < N; i++) 
-  {
-    int nsub = floor(vals[i] / period); 
-    vals[i] -= nsub * period; 
-  }
+  wrap<T>(N,vals,period,period/2); 
+
 }
 
 void FFTtools::wrap(size_t N, float * vals, float period) 
@@ -2464,6 +2478,39 @@ void FFTtools::wrap(size_t N, double * vals, double period)
 void FFTtools::unwrap(size_t N, double * vals, double period) 
 {
   ::unwrap<double>(N, vals, period); 
+}
+
+double FFTtools::wrap(double val, double period) 
+{
+  wrap(1,&val, period); 
+  return val; 
+}
+
+
+void FFTtools::wrap(size_t N, float * vals, float period, float center) 
+{
+  ::wrap<float>(N, vals, period, center); 
+}
+
+void FFTtools::unwrap(size_t N, float * vals, float period, float center) 
+{
+  ::unwrap<float>(N, vals, period, center); 
+}
+
+void FFTtools::wrap(size_t N, double * vals, double period, double center) 
+{
+  ::wrap<double>(N, vals, period, center); 
+}
+
+void FFTtools::unwrap(size_t N, double * vals, double period, double center) 
+{
+  ::unwrap<double>(N, vals, period, center); 
+}
+
+double FFTtools::wrap(double val, double period, double center) 
+{
+  wrap(1,&val, period, center); 
+  return val; 
 }
 
 
