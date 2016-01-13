@@ -651,17 +651,13 @@ namespace FFTtools
    /*!Wraps a value to be within period centered at center.*/ 
    double wrap(double val, double period, double center); 
 
-    /*! unwraps periodic array of doubles. */ 
-   void unwrap(size_t N, double * vals, double period, double center ); 
 
-    /*! unwraps periodic array of doubles. center assumed to be period/2 */ 
+    /*! unwraps periodic array of doubles. */ 
    void unwrap(size_t N, double * vals, double period = 360); 
 
-    /*! unwraps periodic array of floats. */ 
-   void unwrap(size_t N, float * vals, float period, float center ); 
 
-    /*! unwraps periodic array of floats. center assumed to be period/2 */ 
-   void unwrap(size_t N, float * vals, float period); 
+    /*! unwraps periodic array of floats. */ 
+   void unwrap(size_t N, float * vals, float period = 360); 
 
 
    /*! computes reasonable dt from unevenly sampled graph */ 

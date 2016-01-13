@@ -2418,17 +2418,16 @@ double FFTtools::randomRayleigh(double sigma, TRandom * rng)
 }
 
 template<typename T> 
-static void unwrap(size_t N, T * vals, T period, T center ) 
+static void unwrap(size_t N, T * vals, T period) 
 {
   T adjust = 0; 
-  T start = center - period/2; 
   for (size_t i = 1; i < N; i++) 
   {
-    if (vals[i] - vals[i-1] + adjust - start > period/2)
+    if (vals[i] - vals[i-1] + adjust > period/2)
     {
       adjust -= period; 
     }
-    else if (vals[i] - vals[i-1]  + adjust - start< -period/2)
+    else if (vals[i] - vals[i-1]  + adjust < -period/2)
     {
       adjust += period; 
     }
@@ -2436,12 +2435,6 @@ static void unwrap(size_t N, T * vals, T period, T center )
     vals[i] += adjust; 
   }
 }
-template <typename T> 
-static void unwrap(size_t N, T * vals, T period) 
-{
-  unwrap<T>(N,vals,period,period/2); 
-}
-
 template <typename T> 
 static void wrap(size_t N, T * vals, T period, T center) 
 {
@@ -2492,20 +2485,13 @@ void FFTtools::wrap(size_t N, float * vals, float period, float center)
   ::wrap<float>(N, vals, period, center); 
 }
 
-void FFTtools::unwrap(size_t N, float * vals, float period, float center) 
-{
-  ::unwrap<float>(N, vals, period, center); 
-}
+
 
 void FFTtools::wrap(size_t N, double * vals, double period, double center) 
 {
   ::wrap<double>(N, vals, period, center); 
 }
 
-void FFTtools::unwrap(size_t N, double * vals, double period, double center) 
-{
-  ::unwrap<double>(N, vals, period, center); 
-}
 
 double FFTtools::wrap(double val, double period, double center) 
 {
