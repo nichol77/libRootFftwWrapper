@@ -161,7 +161,7 @@ void FFTtools::DigitalFilter::filterReplace(size_t n, double * w) const
 {
   double * filtered = filter(n,w); 
   memcpy(w,filtered, n * sizeof(*w)); 
-  delete filtered; 
+  delete [] filtered; 
 }
 
 void FFTtools::DigitalFilter::filterGraph(TGraph * g, bool filterErrors) const 
