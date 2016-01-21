@@ -43,7 +43,7 @@ OPT           = -g
 OPT2          = -g
 else
 OPT           = -O
-OPT2          = -O2
+OPT2          = -O2 
 endif
 endif
 
@@ -487,7 +487,15 @@ ifneq ($(ALTLD),)
    LD  = $(ALTLD)
 endif
 
+ARCH_STRING = -march=native
 ifneq ($(findstring g++, $(CXX)),)
 GCC_MAJOR := $(shell $(CXX) -dumpversion 2>&1 | cut -d'.' -f1)
 GCC_MINOR := $(shell $(CXX) -dumpversion 2>&1 | cut -d'.' -f2)
+GCC_GT_4_1 := $(shell [ $(GCC_MAJOR) -gt 4 -o \( $(GCC_MAJOR) -eq 4 -a $(GCC_MINOR) -gt 1 \) ] && echo true)
+ifneq ($(GCC_GT_4_1),true)
+ ARCH_STRING = 
 endif
+endif
+
+
+
