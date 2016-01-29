@@ -8,11 +8,113 @@
 #include <TCanvas.h>
 #include <TSystem.h>
 #include <TLegend.h>
+#include <TRandom3.h>
+
+TCanvas* testFftFunctions();
+TCanvas* testCorrelateInterpolateAndAverage();
 
 int main(int argc, char* argv[]){
 
-
   TApplication* theApp = new TApplication("App", &argc, argv);
+
+  // TCanvas* c1 = testFftFunctions();
+  // TCanvas* c2 = testCorrelateInterpolateAndAverage();
+  testFftFunctions();
+  testCorrelateInterpolateAndAverage();
+  
+  gSystem->ProcessEvents();
+  std::cerr << "Select File->Quit to quit." << std::endl;
+  theApp->Run();
+
+  return 0;  
+}
+
+
+
+TCanvas* testCorrelateInterpolateAndAverage(){
+
+  const Int_t nSamp = 256;
+  const Double_t deltaT = 1./2.6;
+
+  const UInt_t mySeed = 1984;
+  TRandom3 rand(mySeed);
+  const Double_t gausMean = 0;
+  const Double_t gausSigma = 1;  
+  const Double_t fakePulseHeight = 10;
+  const Double_t fakePulseWidth = 4;
+
+  const Int_t numGraphs = 5;
+
+  TCanvas* c1 = new TCanvas("c1", "Interpolate, Correlate and Average", 1200, 600); //1600);
+  c1->Divide(2);
+  c1->cd(1);
+  TGraph* grs[numGraphs] = {NULL};
+  
+  for(int grInd=0; grInd < numGraphs; grInd++){
+    const Double_t fakePulseTime = 30 + 10*grInd;
+
+    Double_t volts[nSamp];
+    Double_t times[nSamp];  
+    for(int samp=0; samp<nSamp; samp++){
+      times[samp] = deltaT*samp;
+      volts[samp] = rand.Gaus(gausMean, gausSigma);
+
+      Double_t expArg = -(times[samp]-fakePulseTime)*(times[samp]-fakePulseTime)/(fakePulseWidth*fakePulseWidth);
+      volts[samp] += fakePulseHeight*exp(expArg);
+
+    }
+  
+    grs[grInd] = new TGraph(nSamp, times, volts);
+    grs[grInd]->SetTitle(TString::Format("Pulse time %2.0lf", fakePulseTime));    
+    
+    grs[grInd]->SetLineColor(grInd+1);
+    grs[grInd]->SetFillColor(0); // For nice make legend function 
+
+    TString drawOpt = grInd == 0 ? "alp" : "lpsame";
+    grs[grInd]->Draw(drawOpt);
+
+  }
+
+  TLegend* l = gPad->BuildLegend();
+  l->Draw();
+
+ 
+  TGraph* grInterpCorrAve = FFTtools::interpolateCorrelateAndAverage(deltaT, numGraphs, grs);
+
+  c1->cd(2);
+  grInterpCorrAve->Draw("alp");
+  grInterpCorrAve->SetTitle("from interpolateCorrelateAndAverage");
+  grInterpCorrAve->SetLineStyle(2);
+  grInterpCorrAve->SetFillColor(0);
+
+  grs[0]->Draw("lpsame");
+  
+  TGraph* grDiff = (TGraph*) grInterpCorrAve->Clone("grDiff");
+  grDiff->SetFillColor(0);
+  grDiff->SetLineColor(kMagenta);  
+  for(int samp=0; samp < grDiff->GetN(); samp++){
+    grDiff->GetY()[samp] -= grs[0]->GetY()[samp];
+  }
+  grDiff->Draw("lpsame");
+  grDiff->SetTitle("Difference");
+  TLegend* l2 = gPad->BuildLegend();
+  l2->Draw();
+
+
+  grs[0]->SetTitle("Noisy gaussian pulses");  
+  grInterpCorrAve->SetTitle("Interpolate, correlate and average");
+
+  c1->Update();
+
+  return c1;
+}
+
+
+
+
+TCanvas* testFftFunctions(){
+
+  
 
   const int n = 256;
   double omega1 = 0.8;
@@ -43,9 +145,9 @@ int main(int argc, char* argv[]){
   l1->AddEntry(gr1, "y = 3.3 sin(2#pi 0.8t)", "l");
   l1->AddEntry(gr2, "y = 1.6 sin(2#pi 0.3t)", "l");
 
-  TCanvas* c1 = new TCanvas("c1", "FFT Frivolities", 1200, 1600);
-  c1->Divide(2, 2);
-  c1->cd(1);
+  TCanvas* c2 = new TCanvas("c2", "FFT Frivolities", 1200, 1600);
+  c2->Divide(2, 2);
+  c2->cd(1);
   gr1->Draw("alp");
   gr2->Draw("l same");
   l1->Draw();
@@ -54,7 +156,7 @@ int main(int argc, char* argv[]){
   TGraph* grCorr = FFTtools::getCorrelationGraph(gr1, gr2);
   grCorr->SetTitle("FFTtools::getCorrelationGraph;offset #deltat (s);Correlation");
   
-  c1->cd(2);  
+  c2->cd(2);  
   grCorr->Draw("alp");
 
 
@@ -68,7 +170,7 @@ int main(int argc, char* argv[]){
   }
 
 
-  c1->cd(3);
+  c2->cd(3);
   grPs1->Draw("alp");
   grPs1->SetTitle("FFTtools::makePowerSpectrumVoltsSecondsdB; Frequency (Hz); Power (dB)");
   grPs2->SetLineColor(kRed);
@@ -85,7 +187,7 @@ int main(int argc, char* argv[]){
   TGraph* gr1Again = new TGraph(n, ts, sineWave1Again);
   TGraph* gr2Again = new TGraph(n, ts, sineWave2Again);  
 
-  c1->cd(4);
+  c2->cd(4);
   gr1Again->SetTitle("Doing a forward and then inverse FFT on the sine waves; t (s); Amplitude (V)");
   gr1Again->Draw("alp");
   gr2Again->SetLineColor(kRed);
@@ -94,15 +196,9 @@ int main(int argc, char* argv[]){
   
   /* Draw pretty things */
   
-  c1->Update();
+  c2->Update();
   
-  c1->SaveAs(TString::Format("%sOutput.png", argv[0]));
-
-  gSystem->ProcessEvents();
-  std::cerr << "Select File->Quit to quit." << std::endl;
-  theApp->Run();
-
-  return 0;
+  return c2;
 
 
 

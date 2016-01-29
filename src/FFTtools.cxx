@@ -2157,7 +2157,7 @@ TGraph *FFTtools::interpolateCorrelateAndAverage(Double_t deltaTInt,Int_t numGra
 {
   TGraph **grInt = new TGraph* [numGraphs];
   for(int i=0;i<numGraphs;i++)
-    grInt[i]=getInterpolatedGraph(grPtrPtr[0],deltaTInt);
+    grInt[i]=getInterpolatedGraph(grPtrPtr[i],deltaTInt);
   TGraph *grAvg=correlateAndAverage(numGraphs,grInt);
   for(int i=0;i<numGraphs;i++)
     delete grInt[i];
@@ -2169,8 +2169,15 @@ TGraph *FFTtools::interpolateCorrelateAndAverage(Double_t deltaTInt,Int_t numGra
 TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 {
   //Assume they are all at same sampling rate
+
+  // Can't correlate and average if there's only one graph.
+  // So return 0
   if(numGraphs<2) return NULL;
-  TGraph *grA = grPtrPtr[0];
+
+  // TGraph *grA = grPtrPtr[0];
+  TGraph *grA = (TGraph*) grPtrPtr[0]->Clone(); // Make copy of graph rather than using first graph.
+
+  // Copy times from grA into new array.
   Int_t numPoints=grA->GetN();  
   Double_t *timeVals= grA->GetX();
   Double_t *safeTimeVals = new Double_t[numPoints];
@@ -2178,6 +2185,8 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
   for(int i=0;i<numPoints;i++) 
     safeTimeVals[i]=timeVals[i];  
   
+
+  // Loop over graph array.
   int countWaves=1;
   for(int graphNum=1;graphNum<numGraphs;graphNum++) {
     TGraph *grB = grPtrPtr[graphNum];
