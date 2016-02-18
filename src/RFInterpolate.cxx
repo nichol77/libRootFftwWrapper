@@ -599,7 +599,7 @@ double FFTtools::linearInterpolateValueAndError(double t, const TGraph* g, doubl
     {
       if (ey) 
       {
-        *err = (1+i*i) * ey[0]; 
+        *err = (1+20*i*i) * ey[0]; 
 //        printf("%f %d %f\n", t, i, *err); 
       }
       else 
