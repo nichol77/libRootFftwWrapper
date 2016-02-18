@@ -182,8 +182,13 @@ static fftw_plan getPlan(int len, bool forward = true){
 
     //create plans
     std::pair<fftw_plan,fftw_plan> plans; 
+#ifdef FFTW_USE_PATIENT
     plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_PATIENT);
     plans.second = fftw_plan_dft_c2r_1d(len,mem_X, mem_x, FFTW_PATIENT); 
+#else
+    plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_MEASURE);
+    plans.second = fftw_plan_dft_c2r_1d(len,mem_X, mem_x, FFTW_MEASURE); 
+#endif
     cached_plans[len] = plans; 
     return  forward ? plans.first : plans.second;
   }
