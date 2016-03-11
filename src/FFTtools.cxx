@@ -1,5 +1,6 @@
 #include "FFTtools.h"
 
+#include <fftw3.h>
 #include "FFTWindow.h"
 #include "TRandom.h" 
 #include <assert.h>
