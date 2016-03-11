@@ -1,4 +1,5 @@
 {
+  bool reinterpolate = true;  
   const int N = 256;  //nsamples
   const int ntraces = 1; 
   double dt = 0.39; // mean sample period
@@ -11,7 +12,7 @@
   double max_noise_freq = 1.2; 
   double max_amp = 3.5; //max CW amplitude 
   double min_amp = 6.5; //min CW amplitude 
-  int max_failed_iterations = 1; //settings for sinesubtract 
+  int max_failed_iterations = 0; //settings for sinesubtract 
   double min_power_ratio = 0.01; 
 
 
@@ -45,12 +46,13 @@
   }
 
   TGraph * g[ntraces]; 
+  TGraph * gcopy[ntraces]; 
 
   for (int ti = 0; ti < ntraces; ti++)
   {
 
     FFTtools::ThermalNoise noise(N*10, min_noise_freq/fnyq, max_noise_freq/fnyq, rms, 2); 
-    g[ti] = noise.makeGaussianDtWf(N, dt, jitter); 
+    g[ti] = reinterpolate ? noise.makeGaussianDtWf(N, dt, jitter) : noise.makeEvenWf(N,dt); 
     for (int i = 0; i < N; i++) 
     {
       for (int j = 0; j < nfreq; j++) 
@@ -58,6 +60,8 @@
          g[ti]->GetY()[i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* (g[ti]->GetX()[i] + ph[ti][j])); 
       }
     }
+
+    gcopy[ti] = new TGraph(*g[ti]); 
   }
 
 
@@ -68,7 +72,8 @@
   {
     sub->setFreqLimits(min_freq, max_freq); 
   }
-  sub->subtractCW(ntraces, g,dt); 
+
+  sub->subtractCW(ntraces, g, reinterpolate ?  dt : 0); 
 
   sub->makePlots(); 
 
