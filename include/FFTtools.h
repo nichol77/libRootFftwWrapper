@@ -677,6 +677,16 @@ namespace FFTtools
    double sinc(double x, double eps = 0); 
  
 
+   /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
+   TGraph * periodogram(const TGraph * g, double oversample_factor  = 4 , 
+                       double high_factor = 2, TGraph * replaceme = 0) 
+#ifndef __CINT__
+                       __attribute((__optimize__("fast-math"))); /* enable associativity and other things that help autovectorize */ 
+#else 
+   ;
+#endif
+
+
 
 }
    

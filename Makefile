@@ -43,7 +43,7 @@ LIB_OBJS =  $(addprefix $(BUILDDIR)/, FFTWComplex.o FFTtools.o\
 																			RFSignal.o RFFilter.o \
 						                          FFTWindow.o SineSubtract.o \
 																			DigitalFilter.o RFInterpolate.o\
-																		 	AnalyticSignal.o Averager.o \
+																		 	AnalyticSignal.o Averager.o Periodogram.o\
 																			CWT.o fftDict.o) 
 
 CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
