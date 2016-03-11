@@ -21,13 +21,13 @@ public:
    void setMagPhase(double mag, double phase);
    double re; ///<The real part
    double im; ///<The imaginary part
-   double getAbs() {
+   double getAbs() const{
      return TMath::Sqrt(re*re+im*im);
    }
-   double getAbsSq() {
+   double getAbsSq() const{
      return (re*re+im*im);
    }
-   double getPhase() {
+   double getPhase() const{
      return TMath::ATan2(im,re);
    }
 };
