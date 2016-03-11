@@ -42,7 +42,13 @@ namespace FFTtools
     TGraphErrors * getInterpolatedGraphSparseInvert(const TGraph * g, double dt = 0, int nout = 0, 
                                                    double max_dist = 32, double eps = 0, double weight_exp = 0, 
                                                    double mu = 1e-3, int regularization_order = 0, double error_scale = 1, 
+                                                  TH2 * A =0); 
+
+    void getInterpolatedGraphSparseInvert(const TGraph * in, TGraph * out, 
+                                                   double max_dist = 32, double eps = 0, double weight_exp = 0, 
+                                                   double mu = 1e-3, int regularization_order = 0, double error_scale = 1, 
                                                    TH2 * A =0); 
+
 
     /* Same as getInterpolatedGraphInvert but split into overlapping sub signals */ 
     TGraph * getInterpolatedGraphInvertLapped(const TGraph * g, double dt = 0, int lapsize = 64, int nout = 0); 

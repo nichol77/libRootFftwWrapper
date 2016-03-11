@@ -266,9 +266,31 @@ static Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
 //static Eigen::ConjugateGradient<Eigen::SparseMatrix<double> > solver; 
 #endif 
 
+
+
 TGraphErrors * FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, double dt, int nout, double max_dist, 
                                                         double eps, double weight_exp, double lambda, int lambda_order, double error_scale, 
                                                          TH2 * hA) 
+{
+  
+  double t0 = g->GetX()[0]; 
+  infer_vals(dt, g->GetN(), nout, g->GetX()); 
+
+  TGraphErrors * out = new TGraphErrors(nout); 
+  for (int i = 0; i < nout; i++) 
+  {
+    out->GetX()[i] = t0 + i * dt; 
+  }
+
+  getInterpolatedGraphSparseInvert(g, out, max_dist, eps, weight_exp, lambda, lambda_order, error_scale, hA); 
+
+  return out; 
+}
+void FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, TGraph * out, double max_dist, 
+                                                        double eps, double weight_exp, double lambda, int lambda_order, double error_scale, 
+                                                         TH2 * hA) 
+
+
 {
 
 #if !defined(USE_EIGEN) && !defined(USE_ARMADILLO) 
@@ -280,8 +302,8 @@ TGraphErrors * FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, doub
   const double * xj = g->GetX(); 
   const double * yj = g->GetY(); 
   int n =  g->GetN();
-  infer_vals(dt,n,nout,xj); 
-  double t0 = xj[0]; 
+  double dt = out->GetX()[1] - out->GetX()[0]; 
+  int nout = out->GetN(); 
 
   double x[nout]; 
   double y[nout]; 
@@ -291,7 +313,7 @@ TGraphErrors * FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, doub
 
   for (int i = 0; i < nout; i++) 
   {
-    x[i] = t0 + i *dt; 
+    x[i] = out->GetX()[i]; 
     ey[i] =0; 
     ny[i] =0; 
   }
@@ -419,7 +441,12 @@ TGraphErrors * FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, doub
     ey[i] = ny[i] ? error_scale/sqrt(ey[i]/ny[i]) : TMath::Infinity() ; 
   }
 
-  return new TGraphErrors(nout,x,y,0,ey); 
+  memcpy(out->GetX(), x, nout * sizeof(double));  
+  memcpy(out->GetY(), y, nout * sizeof(double));  
+  if (out->GetEY())
+  {
+    memcpy(out->GetEY(), ey, nout * sizeof(double));  
+  }
 }
 
 
