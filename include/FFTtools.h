@@ -674,9 +674,23 @@ namespace FFTtools
    /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
    TGraph * periodogram(const TGraph * g, double oversample_factor  = 4 , 
                        double high_factor = 2, TGraph * replaceme = 0) 
-#ifndef __CINT__
-                       __attribute((__optimize__("fast-math"))); /* enable associativity and other things that help autovectorize */ 
-#else 
+
+
+#ifndef __CINT__ /* hide optimization pragma from CINT */
+     
+#ifdef __clang__ 
+   /* For OS X */
+   // As best I can tell this would be the correct syntax for the fast math optimization with llvm
+   // but it seems to not be supported :(
+   // so for now we will just disable the fast math optimization for periodogram
+   // [[gnu::optimize("fast-math")]];
+     ;
+#else
+  __attribute((__optimize__("fast-math"))); /* enable associativity and other things that help autovectorize */ 
+#endif
+
+  
+#else
    ;
 #endif
 
