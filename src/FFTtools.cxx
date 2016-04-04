@@ -2456,7 +2456,7 @@ static void wrap(size_t N, T * vals, T period, T center)
   T start = center - period/2; 
   for (size_t i = 0; i < N; i++) 
   {
-    int nsub = floor((vals[i]-start) / period); 
+    int nsub = FFTtools::fast_floor((vals[i]-start) / period); 
     vals[i] -= nsub * period; 
   }
 }
@@ -2488,12 +2488,6 @@ void FFTtools::unwrap(size_t N, double * vals, double period)
   ::unwrap<double>(N, vals, period); 
 }
 
-double FFTtools::wrap(double val, double period) 
-{
-  wrap(1,&val, period); 
-  return val; 
-}
-
 
 void FFTtools::wrap(size_t N, float * vals, float period, float center) 
 {
@@ -2508,15 +2502,41 @@ void FFTtools::wrap(size_t N, double * vals, double period, double center)
 }
 
 
-double FFTtools::wrap(double val, double period, double center) 
+
+
+double FFTtools::evalEvenGraph(const TGraph * g, double t)
 {
-  wrap(1,&val, period, center); 
-  return val; 
+  double t0 = g->GetX()[0]; 
+  if (t < t0) return 0;  //return 0 if before first sample
+  double dt = g->GetX()[1] - t0; 
+
+  int bin_low = int ((t-t0)/dt); 
+
+  if (bin_low > g->GetN()) return 0; 
+  if (bin_low ==  g->GetN()) return g->GetY()[g->GetN()-1]; 
+
+  int bin_high = bin_low + 1; 
+  double frac = (t - (t0 + dt * bin_low)) / dt; 
+
+  double val_low = g->GetY()[bin_low]; 
+  double val_high = g->GetY()[bin_high]; 
+
+  return frac * val_high + (1-frac) * val_low; 
+
 }
 
 
 
+int FFTtools::saveWisdom(const char * file)
+{
+  return fftw_export_wisdom_to_filename(file); 
+}
 
+int FFTtools::loadWisdom(const char * file)
+{
+
+  return fftw_import_wisdom_from_filename(file); 
+}
 
 
 

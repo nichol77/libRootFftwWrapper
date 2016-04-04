@@ -639,11 +639,21 @@ namespace FFTtools
    void wrap(size_t N, float * vals, float period = 360); 
 
 
-   /*! Wraps a value to be within period. Center assumed to be period/2 */ 
-   double wrap(double val, double period = 360); 
+   /*! Faster than the libm floor, which cares about errno and the floating point environment and all that crap 
+    **/ 
+   inline int fast_floor(double val) { return (int) val - (val < (int) val); }
 
-   /*!Wraps a value to be within period centered at center.*/ 
-   double wrap(double val, double period, double center); 
+   /*!Wraps a value to be within period centered at center.
+    * This could be implemented in terms of the other wraps, but in practice it's better to inline since
+    * the period and center are usually known at compile them. 
+    *
+    * */ 
+   inline double wrap(double val, double period, double center)
+          { return val - period * fast_floor((val-center+period/2)/period); }
+
+   /*! Wraps a value to be within period. Center assumed to be period/2 */ 
+   inline double wrap(double val, double period = 360)
+          { return wrap(val,period,period/2); } 
 
 
     /*! unwraps periodic array of doubles. */ 
@@ -656,6 +666,9 @@ namespace FFTtools
 
    /*! computes reasonable dt from unevenly sampled graph */ 
    double getDt(const TGraph * g, int realN = 0);  
+
+   /*! linearly interpolates value x in g . Similar to doing g->Eval() but much faster (since doesn't need to sort or binary search)*/ 
+   double evalEvenGraph(const TGraph * g, double x); 
 
 
 
@@ -670,14 +683,13 @@ namespace FFTtools
    /*! sinc function, if |x| < eps, sinc(x) = 1 */ 
    double sinc(double x, double eps = 0); 
  
+   int loadWisdom(const char * file); 
+   int saveWisdom(const char * file); 
 
-   /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
+ /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
    TGraph * periodogram(const TGraph * g, double oversample_factor  = 4 , 
                        double high_factor = 2, TGraph * replaceme = 0) 
-
-
 #ifndef __CINT__ /* hide optimization pragma from CINT */
-     
 #ifdef __clang__ 
    /* For OS X */
    // As best I can tell this would be the correct syntax for the fast math optimization with llvm
@@ -688,8 +700,6 @@ namespace FFTtools
 #else
   __attribute((__optimize__("fast-math"))); /* enable associativity and other things that help autovectorize */ 
 #endif
-
-  
 #else
    ;
 #endif
