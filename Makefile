@@ -52,7 +52,8 @@ CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
 																							RFInterpolate.h DigitalFilter.h\
 																							Averager.h AnalyticSignal.h CWT.h) 
 
-BINARIES = $(addprefix $(BINDIR)/, testFFTtools)
+BINARIES = $(addprefix $(BINDIR)/, testFFTtools $(OPTIONAL_BINARIES))
+
 
 
 all : $(ROOT_LIBRARY) $(BINARIES)

@@ -698,7 +698,7 @@ namespace FFTtools
    // [[gnu::optimize("fast-math")]];
      ;
 #else
-  __attribute((__optimize__("fast-math"))); /* enable associativity and other things that help autovectorize */ 
+  __attribute((__optimize__("fast-math","tree-vectorize"))); /* enable associativity and other things that help autovectorize */ 
 #endif
 #else
    ;

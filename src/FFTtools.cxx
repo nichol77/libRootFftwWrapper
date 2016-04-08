@@ -119,47 +119,149 @@ TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
 }
 
 
-// this needs a new enough compiler... and c++11 standard
+
+
+ /***** WARNING: You are about to enter a zone that is quite complicated!!!
+ *
+ *   The basic idea is this: FFTW3 figures out a super fast way to do a
+ *   particular FFT, based on its size (and memory alignment, but in practice
+ *   we always want things aligned optimally). This operation (planning) takes
+ *   a while, and while FFTW3 will "remember" plans it already figured out, its
+ *   hash function for storing them is needlesly slow (it does an md5sum of
+ *   some properties of the transform, which is slow, partially, at least on
+ *   Linux, because glibc sincos is so slow... but I digress)  
+ *
+ *   So the solution here is to use a std::map to store the FFtW3 goodies. This
+ *   will use a tree structure, ensuring O(logN) lookup. 
+ *
+ *   But because arrays you pass are not necessarily going to be aligned
+ *   properly for SIMD, we allocate memory here and will copy data in and out
+ *   of the arrays. This might seem like it's slower, and it might be in some
+ *   cases, but this is what we do. 
+ *
+ *   If FFTTOOLS_ALLOCATE_CONTIGUOUS is true, the input and output arrays will
+ *   be (almost) contiguous, which theoretically might improve cache locality,
+ *   but I haven't done any rigorous profiling. 
+ *
+ *   Finally, you might notice a bunch of threading-related crap littering the
+ *   code.  This is because the FFTW3 planning and the static arrays are not
+ *   thread-safe.  There are two threading models implemented, both
+ *   experimental until such time as someone decides they're not (and
+ *   therefore, neither enabled by default). 
+ *
+ *   The current strategy for thread safety is to lock the planning stage and
+ *   then allocate different arrays for each thread. The FFT's are then
+ *   executed using the new-array variants of  fft_execute. It would be nice to
+ *   just use TSD for this and just be able to mark the maps as thread_local,
+ *   but that is not well implemented enough in compilers yet (afaik?) and I'm
+ *   not sure if it works with OpenMP or not (but maybe it does?). 
+ *
+ *
+ *   FFTTOOLS_THREAD_SAFE adds the necessary machinery to use ROOT's built-in
+ *   threading facilities (i.e. pthreads on Unix, and the Windows thread
+ *   thingie on on Windows).
+ *
+ *   FFTTOOLS_USE_OMP uses the OpenMP macros, which are somewhat easier to use. 
+ *
+ *   Trying to use both will crash and burn. don't
+ *
+ *
+ *   There is one fairly big drawback to the way things are done; the per-thread arrys
+ *   are never deleted. As long as you reuse threads instead of spawning countless
+ *   numbers of them, this should be ok. In the future, maybe I'll properly use 
+ *   thread_local and shit to make it work, but I don't feel like it's right to make
+ *   people use a C++11 compiler until at least when people stop using Fortran77 
+ *
+ *******************************************************************************/
+
+
+/** This caches both forward and backwards plans **/
+static std::map<int, std::pair<fftw_plan, fftw_plan> > cached_plans; //this caches both plans for a given length
+
+
+/* error if you try to compile with both */ 
 #ifdef FFTTOOLS_THREAD_SAFE
+#ifdef FFTTOOLS_USE_OMP
+ Sorry, you cannot compile using both FFTTOOLS_THREAD_SAFE and FFTTOOLS_USE_OMP. 
+#endif 
+#endif
+
+
+/** ROOT thread stuff **/
+#ifdef FFTTOOLS_THREAD_SAFE
+#define USE_PER_THREAD_MEMORY
 #include "TMutex.h" 
+#include "TThread.h" 
 static TMutex plan_mutex; 
-#define STATIC_VAR static thread_local
-#else
-#define STATIC_VAR static
+#define GET_TID() TThread::SelfId()
 #endif 
 
-/*
-  std::maps which hold all the fftw goodies.
-  The length is the key so we have an easy way to check if a plan already exists. 
-  The values are the input/ouput arrays and the plans, real-to-complex and complex-to-real.
+
+/** OpenMP stuff **/ 
+#ifdef FFTTOOLS_USE_OMP
+#define USE_PER_THREAD_MEMORY
+#include "omp.h"
+#define GET_TID() omp_get_thread_num() 
+#endif
 
 
-  The memory for the arrays are actually allocated at the same time so that they are contiguous for better chance of cache coherence. 
-*/
+#ifdef  USE_PER_THREAD_MEMORY
+/*define memory for each thread, this will use the thread-id as an index 
+ *
+ *  For OMP, the thread numbers increase sequentially, so I use a vector to 
+ *  increase lookup speed. For pthreads, the thread number is an opaque handle,
+ *  so I use a map instead 
+ * */
 
+#ifdef FFTTOOLS_USE_OMP
+static  std::map<int, std::vector<double *> > cached_xs;
+static  std::map<int, std::vector<fftw_complex *> > cached_Xs; 
+#else
+static  std::map<int, std::map<long,double *> > cached_xs;
+static  std::map<int, std::map<long,fftw_complex *> > cached_Xs; 
+#endif
 
-STATIC_VAR std::map<int, std::pair<fftw_plan, fftw_plan> > cached_plans; //this caches both plans for a given length
-STATIC_VAR std::map<int, double*> cached_xs;
-STATIC_VAR std::map<int, fftw_complex*> cached_Xs;
+#else
+static std::map<int, double*> cached_xs;
+static std::map<int, fftw_complex*> cached_Xs;
+#endif
 
-static fftw_plan getPlan(int len, bool forward = true){
+static fftw_plan getPlan(int len, bool forward = true)
+{
   /* 
      Function which checks whether we've encountered a request to do an FFT of this length before.
      If we haven't then we need a new plan!
   */
 
 #ifdef FFTOOLS_THREAD_SAFE
-  plan_mutex.Lock(); 
+  plan_mutex.Lock(); //root lock 
 #endif 
+
+
 
   std::map<int,std::pair<fftw_plan, fftw_plan> >::iterator it = cached_plans.find(len);
 
-  if(it==cached_plans.end())
-  {
-    
-   
-#ifdef FFTTOOLS_ALLOCATE_CONTIGUOUS
 
+  bool must_plan = it == cached_plans.end(); 
+  bool must_allocate = must_plan; 
+
+#ifdef USE_PER_THREAD_MEMORY
+  unsigned long tid = GET_TID(); 
+
+#ifdef FFTTOOLS_USE_OMP
+  must_allocate = must_allocate || cached_xs[len].size() <= tid || cached_xs[len][tid] == 0 ; 
+#else
+  must_allocate = must_allocate || cached_xs[len].count(tid) == 0 || cached_xs[len][tid] == 0 ; 
+#endif
+
+#endif 
+
+  double * mem_x = 0; 
+  fftw_complex * mem_X = 0; 
+
+  if(must_allocate)
+  {
+#ifdef FFTTOOLS_ALLOCATE_CONTIGUOUS
     /* Allocate contiguous memory for both the real and complex arrays 
      *
      *  For proper alignment, we ought to pad sizeof(double) * len to whatever the largest SIMD alignment is. 
@@ -167,19 +269,47 @@ static fftw_plan getPlan(int len, bool forward = true){
      **/ 
  
     void * mem = fftw_malloc(sizeof(double) * (len + len % 8) +  (1 + len/2) * sizeof(fftw_complex)); 
-    double * mem_x = (double*) mem;  //pointer to real array 
-    fftw_complex * mem_X = (fftw_complex*) (mem_x + len + (len % 8));  //pointer to complex array
+    mem_x = (double*) mem;  //pointer to real array 
+    mem_X = (fftw_complex*) (mem_x + len + (len % 8));  //pointer to complex array
 
 //    printf ("%lu %lu\n", ((size_t)mem_x) % 32, ((size_t)mem_X) % 32);  // check that aligned
 #else
-    double * mem_x= fftw_alloc_real(len); 
-    fftw_complex * mem_X= fftw_alloc_complex(len/2+1); 
+    mem_x= fftw_alloc_real(len); 
+    mem_X= fftw_alloc_complex(len/2+1); 
 #endif
 
+#ifdef USE_PER_THREAD_MEMORY
+
+
+#ifdef FFTTOOLS_USE_OMP
+    if (must_plan)
+    {
+      cached_xs[len] = std::vector<double*>(tid+1,0); 
+      cached_Xs[len] = std::vector<fftw_complex*>(tid+1,0); 
+    }
+
+    if (cached_xs[len].size() <= tid)
+    {
+      cached_xs[len].resize(tid+1,0); 
+      cached_Xs[len].resize(tid+1,0); 
+    }
+
+#endif
+
+    cached_xs[len][tid] = mem_x; 
+    cached_Xs[len][tid] = mem_X; 
+
+    printf("FFTtools:: Allocated memory for thread %lu, length %d\n", tid, len); 
+#else
     cached_xs[len] = mem_x;  //insert into maps 
     cached_Xs[len] = mem_X; 
+#endif
 
+  }
+   
 
+  if (must_plan)
+  {
 
     //create plans
     std::pair<fftw_plan,fftw_plan> plans; 
@@ -191,92 +321,70 @@ static fftw_plan getPlan(int len, bool forward = true){
     plans.second = fftw_plan_dft_c2r_1d(len,mem_X, mem_x, FFTW_MEASURE); 
 #endif
     cached_plans[len] = plans; 
-    return  forward ? plans.first : plans.second;
   }
 
 #ifdef FFTOOLS_THREAD_SAFE
     plan_mutex.UnLock(); 
 #endif 
 
- return forward ? (*it).second.first : (*it).second.second; 
+ if (!must_plan) 
+ {
+   return forward ? (*it).second.first : (*it).second.second; 
+ }
+ else
+ {
+   return forward ? cached_plans[len].first : cached_plans[len].second; 
+ }
   
 }
 
-
-// FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
-//   //Here is what the sillyFFT program should be doing;    
-//     fftw_complex *theOutput = new fftw_complex [(length/2)+1];
-//     double *newInput = new double [length]; 
-    
-//     //cout << length  << " " << input[0] << " " << theFFT[0] << endl;
-//     fftw_plan thePlan = fftw_plan_dft_r2c_1d(length,newInput,theOutput,FFTW_MEASURE);
-//     if(!thePlan) {
-// 	cout << "Bollocks" << endl;
-//     }
-        
-//     for(int i=0;i<length;i++) {
-// 	newInput[i]=theInput[i];
-//     }
-
-//     for (int i=0;i<(length/2)+1;i++) {
-// 	theOutput[i][0]=0.;
-// 	theOutput[i][1]=0.;
-//     }
-//     fftw_execute(thePlan);
-//     delete [] newInput; 
-//     fftw_destroy_plan(thePlan);
-    
-
-//     FFTWComplex *myOutput = new FFTWComplex [(length/2)+1];
-//     for (int i=0;i<(length/2)+1;i++) {
-// 	myOutput[i].re=theOutput[i][0];
-// 	myOutput[i].im=theOutput[i][1];
-//     }
-//     delete [] theOutput;
-//     return myOutput;
-// }
 
 
 FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
   //Here is what the sillyFFT program should be doing;    
 
-  fftw_plan plan = getPlan(length, true); 
-  memcpy(cached_xs[length], theInput, sizeof(double)*length);
-
-  fftw_execute(plan);
-
   const int numFreqs= (length/2)+1;
+#ifdef FFTTOOLS_USE_OMP
+  fftw_plan plan; 
+  fftw_complex * mem_X; 
+  double * mem_x; 
+  unsigned long tid = GET_TID();
+#pragma omp critical (fft_tools)
+  {
+   plan = getPlan(length, true); 
+   mem_X = cached_Xs[length][tid]; 
+   mem_x = cached_xs[length][tid]; 
+  }
+#else
+  fftw_plan plan = getPlan(length, true); 
+
+#if FFTTOOLS_THREAD_SAFE 
+  unsigned long tid = GET_TID();
+  plan_mutex.Lock(); 
+  fftw_complex * mem_X = cached_Xs[length][tid]; 
+  double * mem_x = cached_xs[length][tid]; 
+  plan_mutex.UnLock(); 
+#endif
+
+#endif
+
   FFTWComplex *myOutput = new FFTWComplex [numFreqs];
+
+#ifdef USE_PER_THREAD_MEMORY
+//  printf("%x\n", (size_t) mem_x); 
+  memcpy(mem_x, theInput, sizeof(double)*length);
+  fftw_execute_dft_r2c(plan, mem_x, mem_X);
+  memcpy(myOutput, mem_X, sizeof(fftw_complex)*numFreqs);
+#else
+  memcpy(cached_xs[length], theInput, sizeof(double)*length);
+  fftw_execute(plan);
   memcpy(myOutput, cached_Xs[length], sizeof(fftw_complex)*numFreqs);
+#endif
+
   return myOutput;
 }
 
 
-
-// double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
-//   // This is what sillyFFT should be doing
-//   //    //Takes account of normailisation 
-//   // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry
-//     fftw_complex *newInput = new fftw_complex [(length/2)+1];
-//     double *theOutput = new double [length]; 
-//     fftw_plan thePlan = fftw_plan_dft_c2r_1d(length,newInput,theOutput,FFTW_MEASURE);
-           
-//     for(int i=0;i<((length/2)+1);i++) {
-// 	newInput[i][0]=theInput[i].re;
-// 	newInput[i][1]=theInput[i].im;
-//     }
-//     for(int i=0;i<length;i++) {
-// 	theOutput[i]=0;
-//     }
-    
-//     fftw_execute(thePlan);
-//     delete [] newInput; 
-//     fftw_destroy_plan(thePlan);
-//     for(int i=0;i<length;i++) {
-// 	theOutput[i]/=length;
-//     }
-//     return theOutput;
-// }
 
 double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
   // This is what sillyFFT should be doing
@@ -284,24 +392,54 @@ double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
   // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry
 
 
-  fftw_plan plan= getPlan(length,false);
+#ifdef FFTTOOLS_USE_OMP
+  fftw_complex * mem_X; 
+  double * mem_x; 
+  fftw_plan plan; 
+  unsigned long tid = GET_TID(); 
+#pragma omp critical (fft_tools)
+  {
+   plan = getPlan(length, false); 
+   mem_X = cached_Xs[length][tid]; 
+   mem_x = cached_xs[length][tid]; 
+  }
+#else 
+  fftw_plan  plan = getPlan(length, false); 
+
+#if FFTTOOLS_THREAD_SAFE
+  plan_mutex.Lock(); 
+  unsigned long tid = GET_TID();
+  fftw_complex * mem_X = cached_Xs[length][tid]; 
+  double *mem_x = cached_xs[length][tid]; 
+  plan_mutex.UnLock(); 
+#endif
+
+#endif
+ 
+  double *theOutput = new double [length];
+
+#ifdef USE_PER_THREAD_MEMORY
+  memcpy(mem_X, theInput, sizeof(fftw_complex) * (length/2 + 1)); 
+  fftw_execute_dft_c2r(plan, mem_X, mem_x);
+#else
   memcpy (cached_Xs[length], theInput, sizeof(fftw_complex) * (length/2 +1)); 
   fftw_execute(plan);
+  double * mem_x = cached_xs[length]; 
+#endif
 
   /* Normalization needed on the inverse transform */
-  double* invFftOutPtr = cached_xs[length];
   for(int i=0; i<length; i++){
-    invFftOutPtr[i]/=length;
+    mem_x[i]/=length;
   }
 
   // Copy output array
-  double *theOutput = new double [length];
-  memcpy(theOutput, invFftOutPtr, sizeof(double)*length);
+  memcpy(theOutput, mem_x, sizeof(double)*length);
   return theOutput;
 }
 
 
 
+/** done with complicated code */ 
 
 
 Double_t *FFTtools::combineValuesUsingFFTs(Int_t numArrays, Double_t **thePtrPtr, Int_t eachLength) {
