@@ -299,7 +299,7 @@ static fftw_plan getPlan(int len, bool forward = true)
     cached_xs[len][tid] = mem_x; 
     cached_Xs[len][tid] = mem_X; 
 
-    printf("FFTtools:: Allocated memory for thread %lu, length %d\n", tid, len); 
+//    printf("FFTtools:: Allocated memory for thread %lu, length %d\n", tid, len); 
 #else
     cached_xs[len] = mem_x;  //insert into maps 
     cached_Xs[len] = mem_X; 
