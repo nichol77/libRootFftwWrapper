@@ -23,6 +23,7 @@
 #include "TMath.h"
 #include "Math/Interpolator.h"
 #include "Math/InterpolationTypes.h"
+#include "FFTWindow.h" 
 
 
 //My includes
@@ -672,7 +673,6 @@ namespace FFTtools
 
 
 
-   class FFTWindowType; 
    /*! applies window to graph */ 
    void applyWindow(TGraph *g, const FFTWindowType *w); 
 
@@ -686,9 +686,15 @@ namespace FFTtools
    int loadWisdom(const char * file); 
    int saveWisdom(const char * file); 
 
+
+   TGraph * welchPeriodogram(const TGraph * gin, int segment_size, double overlap_fraction = 0.5, const FFTWindowType * window = &RECTANGULAR_WINDOW , bool truncate_extra = true); 
+
  /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
-   TGraph * periodogram(const TGraph * g, double oversample_factor  = 4 , 
+   TGraph * lombScarglePeriodogram(const TGraph * g, double oversample_factor  = 4 , 
                        double high_factor = 2, TGraph * replaceme = 0) 
+
+
+
 #ifndef __CINT__ /* hide optimization pragma from CINT */
 #ifdef __clang__ 
    /* For OS X */
