@@ -2650,8 +2650,8 @@ double FFTtools::evalEvenGraph(const TGraph * g, double t)
 
   int bin_low = int ((t-t0)/dt); 
 
-  if (bin_low > g->GetN()) return 0; 
-  if (bin_low ==  g->GetN()) return g->GetY()[g->GetN()-1]; 
+  if (bin_low >= g->GetN()) return 0; 
+  if (bin_low ==  g->GetN()-1) return g->GetY()[g->GetN()-1]; 
 
   int bin_high = bin_low + 1; 
   double frac = (t - (t0 + dt * bin_low)) / dt; 
