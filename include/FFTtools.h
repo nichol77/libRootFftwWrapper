@@ -689,26 +689,9 @@ namespace FFTtools
 
    TGraph * welchPeriodogram(const TGraph * gin, int segment_size, double overlap_fraction = 0.5, const FFTWindowType * window = &RECTANGULAR_WINDOW , bool truncate_extra = true); 
 
- /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
+   /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
    TGraph * lombScarglePeriodogram(const TGraph * g, double oversample_factor  = 4 , 
-                       double high_factor = 2, TGraph * replaceme = 0) 
-
-
-
-#ifndef __CINT__ /* hide optimization pragma from CINT */
-#ifdef __clang__ 
-   /* For OS X */
-   // As best I can tell this would be the correct syntax for the fast math optimization with llvm
-   // but it seems to not be supported :(
-   // so for now we will just disable the fast math optimization for periodogram
-   // [[gnu::optimize("fast-math")]];
-     ;
-#else
-  __attribute((__optimize__("fast-math","tree-vectorize"))); /* enable associativity and other things that help autovectorize */ 
-#endif
-#else
-   ;
-#endif
+                       double high_factor = 2, TGraph * replaceme = 0)  ; 
 
 
 

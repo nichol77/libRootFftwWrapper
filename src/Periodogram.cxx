@@ -56,8 +56,23 @@ static void extirpolate(double y, int n, double *ys, double x)
   }
 }
 
-TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double oversample_factor,
-                     double high_factor, TGraph * out) 
+
+/* delegate so that can use optimization attributes */ 
+
+static TGraph * _lombScarglePeriodogram(const TGraph * g, double oversample_factor  = 4 , 
+                       double high_factor = 2, TGraph * replaceme = 0); 
+#ifdef __clang__ 
+   /* For OS X */
+   // As best I can tell this would be the correct syntax for the fast math optimization with llvm
+   // but it seems to not be supported :(
+   // so for now we will just disable the fast math optimization for periodogram
+   // [[gnu::optimize("fast-math")]];
+     
+#else
+  __attribute((__optimize__("fast-math","tree-vectorize"))) /* enable associativity and other things that help autovectorize */ 
+#endif
+
+TGraph * _lombScarglePeriodogram(const TGraph *g, double oversample_factor, double high_factor, TGraph * out) 
 {
 
 
@@ -81,18 +96,15 @@ TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double oversample_fa
   int nwork = 2 * nfreq; 
 
 
-  /* compute mean and variance... fast! */ 
-  double mean = 0, var = 0; 
-
+  /* compute mean */
+  double mean = 0;
   for (int i = 0; i < n; i++)  
   {
     mean += y[i]; 
-    var += y[i]*y[i]; 
   }
 
 
   mean /= n; 
-  var = var/n - mean * mean; 
 
 
 
@@ -140,14 +152,23 @@ TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double oversample_fa
     sinterm /= (n-density); 
 
     out->GetX()[j] = (j+1) * df; 
-    out->GetY()[j] = (costerm + sinterm) / (2 * var); 
+    out->GetY()[j] = (costerm + sinterm) / (2); 
   }
+
+  delete [] fft1; 
+  delete [] fft2; 
 
   return out; 
 
 }
 
 
+TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double oversample_factor,
+                     double high_factor, TGraph * out) 
+{
+
+  return _lombScarglePeriodogram(g,oversample_factor, high_factor,out); 
+}
 
 
 TGraph * FFTtools::welchPeriodogram(const TGraph * gin, int segment_size, double overlap_fraction, const FFTWindowType * window, bool truncate_extra)
@@ -207,6 +228,7 @@ TGraph * FFTtools::welchPeriodogram(const TGraph * gin, int segment_size, double
 
   return power; 
 }
+
 
 
 
