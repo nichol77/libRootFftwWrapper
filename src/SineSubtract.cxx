@@ -39,7 +39,7 @@ extern int gErrorIgnoreLevel; // who ordered that?
 
 static double normalize_angle(double phi)
 {
-  return  phi - 2*TMath::Pi() * floor((phi+ TMath::Pi()) / (2.*TMath::Pi())); 
+  return  phi - 2*TMath::Pi() * FFTtools::fast_floor((phi+ TMath::Pi()) / (2.*TMath::Pi())); 
 }
 
 FFTtools::SineFitter::SineFitter()
@@ -404,17 +404,17 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
 }
 
 
-FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, const FFTWindowType * win, bool store)
-  : maxiter(maxiter), min_power_reduction(min_power_reduction), store(store), w(win) 
+FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bool store)
+  : maxiter(maxiter), min_power_reduction(min_power_reduction), store(store)
 {
 
+  oversample_factor = 4; 
+  high_factor = 1; 
   neighbor_factor2 = 0.15; 
   verbose = false; 
   tmin = 0; 
   tmax = 0; 
 
-  fmin = 0; 
-  fmax = 0; 
   
 }
 
@@ -459,15 +459,7 @@ void FFTtools::SineSubtract::reset()
   }
   gs.clear(); 
   for (unsigned i = 0; i < spectra.size(); i++) delete spectra[i]; 
-  for (unsigned i = 0; i < fft_phases.size(); i++)
-  {
-    for (unsigned j = 0; j < fft_phases[i].size(); j++) 
-    {
-      delete fft_phases[i][j]; 
-    }
-  }
   spectra.clear(); 
-  fft_phases.clear(); 
 
 
 }
@@ -513,13 +505,11 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     }
   }
 
-
   r.powers.push_back(power/Nuse/ntraces); 
 
   if (store) 
   {
     gs.insert(gs.end(), ntraces, std::vector<TGraph*>()); 
-    fft_phases.insert(fft_phases.end(), ntraces, std::vector<TGraph*>()); 
 
     for (int i = 0; i < ntraces; i++) 
     {
@@ -529,11 +519,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
   }
 
   int ntries = 0; 
-  FFTWComplex * ffts[ntraces]; 
 
-  int nzeropad = 1 << (32 - __builtin_clz(Nuse-1)); 
-//  printf("%d\n",nzeropad); 
-  int fftlen = nzeropad/2+1; 
+  TGraph power_spectra[ntraces]; 
+
 
   r.phases.insert(r.phases.end(),ntraces, std::vector<double>()); 
   r.phases_errs.insert(r.phases_errs.end(),ntraces, std::vector<double>()); 
@@ -541,7 +529,6 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
   r.amps_errs.insert(r.amps_errs.end(),ntraces, std::vector<double>()); 
 
   int nattempts = 0; 
-  double realdt = dt  > 0 ? dt : g[0]->GetX()[1] - g[0]->GetX()[0]; 
   while(true) 
   {
 
@@ -549,85 +536,80 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     for (int ti = 0; ti  < ntraces; ti++)
     {
       TGraph * gcropped = new TGraph(Nuse, g[ti]->GetX() + low, g[ti]->GetY() + low); 
-      TGraph * ig = dt <= 0? gcropped : FFTtools::getInterpolatedGraph(gcropped, dt); 
-      applyWindow(ig,w); 
-      ig->Set(nzeropad); 
-      ffts[ti] = FFTtools::doFFT(nzeropad, ig->GetY()); 
-      if (dt >0) delete ig; 
+      FFTtools::lombScarglePeriodogram(gcropped, 4, 1, &power_spectra[ti]);
       delete gcropped; 
     }
 
+    int spectrum_N = power_spectra[0].GetN(); 
 
     int max_i = -1; 
-    double mag2[fftlen]; 
-    memset(mag2, 0, sizeof(mag2)); 
-    double max_adj_mag2 = 0; 
 
+    double mag_sum[spectrum_N]; 
+    memset(mag_sum, 0, sizeof(mag_sum)); 
+    double max_adj_mag2 = 0; 
     double max_f = 0; 
 
-
     double * spectra_x=0, *spectra_y=0; 
-    double * phase[ntraces]; 
 
     if (store)
     {
-      spectra_x  = new double[fftlen]; 
-      spectra_y  = new double[fftlen]; 
-      for (int ti = 0; ti < ntraces; ti++) 
-      {
-        phase[ti]  = new double[fftlen]; 
-      }
+      spectra_x  = new double[spectrum_N]; 
+      spectra_y  = new double[spectrum_N]; 
     }
 
     //find lone peak magnitude of FFT 
     
     for (int ti = 0; ti < ntraces; ti++) 
     {
-      for (int i = 0; i < fftlen; i++)
+      for (int i = 0; i < spectrum_N; i++)
       {
-        mag2[i] += ffts[ti][i].getAbsSq(); 
-        if (store) 
-        {
-          phase[ti][i] = ffts[ti][i].getPhase(); 
-        }
+        if (power_spectra[ti].GetN() > i)
+          mag_sum[i] += power_spectra[ti].GetY()[i];
       }
     }
 
 
-    double df = 0.5 / (realdt * nzeropad); 
-    for (int i = 0; i < fftlen; i++)
+    double df = power_spectra[0].GetX()[1] - power_spectra[0].GetX()[0]; 
+
+    for (int i = 0; i < spectrum_N; i++)
     {
-      double freq =  i / (realdt * nzeropad); 
+      double freq =  power_spectra[0].GetX()[i]; 
 
-      double adj_mag2 = mag2[i] / (1+failed_bins.count(i)); 
-      double neigh_mag2_low = i == 0 ? DBL_MAX : mag2[i-1];; 
-      double neigh_mag2_high = i == fftlen-1 ? DBL_MAX : mag2[i+1]; 
+      double adj_mag2 = mag_sum[i] / (1+failed_bins.count(i)); 
+      double neigh_mag2_low = i == 0 ? DBL_MAX : mag_sum[i-1];; 
+      double neigh_mag2_high = i == spectrum_N-1 ? DBL_MAX : mag_sum[i+1]; 
 
+//      printf("%f %f\n", freq, adj_mag2); 
 
       if (store) 
       {
-        spectra_x[i] = i /(realdt * nzeropad); 
-        spectra_y[i] = mag2[i]/nzeropad/ntraces; 
-        if (i > 0 && i < fftlen-1) spectra_y[i]*=2; 
-//        printf("%f %f\n", spectra_x[i], spectra_y[i]); 
-
+        spectra_x[i] = freq; 
+        spectra_y[i] = mag_sum[i]/ntraces; 
       }
 
-      if ( (fmin > 0) && (freq + df < fmin))
+      //check if ok
+      if (fmin.size())
       {
-        continue; 
+        bool ok = false; 
+        for (unsigned i = 0; i < fmin.size(); i++) 
+        {
+          if (freq+df >= fmin[i] && freq-df <= fmax[i]) 
+          {
+            ok = true; 
+            break; 
+          }
+        }
+
+        if (!ok) 
+        {
+          continue; 
+        }
       }
         
 
-      if ( (fmax  > 0) && (freq - df > fmax)) 
-      {
-        continue; 
-      }
-
-
       if ( max_i < 0 ||
          ( adj_mag2 > max_adj_mag2 && 
-           mag2[i] * neighbor_factor2 > TMath::Min(neigh_mag2_low, neigh_mag2_high)
+           mag_sum[i] * neighbor_factor2 > TMath::Min(neigh_mag2_low, neigh_mag2_high)
            )
          )
       {
@@ -645,9 +627,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
     for (int ti = 0; ti < ntraces; ti++)
     {
-      max_ph[ti] = ffts[ti][max_i].getPhase(); 
-      max_A[ti] = 2*ffts[ti][max_i].getAbs()/nzeropad; 
-      delete [] ffts[ti]; 
+      max_ph[ti] = 0; 
+      max_A[ti] = sqrt(power_spectra[ti].GetY()[max_i]) / oversample_factor / 2; 
     }
 
 
@@ -665,14 +646,16 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
     fitter.doFit(ntraces, Nuse, x,y); 
 
+//    printf("power before:%f\n", power); 
     power = fitter.getPower(); 
+//    printf("power after:%f\n", power); 
 
     double ratio = 1. - power /r.powers[r.powers.size()-1]; 
     if (verbose) printf("Power Ratio: %f\n", ratio); 
 
     if(store && (ratio >= min_power_reduction || ntries == maxiter))
     {
-      spectra.push_back(new TGraph(fftlen,spectra_x, spectra_y)); 
+      spectra.push_back(new TGraph(spectrum_N,spectra_x, spectra_y)); 
       if (r.powers.size() > 1)
       {
         spectra[spectra.size()-1]->SetTitle(TString::Format("Spectrum after %lu iterations",r.powers.size()-1)); 
@@ -681,21 +664,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
       {
         spectra[spectra.size()-1]->SetTitle("Initial spectrum"); 
       }
-      for (int ti = 0; ti < ntraces; ti++) 
-      {
-        fft_phases[ti].push_back(new TGraph(fftlen, spectra_x, phase[ti])); 
-        if (r.powers.size() > 1)
-        {
-          fft_phases[ti][fft_phases[ti].size()-1]->SetTitle(TString::Format("Wf %d Phase after %lu iterations",ti,r.powers.size()-1)); 
-        }
-        else
-        {
-          fft_phases[ti][fft_phases[ti].size()-1]->SetTitle(TString::Format("Wf %d Initial Phase", ti)); 
-        }
-  
-        delete [] phase[ti]; 
 
-      }
       delete [] spectra_x; 
       delete [] spectra_y; 
     }
@@ -783,7 +752,7 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
 
  
   TCanvas canvas("slidecanvas","SlideCanvas",4000,3000); 
-  canvas.Divide(2,2); 
+  canvas.Divide(3,1); 
 
   TGraph g; 
   int niter = spectra.size(); 
@@ -793,7 +762,6 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
   if (gs.size() > 1) 
   {
     canvas.cd(2)->Divide(1,gs.size()); 
-    canvas.cd(4)->Divide(1,gs.size()); 
   }
 
   FILE * texfile = fopen(TString::Format("%s/%s.tex", outdir, fileprefix),"w"); 
@@ -829,18 +797,6 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
     spectra[i]->SetLineWidth(5); 
     spectra[i]->Draw("alp"); 
 
-    canvas.cd(4); 
-    int old_phases_width[gs.size()];
-    for (size_t j = 0; j < gs.size(); j++) 
-    {
-      if (gs.size() > 1) 
-      {
-        canvas.cd(4)->cd(j+1); 
-      }
-      old_phases_width[j] = fft_phases[j][i]->GetLineWidth(); 
-      fft_phases[j][i]->SetLineWidth(3); 
-      fft_phases[j][i]->Draw("alp"); 
-    }
 
     TString canvfile = TString::Format("%s/%s_%d.%s", outdir, fileprefix, i, format); 
     canvas.SaveAs(canvfile); 
@@ -849,7 +805,6 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
     for (size_t j = 0; j < gs.size(); j++) 
     {
       gs[j][i]->SetLineWidth(old_gs_width[j]); 
-      fft_phases[j][i]->SetLineWidth(old_phases_width[j]); 
     }
 
     fprintf(texfile, "\\begin{frame}\n"); 

@@ -1,8 +1,8 @@
 #ifndef _SINE_SUBTRACT_H
 #define _SINE_SUBTRACT_H
 
-/*
- * SineSubtract.h 
+/**
+ * \file SineSubtract.h 
  *
  *   Cosmin Deaconu <cozzyd@kicp.uchicago.edu> 
  *
@@ -18,9 +18,7 @@
  *
  * Algorithm is: 
  *
- *    -Rectify and interpolate input graph (using sample period of dt), window,
- *    take fft 
- *
+ *    -Rectify waveform and estimate power spectrum using lomb-scargle periodogram 
  *    -Find peak, fmax, in power spectrum by finding magnitude^2/(1+nfails) at
  *    least neighbor_factor^2 bigger than a neighboring magnitude^2/(1+nfails).
  *    (see below for meaning of nfails)
@@ -88,7 +86,6 @@
 
 #include "Minuit2/Minuit2Minimizer.h" 
 #include "FFTtools.h" 
-#include "FFTWindow.h" 
 #include "TObject.h"
 
 #include <vector>
@@ -192,8 +189,7 @@ namespace FFTtools
     {
 
       public: 
-        SineSubtract(int max_iter_without_reduction = 3, double min_power_reduction = 0.01, 
-                     const FFTWindowType * win = &HAMMING_WINDOW,  bool store = false); 
+        SineSubtract(int max_iter_without_reduction = 3, double min_power_reduction = 0.01, bool store = false); 
         virtual ~SineSubtract(); 
 
         /* Subtract CW from a single trace. will be interpolated to dt if dt > 0 for power spectrum. */ 
@@ -201,7 +197,11 @@ namespace FFTtools
         TGraph * subtractCW(const TGraph * g, double dt); 
 
         void subtractCW(int ng, TGraph ** g, double dt); 
-        void setFreqLimits(double min, double max) { fmin = min; fmax = max; } 
+        void unsetFreqLimits() { fmin.clear(); fmax.clear(); } 
+        void setFreqLimits(double min, double max) { fmin.clear(); fmin.push_back(min); fmax.clear(); fmax.push_back(max); } 
+        void setFreqLimits(int nbands, const double * min, const double * max) { fmin.clear(); fmax.clear(); for (int i = 0; i < nbands;i++) { fmin.push_back(min[i]); fmax.push_back(max[i]); }; } 
+        void setOversampleFactor(double of) {oversample_factor = of;}
+        void setHighFactor(double hf) {high_factor = hf;}
 
         void setVerbose(bool v) {verbose = v; fitter.setVerbose(v); }
 
@@ -243,18 +243,19 @@ namespace FFTtools
       private: 
         int maxiter; 
         int tmin, tmax; 
-        double fmin, fmax; 
+        std::vector<double> fmin; 
+        std::vector<double> fmax; 
         double min_power_reduction; 
         std::vector<std::vector<TGraph*> > gs; 
         std::vector<TGraph*> spectra; 
-        std::vector<std::vector<TGraph*> > fft_phases; 
         SineSubtractResult r; 
         SineFitter fitter; 
         bool store; 
         double neighbor_factor2; 
+        double oversample_factor ; 
+        double high_factor; 
 
         bool verbose; 
-        const FFTWindowType * w; 
         void reset(); 
 
     }; 

@@ -1,8 +1,10 @@
 {
+  FFTtools::loadWisdom("wisdom.dat"); 
+
   bool reinterpolate = true;  
   const int N = 256;  //nsamples
   const int ntraces = 1; 
-  double dt = 0.39; // mean sample period
+  double dt = 1./2.6; // mean sample period
   double jitter = 0.1; //sample timing jitter in nanoseconds
   double rms = 3; //noise rms 
   const int nfreq = 10; //number of CW
@@ -13,7 +15,7 @@
   double max_amp = 3.5; //max CW amplitude 
   double min_amp = 6.5; //min CW amplitude 
   int max_failed_iterations = 0; //settings for sinesubtract 
-  double min_power_ratio = 0.01; 
+  double min_power_ratio = 0.05; 
 
 
   bool use_freq_limits = true; 
@@ -65,7 +67,7 @@
   }
 
 
-  FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,&FFTtools::HAMMING_WINDOW, true); 
+  FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,true); 
   sub->setVerbose(verbose); 
 
   if (use_freq_limits)
@@ -132,4 +134,5 @@
       }
     }
   }
+  FFTtools::saveWisdom("wisdom.dat"); 
 }
