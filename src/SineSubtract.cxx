@@ -520,7 +520,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
   int ntries = 0; 
 
-  TGraph power_spectra[ntraces]; 
+  std::vector<TGraph> power_spectra(ntraces); 
 
 
   r.phases.insert(r.phases.end(),ntraces, std::vector<double>()); 
