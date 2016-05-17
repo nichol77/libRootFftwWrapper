@@ -102,7 +102,18 @@ namespace FFTtools
   static const KaiserWindow KAISER_WINDOW; 
 
 
+  class GaussianWindow : public FFTWindowType
+  {
+    public:
+      GaussianWindow(double alpha= 2.5) : alpha(alpha) {} 
+      virtual double value(double i, size_t N) const; 
+    private: 
+      double alpha;
 
+  }; 
+
+
+  static const GaussianWindow GAUSSIAN_WINDOW; 
 
 
 }

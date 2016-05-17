@@ -84,4 +84,11 @@ double FFTtools::KaiserWindow::value(double i, size_t N) const
 }
 
 
+double FFTtools::GaussianWindow::value(double i, size_t N) const
+{
+  int n = i + (N-1)/2; 
+  return TMath::Exp(-2*TMath::Power(alpha*n/(N-1),2));
+}
+
+
 
