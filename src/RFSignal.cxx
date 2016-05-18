@@ -316,11 +316,11 @@ void RFSignal::reExtractFromComplex()
 //   std::cout << "REEXTRACT:\n";
   //  std::cout << "Here also\n";
   fGotFreqs=1;
-  double deltaF=fFreqs[1]-fFreqs[0];
-  double deltaT=1./(deltaF*fNpoints);
+//  double deltaF=fFreqs[1]-fFreqs[0];
+//  double deltaT=1./(deltaF*fNpoints);
 //   if(fMvNs)
 //     deltaT*=1e3;
-  double temp=0;
+//  double temp=0;
 //   std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
 //     	    << "\n";
 //   std::cout << "RFSignal: dT " << deltaT << " dF " << deltaF
