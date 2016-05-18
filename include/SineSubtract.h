@@ -137,7 +137,8 @@ namespace FFTtools
         {
           public:
 
-            SineFitFn() {ns = 0;  nt = 0; x =0; y =0; }
+            SineFitFn(); 
+            virtual ~SineFitFn(); 
             void setXY(int ntraces, int nsamples, const double **xx, const double **yy); 
             virtual double DoEval(const double *p) const; 
             virtual double DoDerivative(const double *p, unsigned int coord) const; 
@@ -151,6 +152,10 @@ namespace FFTtools
 #ifdef SINE_SUBTRACT_USE_FLOATS
             float **x; 
             float **y; 
+            const double **xp, **yp; 
+#elif defined(SINE_SUBTRACT_FORCE_ALIGNED)
+            double **x; 
+            double **y; 
             const double **xp, **yp; 
 #else
             const double ** x; 
@@ -197,11 +202,10 @@ namespace FFTtools
         TGraph * subtractCW(const TGraph * g, double dt); 
 
         void subtractCW(int ng, TGraph ** g, double dt); 
-        void unsetFreqLimits() { fmin.clear(); fmax.clear(); } 
-        void setFreqLimits(double min, double max) { fmin.clear(); fmin.push_back(min); fmax.clear(); fmax.push_back(max); } 
-        void setFreqLimits(int nbands, const double * min, const double * max) { fmin.clear(); fmax.clear(); for (int i = 0; i < nbands;i++) { fmin.push_back(min[i]); fmax.push_back(max[i]); }; } 
+        void unsetFreqLimits() { fmin.clear(); fmax.clear(); high_factor = 1;  } 
+        void setFreqLimits(double min, double max) { fmin.clear(); fmin.push_back(min); fmax.clear(); fmax.push_back(max); high_factor = max; } 
+        void setFreqLimits(int nbands, const double * min, const double * max) { fmin.clear(); fmax.clear(); high_factor = 0; for (int i = 0; i < nbands;i++) { fmin.push_back(min[i]); fmax.push_back(max[i]); high_factor = std::max(high_factor, max[i]); }; } 
         void setOversampleFactor(double of) {oversample_factor = of;}
-        void setHighFactor(double hf) {high_factor = hf;}
 
         void setVerbose(bool v) {verbose = v; fitter.setVerbose(v); }
 
@@ -249,7 +253,6 @@ namespace FFTtools
         std::vector<std::vector<TGraph*> > gs; 
         std::vector<TGraph*> spectra; 
         SineSubtractResult r; 
-        SineFitter fitter; 
         bool store; 
         double neighbor_factor2; 
         double oversample_factor ; 
@@ -258,6 +261,7 @@ namespace FFTtools
         bool verbose; 
         void reset(); 
 
+        SineFitter fitter; 
     }; 
 
 }

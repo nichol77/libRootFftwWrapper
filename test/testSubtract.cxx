@@ -1,0 +1,152 @@
+#include "FFTtools.h" 
+#include "SineSubtract.h"
+#include "TCanvas.h" 
+#include "AnalyticSignal.h"
+#include "TRandom.h" 
+
+int main (int nargs, char ** args) 
+{
+  FFTtools::loadWisdom("wisdom.dat"); 
+  bool reinterpolate = true;  
+  const int N = 256;  //nsamples
+  const int ntraces = 1; 
+  double dt = 1./2.6; // mean sample period
+  double jitter = 0.1; //sample timing jitter in nanoseconds
+  double rms = 3; //noise rms 
+  const int nfreq = 20; //number of CW
+  double min_freq = 0.20; 
+  double max_freq = 0.5; 
+  double min_noise_freq = 0.2;
+  double max_noise_freq = 1.2; 
+  double max_amp = 3.5; //max CW amplitude 
+  double min_amp = 6.5; //min CW amplitude 
+  int max_failed_iterations = 2; //settings for sinesubtract 
+  double min_power_ratio = 0.05; 
+
+
+  bool use_freq_limits = false; 
+//  bool enable_trace_limits = false; 
+//  int trace_min = 0; 
+//  int trace_max = 450; 
+
+
+  bool verbose = false; 
+  gRandom->SetSeed(11); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
+
+  //end config
+
+
+
+  double f[nfreq]; 
+  double A[ntraces][nfreq]; 
+  double ph[ntraces][nfreq]; 
+  double fnyq = 1./(2*dt); 
+
+  for (int i = 0; i < nfreq; i++) 
+  {
+    f[i] = gRandom->Uniform( min_freq, max_freq); 
+    for (int j = 0; j < ntraces; j++)
+    {
+      A[j][i] = gRandom->Uniform(min_amp,max_amp); 
+      ph[j][i] = gRandom->Uniform(-TMath::Pi(),TMath::Pi()); 
+  //    printf("True CW %d: f = %f, A = %f, ph = %f\n", i, f[i], A[i], ph[i]); 
+    }
+  }
+
+  TGraph * g[ntraces]; 
+
+  for (int ti = 0; ti < ntraces; ti++)
+  {
+
+    FFTtools::ThermalNoise noise(N*10, min_noise_freq/fnyq, max_noise_freq/fnyq, rms, 2); 
+    g[ti] = reinterpolate ? noise.makeGaussianDtWf(N, dt, jitter) : noise.makeEvenWf(N,dt); 
+    for (int i = 0; i < N; i++) 
+    {
+      for (int j = 0; j < nfreq; j++) 
+      {
+         g[ti]->GetY()[i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* (g[ti]->GetX()[i] + ph[ti][j])); 
+      }
+    }
+
+  }
+  bool store = nargs> 1; 
+
+
+  FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,store); 
+  sub->setVerbose(verbose); 
+
+  if (use_freq_limits)
+  {
+    sub->setFreqLimits(min_freq, max_freq); 
+  }
+
+  sub->subtractCW(ntraces, g, reinterpolate ?  dt : 0); 
+
+  if (store) 
+  {
+    TCanvas cpower("cpower","Power",2000,2000), cspectra("cspectra","Spectra",2000,2000); 
+    sub->makePlots(&cpower,&cspectra); 
+
+    if (nargs > 1) 
+      cpower.SaveAs(args[1]); 
+    if (nargs > 2) 
+      cspectra.SaveAs(args[2]); 
+  }
+
+  for (int i = 0; i < nfreq; i++) 
+  {
+    double trueA[ntraces]; 
+    double truePh[ntraces]; 
+    for (int j = 0; j < ntraces; j++) 
+    {
+      trueA[j] = A[j][i]; 
+      truePh[j] = ph[j][i]; 
+    }
+
+
+    if (ntraces == 1) 
+    {
+      printf("True CW %d: f = %f, A = %f, ph = %f\n", i, f[i], trueA[0],truePh[0]); 
+    }
+    else
+    {
+
+      printf("True CW %d: f = %f\n", i, f[i]); 
+      for (int j = 0; j < ntraces; j++) 
+      {
+        printf("\t(trace %d) A= %f , ph = %f\n", j+1, trueA[j], truePh[j]); 
+      }
+    }
+  }
+
+  for (int i = 0; i < sub->getNSines(); i++) 
+  {
+    double recoA[ntraces]; 
+    double recoPh[ntraces]; 
+    double recoAErr[ntraces]; 
+    double recoPhErr[ntraces]; 
+
+    for (int j = 0; j < ntraces; j++) 
+    {
+      recoA[j] = sub->getAmps(j)[i]; 
+      recoAErr[j] = sub->getAmpErrs(j)[i]; 
+      recoPh[j] = sub->getPhases(j)[i]; 
+      recoPhErr[j] = sub->getPhaseErrs(j)[i]; 
+    }
+
+    
+    if (ntraces == 1) 
+    {
+      printf("Reconstructed CW %d: f =%f+/-%f, A= %f+/-%f, ph = %f+/-%f\n", i, sub->getFreqs()[i], sub->getFreqErrs()[i], recoA[0], recoAErr[0], recoPh[0], recoPhErr[0]); 
+    }
+    else
+    {
+      printf("Reconstructed CW %d: f =%f+/-%f\n", i, sub->getFreqs()[i], sub->getFreqErrs()[i]); 
+      for (int j = 0; j < ntraces; j++)
+      {
+        printf("\t(trace %d) A= %f+/-%f, ph = %f+/-%f\n", j+1, recoA[j], recoAErr[j], recoPh[j], recoPhErr[j]); 
+      }
+    }
+  }
+  FFTtools::saveWisdom("wisdom.dat"); 
+}

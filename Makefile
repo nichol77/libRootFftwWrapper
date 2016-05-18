@@ -52,7 +52,7 @@ CLASS_HEADERS =   $(addprefix $(INCLUDEDIR)/, FFTWComplex.h FFTtools.h \
 																							RFInterpolate.h DigitalFilter.h\
 																							Averager.h AnalyticSignal.h CWT.h) 
 
-BINARIES = $(addprefix $(BINDIR)/, testFFTtools $(OPTIONAL_BINARIES))
+BINARIES = $(addprefix $(BINDIR)/, testFFTtools testSubtract $(OPTIONAL_BINARIES))
 
 
 
@@ -86,6 +86,7 @@ $(VECTORDIR):
 	mkdir -p $(VECTORDIR) 
 	curl http://www.agner.org/optimize/vectorclass.zip > $(VECTORDIR)/vectorclass.zip 
 	unzip $(VECTORDIR)/vectorclass.zip -d $(VECTORDIR) 
+	unzip $(VECTORDIR)/special.zip -d $(VECTORDIR) 
 
 
 $(BUILDDIR)/fftDict.C: $(CLASS_HEADERS) LinkDef.h | $(BUILDDIR) 

@@ -2,6 +2,7 @@
 #include "TGraph.h" 
 #include "TCanvas.h" 
 #include "TStyle.h" 
+#include <malloc.h>
 
 #ifdef SINE_SUBTRACT_PROFILE
 #include "TStopwatch.h"
@@ -13,6 +14,11 @@
 #include "TF1.h" 
 #include "TH2.h"
 
+#ifdef SINE_SUBTRACT_USE_FLOATS
+#define VEC_T float
+#else
+#define VEC_T double
+#endif
 
 #ifdef ENABLE_VECTORIZE
 #include "vectormath_trig.h" 
@@ -22,11 +28,9 @@
 #ifdef SINE_SUBTRACT_USE_FLOATS
 #define VEC Vec8f 
 #define VEC_N 8
-#define VEC_T float
 #else
 #define VEC Vec4d 
 #define VEC_N 4 
-#define VEC_T double 
 #endif
 
 
@@ -72,12 +76,25 @@ void FFTtools::SineFitter::setGuess(double fg, int ntrace, const double * phg, c
 ROOT::Math::IBaseFunctionMultiDim* FFTtools::SineFitter::SineFitFn::Clone() const
 {
   SineFitFn * fn = new SineFitFn; 
-#ifdef SINE_SUBTRACT_USE_FLOATS
+#if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
   fn->setXY(nt,ns,xp,yp); //incredibly inefficient, but quick kludge for now 
 #else
   fn->setXY(nt,ns,x,y); 
 #endif
   return fn; 
+}
+
+FFTtools::SineFitter::SineFitFn::SineFitFn() 
+{
+  ns = 0; 
+  nt = 0; 
+  x= 0; 
+  y = 0; 
+#if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
+  xp = 0; 
+  yp = 0; 
+#endif
+
 }
 
 double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned int coord) const
@@ -96,24 +113,35 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 
 #ifdef ENABLE_VECTORIZE 
 
-    VEC vecx; 
-    VEC vecy; 
+    VEC vecx(0); 
+    VEC vecy(0); 
     VEC vec_ph(ph); 
     VEC vec_w(w); 
     VEC vec_A(A); 
+    VEC vec_cos(0); 
+    VEC dYdp(0); 
     int leftover = ns % VEC_N;
     int nit = ns/VEC_N + (leftover ? 1 : 0); 
 
+#ifdef SINE_SUBTRACT_FORCE_ALIGNED
+    double * xx = (double*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
+    double * yy = (double*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+#elif defined(SINE_SUBTRACT_USE_FLOATS)
+    float * xx = (float*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
+    float * yy = (float*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+#else
+    double * xx = (double*) x[ti]; 
+    double * yy = (double*) y[ti]; 
+#endif
+    
+
     for (int i = 0; i < nit; i++)
     {
-      vecx.load(x[ti]+VEC_N*i); 
-      vecy.load(y[ti]+VEC_N*i); 
+      vecx.load(xx+VEC_N*i); 
+      vecy.load(yy+VEC_N*i); 
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
-      VEC vec_cos; 
       VEC vec_sin = sincos(&vec_cos, vec_ang); 
       VEC vec_Y = mul_sub(vec_sin, vec_A, vecy); 
-
-      VEC dYdp; 
 
       switch (type) 
       {
@@ -128,9 +156,9 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
           break; 
       }
 #ifndef SINE_SUBTRACT_DONT_HORIZONTAL_ADD
-      if (i == ns-1 && leftover) //hopefully this gets unrolled? 
+      if (i == nit-1 && leftover) //hopefully this gets unrolled? 
       {
-        vec_Y.cutoff(VEC_N-leftover); 
+        vec_Y.cutoff(leftover); 
       }
 
       deriv +=horizontal_add( vec_Y * dYdp)/ns; 
@@ -186,30 +214,41 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 {
 
-  double w = 2 *TMath::Pi() * p[0]; 
-
-  double power = 0; 
+  VEC_T w = 2 *TMath::Pi() * p[0]; 
+  VEC_T power = 0; 
 
 
   for (int ti = 0; ti < nt; ti++)
   {
-    double ph = normalize_angle(p[1+2*ti]); 
-    double A = p[2+2*ti]; 
+    VEC_T ph = normalize_angle(p[1+2*ti]); 
+    VEC_T A = p[2+2*ti]; 
 
 #ifdef ENABLE_VECTORIZE 
-    VEC vecx; 
-    VEC vecy; 
+    VEC vecx(0); 
+    VEC vecy(0); 
     VEC vec_ph(ph); 
     VEC vec_w(w); 
     VEC vec_A(A); 
+
+#ifdef SINE_SUBTRACT_FORCE_ALIGNED
+    double * xx = (double*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
+    double * yy = (double*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+#elif defined(SINE_SUBTRACT_USE_FLOATS)
+    float * xx = (float*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
+    float * yy = (float*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+#else
+    double * xx = (double*) x[ti]; 
+    double * yy = (double*) y[ti]; 
+#endif
+
 
     int leftover = ns % VEC_N;
     int nit = ns/VEC_N + (leftover ? 1 : 0); 
 
     for (int i = 0; i < nit; i++)
     {
-      vecx.load(x[ti]+VEC_N*i); 
-      vecy.load(y[ti]+VEC_N*i); 
+      vecx.load(xx+VEC_N*i); 
+      vecy.load(yy+VEC_N*i); 
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
       VEC vec_sin = sin(vec_ang); 
       VEC vec_Y = mul_sub(vec_sin, vec_A, vecy); 
@@ -218,9 +257,8 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 #ifndef SINE_SUBTRACT_DONT_HORIZONTAL_ADD
       if (i == nit-1 && leftover) //hopefully this gets unrolled? 
       {
-        vec_Y2.cutoff(VEC_N-leftover); 
+        vec_Y2.cutoff(leftover); 
       }
-
 
       power += horizontal_add(vec_Y2)/ns; 
 #else 
@@ -229,13 +267,12 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
       {
         power += vec_Y2[j]/ns; 
       }
-
 #endif
     }
 #else
     for (int i = 0; i < ns; i++)
     {
-      double Y = A * sin(w*x[ti][i] + ph) -y[ti][i]; 
+      VEC_T Y = A * sin(w*x[ti][i] + ph) -y[ti][i]; 
       power += Y*Y/ns; 
     }
 #endif 
@@ -243,6 +280,18 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
   }
 //  printf("P(f=%f, ph=%f, A=%f) = %f\n", p[0], ph, A, power);  
   return power/nt;
+
+}
+
+FFTtools::SineFitter::SineFitFn::~SineFitFn()
+{
+
+#ifdef SINE_SUBTRACT_USE_FLOATS
+setXY(0,0,0,0); 
+#elif  SINE_SUBTRACT_FORCE_ALIGNED
+setXY(0,0,0,0); 
+#endif
+
 
 }
 
@@ -286,8 +335,10 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
   {
     for (int i = 0; i < ntraces; i++) 
     {
-      x[i] = (float*) realloc(x[i], nsamples * sizeof(float)); 
-      y[i] = (float*) realloc(y[i], nsamples * sizeof(float)); 
+      if (x[i]) free(x[i]); 
+      x[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(float)); 
+      if (y[i]) free(y[i]); 
+      y[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(float)); 
     }
   }
 
@@ -304,6 +355,59 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
   xp = xx; 
   yp = yy; 
   
+#elif SINE_SUBTRACT_FORCE_ALIGNED
+  if (nt!=ntraces)
+  {
+
+    double ** newx = (double**) malloc(ntraces * sizeof(float*)); 
+    double ** newy = (double**) malloc(ntraces * sizeof(float*)); 
+    for (int i = 0; i < nt; i++) 
+    {
+      if (i < ntraces)
+      {
+        newx[i] = x[i]; 
+        newy[i] = y[i]; 
+      }
+      else
+      {
+        free(x[i]); 
+        free(y[i]); 
+      }
+    }
+
+    for (int i = nt; i < ntraces; i++) 
+    {
+      newx[i] = 0; 
+      newy[i] = 0; 
+    }
+
+
+    free(x); 
+    free(y); 
+    x = newx; 
+    y = newy; 
+  }
+
+  if (ns!=nsamples)
+  {
+    for (int i = 0; i < ntraces; i++) 
+    {
+      free(x[i]); 
+      x[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(double)); 
+      y[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(double)); 
+    }
+  }
+
+
+  for (int j = 0; j < ntraces; j++) 
+  {
+    memcpy(x[j], xx[j], nsamples * sizeof(double)); 
+    memcpy(y[j], yy[j], nsamples * sizeof(double)); 
+  }
+
+  xp = xx; 
+  yp = yy; 
+ 
 #else
   x = xx; 
   y = yy;
@@ -311,6 +415,7 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
   nt = ntraces; 
   ns = nsamples;
 }
+
 
 static char * arrString(int n, const  double * arr, int sigfigs =8 ) 
 {
@@ -414,6 +519,10 @@ FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bo
   verbose = false; 
   tmin = 0; 
   tmax = 0; 
+
+#ifdef ENABLE_VECTORIZE
+  no_subnormals();  // Unlikely to occur, but worth it if they do 
+#endif
 
   
 }
@@ -520,7 +629,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
   int ntries = 0; 
 
-  std::vector<TGraph> power_spectra(ntraces); 
+  TGraph* power_spectra[ntraces]; 
+  for (int i = 0; i < ntraces; i++) { power_spectra[i] = new TGraph(Nuse * oversample_factor * high_factor / 2); } 
 
 
   r.phases.insert(r.phases.end(),ntraces, std::vector<double>()); 
@@ -535,12 +645,10 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     nattempts++; 
     for (int ti = 0; ti  < ntraces; ti++)
     {
-      TGraph * gcropped = new TGraph(Nuse, g[ti]->GetX() + low, g[ti]->GetY() + low); 
-      FFTtools::lombScarglePeriodogram(gcropped, 4, 1, &power_spectra[ti]);
-      delete gcropped; 
+      FFTtools::lombScarglePeriodogram(Nuse, g[ti]->GetX() + low, g[ti]->GetY() + low, oversample_factor, high_factor, power_spectra[ti]);
     }
 
-    int spectrum_N = power_spectra[0].GetN(); 
+    int spectrum_N = power_spectra[0]->GetN(); 
 
     int max_i = -1; 
 
@@ -563,17 +671,17 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     {
       for (int i = 0; i < spectrum_N; i++)
       {
-        if (power_spectra[ti].GetN() > i)
-          mag_sum[i] += power_spectra[ti].GetY()[i];
+        if (power_spectra[ti]->GetN() > i)
+          mag_sum[i] += power_spectra[ti]->GetY()[i];
       }
     }
 
 
-    double df = power_spectra[0].GetX()[1] - power_spectra[0].GetX()[0]; 
+    double df = power_spectra[0]->GetX()[1] - power_spectra[0]->GetX()[0]; 
 
     for (int i = 0; i < spectrum_N; i++)
     {
-      double freq =  power_spectra[0].GetX()[i]; 
+      double freq =  power_spectra[0]->GetX()[i]; 
 
       double adj_mag2 = mag_sum[i] / (1+failed_bins.count(i)); 
       double neigh_mag2_low = i == 0 ? DBL_MAX : mag_sum[i-1];; 
@@ -628,7 +736,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     for (int ti = 0; ti < ntraces; ti++)
     {
       max_ph[ti] = 0; 
-      max_A[ti] = sqrt(power_spectra[ti].GetY()[max_i]) / oversample_factor / 2; 
+      max_A[ti] = sqrt(power_spectra[ti]->GetY()[max_i]) / oversample_factor / 2; 
     }
 
 
@@ -719,6 +827,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     }
   }
 
+  for (int i = 0; i < ntraces; i++) { delete power_spectra[i]; }
 #ifdef SINE_SUBTRACT_PROFILE
   printf("Time for SineSubtract::subtractCW(): "); 
   sw.Print("u"); 
