@@ -729,6 +729,21 @@ namespace FFTtools
 
 
 
+   /* Compute Stokes parameters from hpol / vpol and their hilbert transforms 
+    * @param N number of samples
+    * @param hpol hpol waveform (evenly sampled)
+    * @param hpol_hat hilbert transform of hpol waveform (evenly sampled)
+    * @param vpol vpol waveform (evenly sampled)
+    * @param vpol_hat hilbert transform of vpol waveform (evenly sampled)
+    * @param I pointer to where Stokes I will be stored (or null to not store)
+    * @param Q pointer to where Stokes Q will be stored (or null to not store)
+    * @param U pointer to where Stokes U will be stored (or null to not store)
+    * @param V pointer to where Stokes V will be stored (or null to not store)
+    */ 
+
+   void stokesParameters(int N, const double * __restrict hpol, const double * __restrict hpol_hat, const double * __restrict vpol, const double * __restrict vpol_hat, 
+                         double * I = 0, double * Q = 0, double * U = 0, double * V = 0); 
+
 
 }
    
