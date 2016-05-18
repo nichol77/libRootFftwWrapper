@@ -314,10 +314,10 @@ static fftw_plan getPlan(int len, bool forward = true)
     //create plans
     std::pair<fftw_plan,fftw_plan> plans; 
 #ifdef FFTW_USE_PATIENT
-    plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_PATIENT);
+    plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_PATIENT | FFTW_PRESERVE_INPUT);
     plans.second = fftw_plan_dft_c2r_1d(len,mem_X, mem_x, FFTW_PATIENT); 
 #else
-    plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_MEASURE);
+    plans.first = fftw_plan_dft_r2c_1d(len,mem_x, mem_X, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
     plans.second = fftw_plan_dft_c2r_1d(len,mem_X, mem_x, FFTW_MEASURE); 
 #endif
     cached_plans[len] = plans; 
@@ -338,6 +338,56 @@ static fftw_plan getPlan(int len, bool forward = true)
   
 }
 
+
+void FFTtools::doFFT(int length, const double * in, FFTWComplex * out)
+{
+
+  fftw_plan plan;
+#ifdef FFTTOOLS_USE_OMP
+#pragma omp critical (fft_tools) 
+  {
+    plan = getPlan(length,true); 
+  }
+#else
+  plan = getPlan(length,true); 
+#endif
+
+  fftw_execute_dft_r2c(plan, (double*) in, (fftw_complex*) out);
+}
+
+void FFTtools::doInvFFTNoClobber(int length, const FFTWComplex * in, double * out)
+{
+  fftw_plan plan;
+#ifdef FFTTOOLS_USE_OMP
+#pragma omp critical (fft_tools) 
+  {
+    plan = getPlan(length,true); 
+  }
+#else
+  plan = getPlan(length,true); 
+#endif
+  fftw_complex new_in[length/2+1] __attribute__((aligned(32))); 
+  FFTWComplex * ain = (FFTWComplex*) __builtin_assume_aligned(in,32); 
+  memcpy(new_in, ain, (length/2+1) * sizeof(FFTWComplex)); 
+  fftw_execute_dft_c2r(plan,new_in, out);
+}
+
+
+void FFTtools::doInvFFTClobber(int length, FFTWComplex * in, double * out)
+{
+  fftw_plan plan;
+#ifdef FFTTOOLS_USE_OMP
+#pragma omp critical (fft_tools) 
+  {
+    plan = getPlan(length,true); 
+  }
+#else
+  plan = getPlan(length,true); 
+#endif
+
+
+  fftw_execute_dft_c2r(plan, (fftw_complex*) in, out);
+}
 
 
 FFTWComplex *FFTtools::doFFT(int length, double *theInput) {

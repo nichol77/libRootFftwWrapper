@@ -114,6 +114,22 @@ namespace FFTtools
   */
    FFTWComplex *doFFT(int length,double *theInput);    
 
+   
+   /** Version of doFFT don't require copying of memory. If these are not aligned properly (i.e. allocated with fftw_malloc, memalign or equivalent), bad things might happen. */ 
+   void doFFT(int length, const double * properly_aligned_input, FFTWComplex * properly_aligned_output); 
+
+   /** Version of doInvFFt don't require copying of memory. If these are not aligned properly (i.e. allocated with fftw_malloc, memalign or equivalent), bad things might happen. Note that the input may be clobbered in this case.*/ 
+   void doInvFFTClobber(int length, FFTWComplex * properly_aligned_input_that_will_likely_be_clobbered, double * properly_aligned_output); 
+
+   /** Version of doInvFFt that only requires copying of input. The input is
+    * copied to a properly-aligned temporary on the stack.  If the output is
+    * not  aligned properly (i.e. allocated with fftw_malloc, memalign or
+    * equivalent), bad things might happen. Things will probably be a bit
+    * faster if the input is aligned properly, as long as memcpy dispatches
+    * correctly. 
+    * */ 
+
+   void doInvFFTNoClobber(int length, const FFTWComplex * properly_aligned_input, double * properly_aligned_output); 
 
   //! Converts inputMag (linear units) to time domain by means of hilbert transform assuming R_signal = 1/sqrt(2) (R_mag - i R^_mag);
   /*!
@@ -687,11 +703,30 @@ namespace FFTtools
    int saveWisdom(const char * file); 
 
 
-   TGraph * welchPeriodogram(const TGraph * gin, int segment_size, double overlap_fraction = 0.5, const FFTWindowType * window = &RECTANGULAR_WINDOW , bool truncate_extra = true); 
+   /**
+    *  Make a welch periodogram of evenly sampled input. A Bartlett periodogram can be emulated using overlap_fraction = 0 and window = &RECTANGULAR_WINDOW
+    *
+    *  @param gin evenly sampled graph to estimate power spectrum of
+    *  @param segment_siz ethe number of samples in each segment
+    *  @param overlap_fraction the fraction of overlap for each segment. 0 is no overlap. 1 is non-sensical full overlap which will probably cause some calamity. 
+    *  @param window the window to use for each segment
+    *  @param truncate_extra If true, any partial segment is discarded. Otherwise, it will be zero-padded 
+    *  @param gout if non-zero, this TGraph will be used for output
+    *  @return the Welch Periodogram 
+    *
+    */ 
+   TGraph * welchPeriodogram(const TGraph * gin, int segment_size, double overlap_fraction = 0.5, const FFTWindowType * window = &GAUSSIAN_WINDOW , bool truncate_extra = true, TGraph * gout = 0); 
 
+
+
+   
    /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
    TGraph * lombScarglePeriodogram(const TGraph * g, double oversample_factor  = 4 , 
                        double high_factor = 2, TGraph * replaceme = 0)  ; 
+   TGraph * lombScarglePeriodogram(int N, const double * __restrict x, 
+                                   const double * __restrict y, double oversample_factor  = 4 , 
+                                   double high_factor = 2, TGraph * replaceme = 0)  ; 
+
 
 
 
