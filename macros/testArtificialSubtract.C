@@ -3,29 +3,29 @@
 
   bool reinterpolate = true;  
   const int N = 256;  //nsamples
-  const int ntraces = 1; 
+  const int ntraces = 3; 
   double dt = 1./2.6; // mean sample period
   double jitter = 0.1; //sample timing jitter in nanoseconds
   double rms = 3; //noise rms 
-  const int nfreq = 10; //number of CW
-  double min_freq = 0.24; 
-  double max_freq = 0.25; 
+  const int nfreq = 5; //number of CW
+  double min_freq = 0.20; 
+  double max_freq = 0.5; 
   double min_noise_freq = 0.2;
   double max_noise_freq = 1.2; 
-  double max_amp = 3.5; //max CW amplitude 
-  double min_amp = 6.5; //min CW amplitude 
-  int max_failed_iterations = 0; //settings for sinesubtract 
+  double min_amp = 3.5; //max CW amplitude 
+  double max_amp = 6.5; //min CW amplitude 
+  int max_failed_iterations = 5; //settings for sinesubtract 
   double min_power_ratio = 0.05; 
 
 
-  bool use_freq_limits = true; 
+  bool use_freq_limits = false; 
   bool enable_trace_limits = false; 
   int trace_min = 0; 
   int trace_max = 450; 
 
 
-  bool verbose = false; 
-  gRandom->SetSeed(0); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
+  bool verbose = true; 
+  gRandom->SetSeed(11); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
 
   //end config
 
@@ -39,16 +39,16 @@
   for (int i = 0; i < nfreq; i++) 
   {
     f[i] = gRandom->Uniform( min_freq, max_freq); 
+    double  amp = gRandom->Uniform(min_amp, max_amp); 
     for (int j = 0; j < ntraces; j++)
     {
-      A[j][i] = gRandom->Uniform(min_amp,max_amp); 
+      A[j][i] = amp * gRandom->Uniform(0.9,1.1); 
       ph[j][i] = gRandom->Uniform(-TMath::Pi(),TMath::Pi()); 
   //    printf("True CW %d: f = %f, A = %f, ph = %f\n", i, f[i], A[i], ph[i]); 
     }
   }
 
   TGraph * g[ntraces]; 
-  TGraph * gcopy[ntraces]; 
 
   for (int ti = 0; ti < ntraces; ti++)
   {
@@ -63,7 +63,6 @@
       }
     }
 
-    gcopy[ti] = new TGraph(*g[ti]); 
   }
 
 

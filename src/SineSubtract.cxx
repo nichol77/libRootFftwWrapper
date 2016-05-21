@@ -40,7 +40,6 @@ extern int gErrorIgnoreLevel; // who ordered that?
 
 
 
-
 static double normalize_angle(double phi)
 {
   return  phi - 2*TMath::Pi() * FFTtools::fast_floor((phi+ TMath::Pi()) / (2.*TMath::Pi())); 
@@ -59,7 +58,7 @@ FFTtools::SineFitter::~SineFitter()
 
 }
 
-void FFTtools::SineFitter::setGuess(double fg, int ntrace, const double * phg, const  double * ampg)
+void FFTtools::SineFitter::setGuess(double fg, int ntrace, const double * phg, double ampg)
 {
   freq = fg; 
   phase.clear(); 
@@ -68,16 +67,16 @@ void FFTtools::SineFitter::setGuess(double fg, int ntrace, const double * phg, c
   amp_err.clear(); 
 
   phase.insert(phase.end(), phg, phg + ntrace); 
-  amp.insert(amp.end(), ampg, ampg + ntrace); 
-  phase_err.insert(phase_err.end(), 3, 0); 
-  amp_err.insert(amp_err.end(), 3, 0); 
+  amp.insert(amp.end(), ntrace, ampg); 
+  phase_err.insert(phase_err.end(), ntrace, 0); 
+  amp_err.insert(amp_err.end(), ntrace, 0); 
 }
 
 ROOT::Math::IBaseFunctionMultiDim* FFTtools::SineFitter::SineFitFn::Clone() const
 {
   SineFitFn * fn = new SineFitFn; 
 #if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
-  fn->setXY(nt,ns,xp,yp); //incredibly inefficient, but quick kludge for now 
+  fn->setXY(nt,ns,xp,yp); //incredibly inefficient, but quick kludge for now. We're probalby never going to clone anyway. 
 #else
   fn->setXY(nt,ns,x,y); 
 #endif
@@ -110,6 +109,7 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
     if (type > 0 && (int(coord) - 1)/2 != ti) continue; 
     double ph = normalize_angle(p[1 + 2*ti]); 
     double A = p[2+2*ti]; 
+    if (wgt) A*=wgt[ti]; 
 
 #ifdef ENABLE_VECTORIZE 
 
@@ -137,8 +137,14 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 
     for (int i = 0; i < nit; i++)
     {
+#if defined(SINE_SUBTRACT_FORCE_ALIGNED) || defined(SINE_SUBTRACT_USE_FLOATS)
+      vecx.load_a(xx+VEC_N*i); 
+      vecy.load(yy+VEC_N*i); 
+#else
       vecx.load(xx+VEC_N*i); 
       vecy.load(yy+VEC_N*i); 
+#endif
+
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
       VEC vec_sin = sincos(&vec_cos, vec_ang); 
       VEC vec_Y = mul_sub(vec_sin, vec_A, vecy); 
@@ -165,8 +171,8 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 #else
 
       VEC ans = vec_Y * dYdp; 
-      VEC_T ans_v[VEC_N]; 
-      ans.store(ans_v); 
+      VEC_T ans_v[VEC_N] __attribute__((aligned(sizeof(VEC))); 
+      ans.store_a(ans_v); 
 
       int vecn = (i == nit-1 && leftover) ? leftover : VEC_N;
       for (int j = 0; j < vecn; j++) 
@@ -222,6 +228,7 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
   {
     VEC_T ph = normalize_angle(p[1+2*ti]); 
     VEC_T A = p[2+2*ti]; 
+    if (wgt) A*= wgt[ti]; 
 
 #ifdef ENABLE_VECTORIZE 
     VEC vecx(0); 
@@ -285,18 +292,14 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 
 FFTtools::SineFitter::SineFitFn::~SineFitFn()
 {
-
-#ifdef SINE_SUBTRACT_USE_FLOATS
-setXY(0,0,0,0); 
-#elif  SINE_SUBTRACT_FORCE_ALIGNED
+#if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
 setXY(0,0,0,0); 
 #endif
-
-
 }
 
-void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const double ** xx, const double ** yy) 
+void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const double ** xx, const double ** yy, const double * wset) 
 {
+  wgt = wset; 
 #ifdef SINE_SUBTRACT_USE_FLOATS
   // we have to convert everything to floats... 
   if (nt!=ntraces)
@@ -417,6 +420,7 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
 }
 
 
+//stupid function that converts an array to a string 
 static char * arrString(int n, const  double * arr, int sigfigs =8 ) 
 {
   int size = 2 + (n-1) + (sigfigs+5) * n + 2;
@@ -441,25 +445,24 @@ static char * arrString(int n, const  double * arr, int sigfigs =8 )
 
 
 
-void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, const double **y)
-{
-  f.setXY(ntraces,nsamples,x,y); 
 
-  if(verbose) 
+
+void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, const double **y, const double * w)
+{
+  f.setXY(ntraces,nsamples,x,y,w); 
 
   if (verbose) 
   {
-    char * Astr = arrString(ntraces,&amp[0]); 
     char * Phstr =arrString(ntraces,&phase[0]); 
-    printf("Guesses: f= %f, A=%s, ph=%s", freq, Astr, Phstr); 
-    delete [] Astr; 
+    printf("Guesses: f= %f, A=%f, ph=%s", freq, amp[0], Phstr); 
     delete [] Phstr; 
     double p[1 + 2*ntraces]; 
     p[0] = freq; 
+
     for (int i =0; i < ntraces; i++) 
     {
       p[1+2*i] = phase[i]; 
-      p[2+2*i] = amp[i]; 
+      p[2+2*i] = amp[0]; 
     }
     printf("Guess power is %f. Gradient is (", f.DoEval(p));
     for (int i = 0; i < 2 * ntraces+1; i++) 
@@ -476,13 +479,41 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
   double df = fnyq / nsamples; 
 
   min.SetFunction(f); 
-  min.SetLimitedVariable(0, "f",freq, df/10., freq-df, freq+df); 
+
+
+  if (limits.max_n_df_relative_to_guess)
+  {
+    min.SetLimitedVariable(0, "f",freq, df/10., freq-df * limits.max_n_df_relative_to_guess, freq+df * limits.max_n_df_relative_to_guess); 
+  }
+  else
+  {
+    min.SetVariable(0, "f",freq, df/10); 
+  }
+
+
+  double damp =0.1* amp[0]; 
 
 
   for (int i = 0; i < ntraces; i++) 
   {
-    min.SetVariable(1+2*i, TString::Format("phi%d",i).Data(),phase[i], TMath::Pi()/nsamples); 
-    min.SetLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[i], 1./sqrt(amp[i]), 0.25 * amp[i], 4 *amp[i]); 
+    min.SetVariable(1+2*i, TString::Format("phi%d",i).Data(),phase[i], TMath::Pi()/64); 
+
+    if (limits.maxA_relative_to_guess && limits.minA_relative_to_guess)
+    {
+       min.SetLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp, amp[0]*limits.minA_relative_to_guess, amp[0]*limits.maxA_relative_to_guess); 
+    }
+    else if (limits.maxA_relative_to_guess)
+    {
+       min.SetUpperLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp, amp[0]*limits.maxA_relative_to_guess); 
+    }
+    else if (limits.minA_relative_to_guess)
+    {
+       min.SetLowerLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp, amp[0]*limits.minA_relative_to_guess);
+    }
+    else
+    {
+       min.SetVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp); 
+    }
   }
 
 
@@ -504,7 +535,7 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
     phase[i] = normalize_angle(min.X()[1+2*i]); 
     amp[i] = min.X()[2+2*i]; 
     phase_err[i] = min.Errors()[1+2*i]; 
-    amp_err[i] = min.Errors()[2+2*i]; 
+    amp_err[i] =  min.Errors()[2+2*i]; 
   }
 }
 
@@ -513,7 +544,8 @@ FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bo
   : maxiter(maxiter), min_power_reduction(min_power_reduction), store(store)
 {
 
-  oversample_factor = 4; 
+  power_estimator = LOMBSCARGLE; 
+  oversample_factor = 2; 
   high_factor = 1; 
   neighbor_factor2 = 0.15; 
   verbose = false; 
@@ -521,7 +553,7 @@ FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bo
   tmax = 0; 
 
 #ifdef ENABLE_VECTORIZE
-  no_subnormals();  // Unlikely to occur, but worth it if they do 
+  no_subnormals();  // Unlikely to occur, but worth it if they do
 #endif
 
   
@@ -576,11 +608,12 @@ void FFTtools::SineSubtract::reset()
 TGraph * FFTtools::SineSubtract::subtractCW(const TGraph * g, double dt) 
 {
   TGraph * gcopy = new TGraph(g->GetN(), g->GetX(), g->GetY()); 
+  gcopy->SetTitle(TString::Format("%s (subtracted)", g->GetTitle())); 
   subtractCW(1,&gcopy,dt); 
   return gcopy; 
 }
 
-void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt) 
+void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, const double * w) 
 {
 
 
@@ -596,13 +629,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
   int high = tmax <= 0 || tmax > g[0]->GetN() ? g[0]->GetN() : tmax; 
 
 
-
   int Nuse = high - low; 
 
-  //zero mean
-
-
-
+  //zero mean and compute power at the same time. 
   double power = 0; 
   for (int ti = 0; ti < ntraces; ti++) 
   {
@@ -629,8 +658,15 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
   int ntries = 0; 
 
+  int spectrum_N = power_estimator == FFT ? Nuse/2 + 1 : Nuse * oversample_factor * high_factor / 2; 
+
   TGraph* power_spectra[ntraces]; 
-  for (int i = 0; i < ntraces; i++) { power_spectra[i] = new TGraph(Nuse * oversample_factor * high_factor / 2); } 
+  TGraph* fft_phases[ntraces]; // not all power estimation options use this
+  for (int i = 0; i < ntraces; i++) 
+  {
+    power_spectra[i] = new TGraph(spectrum_N);  
+    fft_phases[i] = 0; 
+  }
 
 
   r.phases.insert(r.phases.end(),ntraces, std::vector<double>()); 
@@ -645,10 +681,47 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     nattempts++; 
     for (int ti = 0; ti  < ntraces; ti++)
     {
-      FFTtools::lombScarglePeriodogram(Nuse, g[ti]->GetX() + low, g[ti]->GetY() + low, oversample_factor, high_factor, power_spectra[ti]);
+
+      if (power_estimator == LOMBSCARGLE)
+      {
+        FFTtools::lombScarglePeriodogram(Nuse, g[ti]->GetX() + low, g[ti]->GetY() + low, oversample_factor, high_factor, power_spectra[ti]);
+      }
+      else  //FFT 
+      {
+        double df = 1./(Nuse * dt); 
+        if (fft_phases[ti] == 0)
+        {
+          fft_phases[ti] = new TGraph(spectrum_N); 
+        }
+
+        TGraph * ig = g[ti]; 
+        if (dt > 0) // must interpolate
+        {
+          ig = FFTtools::getInterpolatedGraph(g[ti], dt); 
+          ig->Set(g[0]->GetN());  // ensure same length
+        }
+
+        FFTWComplex * the_fft = FFTtools::doFFT(Nuse, ig->GetY() + low); 
+
+        for (int i = 0; i < spectrum_N; i++)
+        {
+          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / Nuse; 
+          if (i > 0 && i <spectrum_N-1) power_spectra[ti]->GetY()[i] *=2; 
+          fft_phases[ti]->GetY()[i] = the_fft[i].getPhase(); 
+          power_spectra[ti]->GetX()[i] = df *i; 
+          fft_phases[ti]->GetX()[i] = df *i; 
+        }
+
+
+        delete [] the_fft; 
+
+        if (dt > 0)
+        {
+          delete ig; 
+        }
+      }
     }
 
-    int spectrum_N = power_spectra[0]->GetN(); 
 
     int max_i = -1; 
 
@@ -665,20 +738,20 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
       spectra_y  = new double[spectrum_N]; 
     }
 
-    //find lone peak magnitude of FFT 
+    //sum up all the spectra
     
     for (int ti = 0; ti < ntraces; ti++) 
     {
       for (int i = 0; i < spectrum_N; i++)
       {
-        if (power_spectra[ti]->GetN() > i)
-          mag_sum[i] += power_spectra[ti]->GetY()[i];
+         mag_sum[i] += power_spectra[ti]->GetY()[i];
       }
     }
 
 
     double df = power_spectra[0]->GetX()[1] - power_spectra[0]->GetX()[0]; 
 
+    // find the maximum! 
     for (int i = 0; i < spectrum_N; i++)
     {
       double freq =  power_spectra[0]->GetX()[i]; 
@@ -695,7 +768,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
         spectra_y[i] = mag_sum[i]/ntraces; 
       }
 
-      //check if ok
+      //check if within allowed frequencies
       if (fmin.size())
       {
         bool ok = false; 
@@ -715,13 +788,13 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
       }
         
 
+      //we need a smarter peak finder here... 
       if ( max_i < 0 ||
          ( adj_mag2 > max_adj_mag2 && 
            mag_sum[i] * neighbor_factor2 > TMath::Min(neigh_mag2_low, neigh_mag2_high)
            )
          )
       {
-
         
         max_i = i; 
         max_adj_mag2 =adj_mag2; 
@@ -730,18 +803,26 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     }
 
 
-    double max_ph[ntraces]; 
-    double max_A[ntraces]; 
+    double guess_ph[ntraces]; 
+    double guess_A = 0; 
 
     for (int ti = 0; ti < ntraces; ti++)
     {
-      max_ph[ti] = 0; 
-      max_A[ti] = sqrt(power_spectra[ti]->GetY()[max_i]) / oversample_factor / 2; 
+      guess_ph[ti] = fft_phases[ti] ? fft_phases[ti]->GetY()[max_i] : 0; 
+
+      if (power_estimator == LOMBSCARGLE)
+      {
+        guess_A += sqrt(power_spectra[ti]->GetY()[max_i])  / 2 / ntraces;
+      }
+      else
+      {
+        guess_A += sqrt(power_spectra[ti]->GetY()[max_i]) / 2 / ntraces; 
+      }
     }
 
 
 
-    fitter.setGuess(max_f, ntraces, max_ph, max_A); 
+    fitter.setGuess(max_f, ntraces, guess_ph, guess_A); 
 
     const double * x[ntraces];
     const double * y[ntraces];
@@ -752,7 +833,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
       y[i] = g[i]->GetY()+low; 
     }
 
-    fitter.doFit(ntraces, Nuse, x,y); 
+    fitter.doFit(ntraces, Nuse, x,y,w); 
 
 //    printf("power before:%f\n", power); 
     power = fitter.getPower(); 
@@ -804,9 +885,10 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
 
     for (int ti = 0; ti < ntraces; ti++) 
     {
+      double A = w ? w[ti] * fitter.getAmp()[ti] : fitter.getAmp()[ti]; 
       for (int i = 0; i < g[ti]->GetN(); i++) 
       {
-        g[ti]->GetY()[i] -= fitter.getAmp()[ti] * sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
+        g[ti]->GetY()[i] -= A* sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
       }
 
       if (store) 
@@ -827,7 +909,11 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt)
     }
   }
 
-  for (int i = 0; i < ntraces; i++) { delete power_spectra[i]; }
+  for (int i = 0; i < ntraces; i++) 
+  { 
+    delete power_spectra[i];
+    if (fft_phases[i]) delete fft_phases[i]; 
+  }
 #ifdef SINE_SUBTRACT_PROFILE
   printf("Time for SineSubtract::subtractCW(): "); 
   sw.Print("u"); 
