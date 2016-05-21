@@ -371,6 +371,13 @@ void FFTtools::doInvFFTNoClobber(int length, const FFTWComplex * in, double * ou
   FFTWComplex * ain = (FFTWComplex*) __builtin_assume_aligned(in,32); 
   memcpy(new_in, ain, (length/2+1) * sizeof(FFTWComplex)); 
   fftw_execute_dft_c2r(plan,new_in, out);
+
+  double * aout = (double*) __builtin_assume_aligned(out,32); 
+
+  for (int i = 0; i < length; i++) 
+  {
+    aout[i] /= length; 
+  }
 }
 
 
@@ -388,6 +395,12 @@ void FFTtools::doInvFFTClobber(int length, FFTWComplex * in, double * out)
 
 
   fftw_execute_dft_c2r(plan, (fftw_complex*) in, out);
+
+  double * aout = (double*) __builtin_assume_aligned(out,32); 
+  for (int i = 0; i < length; i++) 
+  {
+    aout[i] /= length; 
+  }
 }
 
 
@@ -2361,6 +2374,7 @@ TGraph *FFTtools::interpolateCorrelateAndAverage(Double_t deltaTInt,Int_t numGra
 
 }
 
+//___________________________________________//
 TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 {
   //Assume they are all at same sampling rate
@@ -2442,6 +2456,7 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 
 
 
+//___________________________________________//
 double FFTtools::sinc(double x, double eps) 
 {
   if (fabs(x)<=eps)
@@ -2459,6 +2474,7 @@ double FFTtools::sinc(double x, double eps)
 
 
 
+//___________________________________________//
 void FFTtools::rotate(TGraph *g, int rot) 
 {
   rot *=-1; //because of way trigger cell is defined 
@@ -2472,6 +2488,7 @@ void FFTtools::rotate(TGraph *g, int rot)
 }
 
 
+//___________________________________________//
 double * FFTtools::FFTCorrelation(int length, const FFTWComplex * A, const FFTWComplex * B, FFTWComplex * work, int min_i, int max_i, int order)
 {
 
@@ -2542,12 +2559,14 @@ double * FFTtools::FFTCorrelation(int length, const FFTWComplex * A, const FFTWC
 }
 
 
+//___________________________________________//
 void FFTtools::applyWindow(TGraph *g, const FFTWindowType* win)
 {
   win->apply(g->GetN(), g->GetY()); 
 }
 
 
+//___________________________________________//
 void FFTtools::inPlaceShift(int N, double *x)
 {
 
@@ -2560,6 +2579,7 @@ void FFTtools::inPlaceShift(int N, double *x)
 }
 
 
+//___________________________________________//
 double FFTtools::getDt(const TGraph * g, int realN) 
 {
 
@@ -2570,6 +2590,7 @@ double FFTtools::getDt(const TGraph * g, int realN)
 }
 
 
+//___________________________________________//
 void FFTtools::polySubtract(TGraph *g, int order) 
 {
   TF1 f("polysub",TString::Format("pol%d",order)); 
@@ -2581,6 +2602,7 @@ void FFTtools::polySubtract(TGraph *g, int order)
 }
 
 
+//___________________________________________//
 double * FFTtools::directConvolve(int N, const double * x, int M, const double *h,  double *y, int delay, DirectConvolveEdgeBehavior edge) 
 {
 
@@ -2615,12 +2637,14 @@ double * FFTtools::directConvolve(int N, const double * x, int M, const double *
 }
 
 
+//___________________________________________//
 double FFTtools::randomRayleigh(double sigma, TRandom * rng)
 {
   double u = rng ? rng->Uniform(0,1) : gRandom->Uniform(0,1); 
   return  sigma * sqrt(-2*log(u)); 
 }
 
+//___________________________________________//
 template<typename T> 
 static void unwrap(size_t N, T * vals, T period) 
 {
@@ -2639,6 +2663,8 @@ static void unwrap(size_t N, T * vals, T period)
     vals[i] += adjust; 
   }
 }
+
+//___________________________________________//
 template <typename T> 
 static void wrap(size_t N, T * vals, T period, T center) 
 {
@@ -2650,6 +2676,7 @@ static void wrap(size_t N, T * vals, T period, T center)
   }
 }
 
+//___________________________________________//
 template <typename T> 
 static void wrap(size_t N, T * vals, T period) 
 {
@@ -2657,27 +2684,32 @@ static void wrap(size_t N, T * vals, T period)
 
 }
 
+//___________________________________________//
 void FFTtools::wrap(size_t N, float * vals, float period) 
 {
   ::wrap<float>(N, vals, period); 
 }
 
+//___________________________________________//
 void FFTtools::unwrap(size_t N, float * vals, float period) 
 {
   ::unwrap<float>(N, vals, period); 
 }
 
+//___________________________________________//
 void FFTtools::wrap(size_t N, double * vals, double period) 
 {
   ::wrap<double>(N, vals, period); 
 }
 
+//___________________________________________//
 void FFTtools::unwrap(size_t N, double * vals, double period) 
 {
   ::unwrap<double>(N, vals, period); 
 }
 
 
+//___________________________________________//
 void FFTtools::wrap(size_t N, float * vals, float period, float center) 
 {
   ::wrap<float>(N, vals, period, center); 
@@ -2685,6 +2717,7 @@ void FFTtools::wrap(size_t N, float * vals, float period, float center)
 
 
 
+//___________________________________________//
 void FFTtools::wrap(size_t N, double * vals, double period, double center) 
 {
   ::wrap<double>(N, vals, period, center); 
@@ -2693,6 +2726,7 @@ void FFTtools::wrap(size_t N, double * vals, double period, double center)
 
 
 
+//___________________________________________//
 double FFTtools::evalEvenGraph(const TGraph * g, double t)
 {
   double t0 = g->GetX()[0]; 
@@ -2716,16 +2750,21 @@ double FFTtools::evalEvenGraph(const TGraph * g, double t)
 
 
 
+//___________________________________________//
 int FFTtools::saveWisdom(const char * file)
 {
   return fftw_export_wisdom_to_filename(file); 
 }
 
+//___________________________________________//
 int FFTtools::loadWisdom(const char * file)
 {
 
   return fftw_import_wisdom_from_filename(file); 
 }
+
+
+//___________________________________________//
 
 #ifdef ENABLE_VECTORIZE
 #include "vectorclass.h"
