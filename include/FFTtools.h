@@ -721,9 +721,9 @@ namespace FFTtools
 
    
    /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
-   TGraph * lombScarglePeriodogram(const TGraph * g, double oversample_factor  = 4 , 
+   TGraph * lombScarglePeriodogram(const TGraph * g, double dt = 0, double oversample_factor  = 4 , 
                        double high_factor = 2, TGraph * replaceme = 0)  ; 
-   TGraph * lombScarglePeriodogram(int N, const double * __restrict x, 
+   TGraph * lombScarglePeriodogram(int N, double dt, const double * __restrict x, 
                                    const double * __restrict y, double oversample_factor  = 4 , 
                                    double high_factor = 2, TGraph * replaceme = 0)  ; 
 

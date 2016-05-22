@@ -4,11 +4,22 @@
 
 #ifdef ENABLE_VECTORIZE
 #include "vectormath_trig.h" 
+#ifdef __AVX__
 #define VEC Vec4d
 #define VEC_T double 
 #define VEC_N 4 
-#define GATHER gather4d 
+#define GATHER_REAL gather4d<0,2,4,6>
+#define GATHER_IM gather4d<1,3,5,7>
 static VEC INDEX (0,1,2,3);
+#else
+#define VEC Vec2d
+#define VEC_T double 
+#define VEC_N 2 
+#define GATHER_REAL gather2d<0,2>
+#define GATHER_IM gather2d<1,3>
+static VEC INDEX (0,1);
+#endif
+
 #endif
 
 /* Each point gets moved to 4 nearby evenly-spaced points */ 
@@ -28,15 +39,13 @@ static int factorial_table[] =
     362880,
     3628800,
     39916800,
-    479001600,
+    479001600
   };
 
 /* lagrange interpolation.. I think. based on NR code*/ 
 void extirpolate(double y, int n, double *yys, double x)
 {
-
   double * ys = (double*) __builtin_assume_aligned(yys, 32); 
-
   int ix = int(x); 
 
   // if it exactly equals a value, just set it 
@@ -68,7 +77,7 @@ void extirpolate(double y, int n, double *yys, double x)
 
 /* delegate so that can use optimization attributes */ 
 
-static TGraph * _lombScarglePeriodogram(int n, const double * __restrict  x, const double * __restrict y, double oversample_factor  = 4 , 
+static TGraph * _lombScarglePeriodogram(int n,  double dt, const double * __restrict  x, const double * __restrict y, double oversample_factor  = 4 , 
                        double high_factor = 2, TGraph * replaceme = 0) 
 #ifdef __clang__ 
    /* For OS X */
@@ -81,7 +90,7 @@ static TGraph * _lombScarglePeriodogram(int n, const double * __restrict  x, con
   __attribute((__optimize__("fast-math","tree-vectorize"))); /* enable associativity and other things that help autovectorize */ 
 #endif
 
-TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const double * __restrict y , double oversample_factor, double high_factor, TGraph * out) 
+TGraph * _lombScarglePeriodogram(int n, double dt,  const double *  __restrict x, const double * __restrict y , double oversample_factor, double high_factor,  TGraph * out) 
 {
 
 
@@ -119,7 +128,8 @@ TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const doub
   memset(wk1,0, sizeof(wk1)); 
   memset(wk2,0, sizeof(wk2)); 
   
-  double range = x[n-1] - x[0]; 
+  dt = dt ? dt : (x[n-1] - x[0]) / n;
+  double range = n * dt; 
 
 
   double scale_factor = 2 * nfreq / oversample_factor / range; 
@@ -139,6 +149,7 @@ TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const doub
   FFTtools::doFFT(nwork, wk2,fft2); 
 
   double df = 1./(range * oversample_factor); 
+  double norm_factor = 4. / n; 
 
 #ifdef ENABLE_VECTORIZE
   int leftover = nout % VEC_N; 
@@ -146,10 +157,10 @@ TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const doub
 
   for (int i = 0; i < nit; i++)
   {
-    VEC fft2_re=  GATHER<0,2,4,6>((double*) &fft2[i*VEC_N+1]); 
-    VEC fft2_im =  GATHER<1,3,5,7>((double*)  &fft2[i*VEC_N+1]); 
-    VEC fft1_re=  GATHER<0,2,4,6>((double*) &fft1[i*VEC_N+1]); 
-    VEC fft1_im =  GATHER<1,3,5,7>((double*) &fft1[i*VEC_N+1]); 
+    VEC fft2_re=  GATHER_REAL((double*) &fft2[i*VEC_N+1]); 
+    VEC fft2_im =  GATHER_IM((double*)  &fft2[i*VEC_N+1]); 
+    VEC fft1_re=  GATHER_REAL((double*) &fft1[i*VEC_N+1]); 
+    VEC fft1_im =  GATHER_IM((double*) &fft1[i*VEC_N+1]); 
 
     VEC invhypo = 1./sqrt((fft2_re* fft2_re+ fft2_im * fft2_im));
 
@@ -168,7 +179,7 @@ TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const doub
     index += INDEX; 
 
     VEC ans_x = (index + 1) * df; 
-    VEC ans_y = 0.5*(costerm + sinterm); 
+    VEC ans_y = (costerm + sinterm)*norm_factor;
     if (i < nit-1 || leftover == 0)
     {
       ans_x.store(out->GetX() +i * VEC_N); 
@@ -202,7 +213,7 @@ TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const doub
     sinterm /= (n-density); 
 
     out->GetX()[j] = (j+1) * df; 
-    out->GetY()[j] = (costerm + sinterm) / (2); 
+    out->GetY()[j] = (costerm + sinterm)  * norm_factor; 
   }
 #endif
   free(fft1); 
@@ -211,20 +222,20 @@ TGraph * _lombScarglePeriodogram(int n, const double *  __restrict x, const doub
   return out; 
 
 }
-TGraph * FFTtools::lombScarglePeriodogram(int n, const double * __restrict x, const double * __restrict y,  double oversample_factor,
+TGraph * FFTtools::lombScarglePeriodogram(int n, double dt, const double * __restrict x, const double * __restrict y,  double oversample_factor,
                      double high_factor, TGraph * out) 
 {
 
-  return _lombScarglePeriodogram(n,x,y, oversample_factor, high_factor,out); 
+  return _lombScarglePeriodogram(n,dt, x,y, oversample_factor, high_factor,out); 
 }
 
 
 
-TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double oversample_factor,
+TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double dt, double oversample_factor,
                      double high_factor, TGraph * out) 
 {
 
-  return _lombScarglePeriodogram(g->GetN(),g->GetX(), g->GetY(), oversample_factor, high_factor,out); 
+  return _lombScarglePeriodogram(g->GetN(),dt, g->GetX(), g->GetY(), oversample_factor, high_factor,out); 
 }
 
 
@@ -237,7 +248,8 @@ TGraph * FFTtools::welchPeriodogram(const TGraph * gin, int segment_size, double
   double window_weight = 0; 
   for (int i = 0; i < segment_size; i++) window_weight += window_vals[i] * window_vals[i] / segment_size; 
 
-  double y[segment_size]; 
+  double y[segment_size] __attribute__((aligned(32))); 
+
 
 
   TGraph * power = gout ? gout : new TGraph(segment_size/2+1); 

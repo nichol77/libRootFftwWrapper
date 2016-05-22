@@ -13,15 +13,15 @@ int main (int nargs, char ** args)
   double dt = 1./2.6; // mean sample period
   double jitter = 0.1; //sample timing jitter in nanoseconds
   double rms = 3; //noise rms 
-  const int nfreq = 1; //number of CW
+  const int nfreq = 12; //number of CW
   double min_freq = 0.2; 
   double max_freq = 0.6; 
   double min_noise_freq = 0.2;
   double max_noise_freq = 1.2; 
-  double max_amp = 16.5; //max CW amplitude 
-  double min_amp = 3.5; //min CW amplitude 
-  int max_failed_iterations = 5; //settings for sinesubtract 
-  double min_power_ratio = 0.03; 
+  double max_amp = 50.5; //max CW amplitude 
+  double min_amp = 40.5; //min CW amplitude 
+  int max_failed_iterations = 2; //settings for sinesubtract 
+  double min_power_ratio = 0.1; 
 
 
   bool use_freq_limits = false; 
@@ -31,7 +31,7 @@ int main (int nargs, char ** args)
 
 
   bool verbose = true; 
-  gRandom->SetSeed(12); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
+  gRandom->SetSeed(13); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
 
   //end config
 
@@ -74,6 +74,10 @@ int main (int nargs, char ** args)
 
 
   FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,store); 
+  FFTtools::SineFitterLimits lims; 
+  lims.max_n_df_relative_to_guess = 2; 
+  sub->setFitterLimitOptions(&lims); 
+
 //  sub->setPowerSpectrumEstimator(FFTtools::SineSubtract::FFT); 
   sub->setVerbose(verbose); 
 

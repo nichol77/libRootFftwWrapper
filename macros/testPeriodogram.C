@@ -40,7 +40,7 @@ TGraph * testPeriodogram(int oversample_factor = 4, double high_factor =1)
     }
   }
 
-  TGraph * p = FFTtools::lombScarglePeriodogram(g,oversample_factor,high_factor); 
+  TGraph * p = FFTtools::lombScarglePeriodogram(g,dt,oversample_factor,high_factor); 
 
   p->Draw(); 
   FFTtools::saveWisdom("wisdom.dat"); 

@@ -388,7 +388,7 @@ namespace FFTtools
          * @param min The minimum frequency to try to remove
          * @param max The maximum frequency to try to remove
          */ 
-        void setFreqLimits(double min, double max) { fmin.clear(); fmin.push_back(min); fmax.clear(); fmax.push_back(max); high_factor = max; } 
+        void setFreqLimits(double min, double max) { fmin.clear(); fmin.push_back(min); fmax.clear(); fmax.push_back(max); } 
 
         /** Set multiple allowed bands of frequencies to try to subtract. If the units of the graph are in ns, the frequencies should be in GHz. 
          *
@@ -396,7 +396,7 @@ namespace FFTtools
          * @param min Array of minima of each band
          * @param max Array of maxima of each band
          */
-        void setFreqLimits(int nbands, const double * min, const double * max) { fmin.clear(); fmax.clear(); high_factor = 0; for (int i = 0; i < nbands;i++) { fmin.push_back(min[i]); fmax.push_back(max[i]); high_factor = std::max(high_factor, max[i]); }; } 
+        void setFreqLimits(int nbands, const double * min, const double * max) { fmin.clear(); fmax.clear(); for (int i = 0; i < nbands;i++) { fmin.push_back(min[i]); fmax.push_back(max[i]); }; } 
 
         /** Clear all frequency limits */ 
         void unsetFreqLimits() { fmin.clear(); fmax.clear(); high_factor = 1;  } 

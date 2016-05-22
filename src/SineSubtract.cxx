@@ -23,7 +23,7 @@
 #ifdef ENABLE_VECTORIZE
 #include "vectormath_trig.h" 
 
-//assume AVX2 is present, otherwise it'll be simulated 
+//assume AVX is present, otherwise it'll be simulated 
 
 #ifdef SINE_SUBTRACT_USE_FLOATS
 #define VEC Vec8f 
@@ -478,6 +478,9 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
   double fnyq = 1. / (2 * dt); 
   double df = fnyq / nsamples; 
 
+
+
+
   min.SetFunction(f); 
 
 
@@ -674,6 +677,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   r.amps.insert(r.amps.end(),ntraces, std::vector<double>()); 
   r.amps_errs.insert(r.amps_errs.end(),ntraces, std::vector<double>()); 
 
+  double fnyq = 1./(2*dt); 
   int nattempts = 0; 
   while(true) 
   {
@@ -684,7 +688,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
       if (power_estimator == LOMBSCARGLE)
       {
-        FFTtools::lombScarglePeriodogram(Nuse, g[ti]->GetX() + low, g[ti]->GetY() + low, oversample_factor, high_factor, power_spectra[ti]);
+        double hf = high_factor; 
+        if (fmax.size()) hf = std::min(*std::max_element(fmax.begin(), fmax.end()) / fnyq, high_factor); 
+        FFTtools::lombScarglePeriodogram(Nuse, dt, g[ti]->GetX() + low, g[ti]->GetY() + low, oversample_factor, hf, power_spectra[ti]);
       }
       else  //FFT 
       {
@@ -705,7 +711,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
         for (int i = 0; i < spectrum_N; i++)
         {
-          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / Nuse; 
+          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / Nuse / 16; 
           if (i > 0 && i <spectrum_N-1) power_spectra[ti]->GetY()[i] *=2; 
           fft_phases[ti]->GetY()[i] = the_fft[i].getPhase(); 
           power_spectra[ti]->GetX()[i] = df *i; 
@@ -725,7 +731,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
     int max_i = -1; 
 
-    double mag_sum[spectrum_N]; 
+    double mag_sum[spectrum_N] __attribute__((aligned(32))); 
     memset(mag_sum, 0, sizeof(mag_sum)); 
     double max_adj_mag2 = 0; 
     double max_f = 0; 
@@ -810,14 +816,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     {
       guess_ph[ti] = fft_phases[ti] ? fft_phases[ti]->GetY()[max_i] : 0; 
 
-      if (power_estimator == LOMBSCARGLE)
-      {
-        guess_A += sqrt(power_spectra[ti]->GetY()[max_i])  / 2 / ntraces;
-      }
-      else
-      {
-        guess_A += sqrt(power_spectra[ti]->GetY()[max_i]) / 2 / ntraces; 
-      }
+      guess_A += sqrt(power_spectra[ti]->GetY()[max_i]) / ntraces; 
     }
 
 
@@ -869,6 +868,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       }
       continue; 
     }
+    ntries = 0; // restart clock
 
     r.powers.push_back(power); 
     r.freqs.push_back(fitter.getFreq()); 
