@@ -111,7 +111,10 @@ endif
 else
 	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIBS) $(LIB_OBJS) -o $@
 endif
-	cp $(BUILDDIR)/*.pcm $(LIBDIR)
+	@if [ $(shell root-config --version | cut -c1) -ge 6 ]; then \
+	install -c -m 755 $(BUILDDIR)/*.pcm $(ANITA_UTIL_LIB_DIR) ;\
+	fi # Additional install command for ROOTv6
+
 
 $(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
 	@echo "<**Compiling**> "$<

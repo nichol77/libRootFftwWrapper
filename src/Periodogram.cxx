@@ -45,7 +45,13 @@ static int factorial_table[] =
 /* lagrange interpolation.. I think. based on NR code*/ 
 void extirpolate(double y, int n, double *yys, double x)
 {
-  double * ys = (double*) __builtin_assume_aligned(yys, 32); 
+  // double * ys = (double*) __builtin_assume_aligned(yys, 32);
+#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+  double * ys = (double*) __builtin_assume_aligned(yys, 32);  
+#else
+  double * ys = (double*) yys;
+#endif  
+  
   int ix = int(x); 
 
   // if it exactly equals a value, just set it 

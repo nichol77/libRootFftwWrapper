@@ -355,6 +355,11 @@ void FFTtools::doFFT(int length, const double * in, FFTWComplex * out)
   fftw_execute_dft_r2c(plan, (double*) in, (fftw_complex*) out);
 }
 
+
+
+
+
+
 void FFTtools::doInvFFTNoClobber(int length, const FFTWComplex * in, double * out)
 {
   fftw_plan plan;
@@ -367,12 +372,21 @@ void FFTtools::doInvFFTNoClobber(int length, const FFTWComplex * in, double * ou
   plan = getPlan(length,false); 
 #endif
 
-  fftw_complex new_in[length/2+1] __attribute__((aligned(32))); 
-  FFTWComplex * ain = (FFTWComplex*) __builtin_assume_aligned(in,32); 
+  fftw_complex new_in[length/2+1] __attribute__((aligned(32)));
+#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+  FFTWComplex * ain = (FFTWComplex*) __builtin_assume_aligned(in,32);
+#else
+  FFTWComplex * ain = (FFTWComplex*) in;
+#endif
   memcpy(new_in, ain, (length/2+1) * sizeof(FFTWComplex)); 
   fftw_execute_dft_c2r(plan,new_in, out);
 
-  double * aout = (double*) __builtin_assume_aligned(out,32); 
+#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+  double * aout = (double*) __builtin_assume_aligned(out,32);   
+#else
+  double * aout = (double*) out;
+#endif  
+
 
   for (int i = 0; i < length; i++) 
   {
@@ -396,7 +410,12 @@ void FFTtools::doInvFFTClobber(int length, FFTWComplex * in, double * out)
 
   fftw_execute_dft_c2r(plan, (fftw_complex*) in, out);
 
-  double * aout = (double*) __builtin_assume_aligned(out,32); 
+#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+  double * aout = (double*) __builtin_assume_aligned(out,32);   
+#else
+  double * aout = (double*) out;
+#endif  
+  
   for (int i = 0; i < length; i++) 
   {
     aout[i] /= length; 
@@ -2753,14 +2772,47 @@ double FFTtools::evalEvenGraph(const TGraph * g, double t)
 //___________________________________________//
 int FFTtools::saveWisdom(const char * file)
 {
-  return fftw_export_wisdom_to_filename(file); 
+  // return fftw_export_wisdom_to_filename(file);
+
+  // No fftw_export_wisdom_to_filename(const char*) in ancient fftw :(
+  // Apparently it returns non-zero on success, I will wrap that too.
+  FILE* filePtr = fopen(file, "w");
+  int retVal = 0;
+  if(filePtr){
+    fftw_export_wisdom_to_file(filePtr);
+    retVal = 1;
+    fclose(filePtr);
+  }
+  else{
+    std::cerr << "Warning! " << __PRETTY_FUNCTION__ << " could not open " << file << " in write mode."
+	      << std::endl;
+    retVal = 0;
+  }
+  return retVal;
 }
 
 //___________________________________________//
 int FFTtools::loadWisdom(const char * file)
 {
 
-  return fftw_import_wisdom_from_filename(file); 
+  //  return fftw_import_wisdom_from_filename(file);
+  
+  // No fftw_export_wisdom_to_filename(const char*) in ancient fftw :(
+  // Apparently it returns non-zero on success, I will wrap that too.
+  FILE* filePtr = fopen(file, "r");
+  int retVal = 0;
+  if(filePtr){
+    fftw_import_wisdom_from_file(filePtr);
+    retVal = 1;
+    fclose(filePtr);
+  }
+  else{
+    std::cerr << "Warning! " << __PRETTY_FUNCTION__ << " could not open " << file << " in read mode."
+	      << std::endl;
+    retVal = 0;
+  }
+  return retVal;
+  
 }
 
 
