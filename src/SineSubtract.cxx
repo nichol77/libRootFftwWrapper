@@ -2,7 +2,12 @@
 #include "TGraph.h" 
 #include "TCanvas.h" 
 #include "TStyle.h" 
+
+#ifndef __APPLE__
 #include <malloc.h>
+#else
+#include <malloc/malloc.h>
+#endif
 
 #ifdef SINE_SUBTRACT_PROFILE
 #include "TStopwatch.h"
