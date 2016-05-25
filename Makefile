@@ -112,8 +112,8 @@ else
 	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIBS) $(LIB_OBJS) -o $@
 endif
 	@if [ $(shell root-config --version | cut -c1) -ge 6 ]; then \
-	install -c -m 755 $(BUILDDIR)/*.pcm $(ANITA_UTIL_LIB_DIR) ;\
-	fi # Additional install command for ROOTv6
+	cp $(BUILDDIR)/*.pcm $(LIBDIR); \
+	fi; # Additional install command for ROOTv6
 
 
 $(BUILDDIR)/%.$(OBJSUF) : src/%.$(SRCSUF) $(CLASS_HEADERS) Makefile | $(BUILDDIR) $(VECTORIZE) 
@@ -149,4 +149,8 @@ endif
 # This is a new thing for ROOT6 and at the present time doesn't seem to matter if this fails.
 # So we will suppress the warning and continue if it fails.
 
-	if [ -e $(BUILDDIR)/fftDict_rdict.pcm ];  then install -c -m 755 $(BUILDDIR)/fftDict_rdict.pcm $(UTIL_LIB_DIR); fi; 
+	if [ -e $(BUILDDIR)/fftDict_rdict.pcm ]; then \
+	install -c -m 755 $(BUILDDIR)/fftDict_rdict.pcm $(UTIL_LIB_DIR); \
+	fi;
+
+

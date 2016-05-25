@@ -93,7 +93,7 @@ namespace FFTtools
   class KaiserWindow : public FFTWindowType
   {
     public: 
-      KaiserWindow(double alpha = 3) : alpha(alpha) {} 
+      KaiserWindow(double defaultAlpha = 3) : alpha(defaultAlpha) {} 
       virtual double value(double i, size_t N)const;
     private: 
       double alpha;
@@ -105,7 +105,7 @@ namespace FFTtools
   class GaussianWindow : public FFTWindowType
   {
     public:
-      GaussianWindow(double alpha= 2.5) : alpha(alpha) {} 
+      GaussianWindow(double defaultAlpha= 2.5) : alpha(defaultAlpha) {} 
       virtual double value(double i, size_t N) const; 
     private: 
       double alpha;
