@@ -2294,11 +2294,20 @@ TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
   Int_t numFreqs=(numPoints/2)+1;
   FFTWComplex *fftA=doFFT(numPoints,A);
   FFTWComplex *fftB=doFFT(numPoints,B);
-  FFTWComplex *fftAB= new FFTWComplex [numFreqs];
+  // FFTWComplex *fftAB= new FFTWComplex [numFreqs];
   Double_t freq=0;
   Double_t deltaF=1./(numPoints*deltaT);
   for(int i=0;i<numFreqs;i++) {
-    fftAB[i]=fftA[i]*fftB[i];
+    // fftAB[i]=(fftA[i]*fftB[i]);
+    fftA[i]*=fftB[i];
+
+    // std::cout << "vals\t" << fftAB[i] << "\t" << fftA[i] << "\t" << fftB[i] << std::endl;
+    // std::cout << "diffs\t" << (fftAB[i] - fftA[i]) << "..\t" << (fftAB[i] - fftB[i]) << std::endl;
+    // std::cout << "elemets\t"
+    // 	      << fftAB[i].re - fftA[i].re << ", " << fftAB[i].im - fftA[i].im << "...\t"
+    // 	      << fftAB[i].re - fftB[i].re << "\t" << fftAB[i].im - fftB[i].im << std::endl;
+    // std::cout << std::endl;
+    
     //    std::cout << freq << "\t" << fftAB[i].getAbs() << "\t" << fftA[i].getAbs() << "\t" << fftB[i].getAbs()
     //	      << "\t" << fftA[i].getAbs()*fftB[i].getAbs() << "\n";
     //    std::cout << freq << "\t" << fftAB[i].getPhase() << "\t" << fftA[i].getPhase() << "\t" << fftB[i].getPhase()
@@ -2306,7 +2315,8 @@ TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
     freq+=deltaF;
   }
   
-  Double_t *AB=doInvFFT(numPoints,fftAB);
+  // Double_t *AB=doInvFFT(numPoints,fftAB);
+  Double_t *AB=doInvFFT(numPoints,fftA);  
   Double_t *newAB = new Double_t[numPoints];
   for(int i=0;i<numPoints;i++) {
     if(i<numPoints/2) {
@@ -2319,7 +2329,7 @@ TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
     }
   }
   TGraph *grConv = new TGraph(numPoints,T,newAB);
-  delete [] fftAB;
+  // delete [] fftAB;
   delete [] fftA;
   delete [] fftB;				
   delete [] A;
@@ -2357,7 +2367,8 @@ RFSignal *FFTtools::getConvolution(RFSignal *grA, RFSignal *grB)
   Double_t freq=0;
   Double_t deltaF=1./(numPoints*deltaT);
   for(int i=0;i<numFreqs;i++) {
-    fftAB[i]=fftA[i]*fftB[i];
+    fftAB[i]=fftA[i];
+    fftAB[i]*=fftB[i];
     freq+=deltaF;
   }
   
