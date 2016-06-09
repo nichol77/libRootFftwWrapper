@@ -67,7 +67,7 @@ Makefile: Makefile.config Makefile.arch
 $(BINDIR)/%: test/%.$(SRCSUF) $(ROOT_LIBRARY) Makefile | $(BINDIR) 
 	@echo "<**Compiling**> "
 	@echo $<
-	$(LD) -I$(INCLUDEDIR)  $(CXXFLAGS) $(LDFLAGS) $(LIBS) -lRootFftwWrapper $< -o $@
+	$(LD) -I$(INCLUDEDIR)  $(CXXFLAGS) $(LDFLAGS)  $< -o $@ $(LIBS) -lRootFftwWrapper 
 
 $(LIB_OBJS): | $(BUILDDIR) 
 
@@ -99,7 +99,7 @@ $(ROOT_LIBRARY) : $(LIB_OBJS) | $(LIBDIR)
 	@echo "Linking $@ ..."
 ifeq ($(PLATFORM),macosx)
 # We need to make both the .dylib and the .so
-	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(LIBS) $(OutPutOpt) $@
+	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^  $(OutPutOpt) $@ $(LIBS)
 ifneq ($(subst $(MACOSX_MINOR),,1234),1234)
 ifeq ($(MACOSX_MINOR),4)
 	ln -sf $@ $(subst .$(DllSuf),.so,$@)
@@ -109,7 +109,7 @@ else
 endif
 endif
 else
-	$(LD) $(SOFLAGS) $(LDFLAGS) $(LIBS) $(LIB_OBJS) -o $@
+	$(LD) $(SOFLAGS) $(LDFLAGS)  $(LIB_OBJS) -o $@ $(LIBS)
 endif
 	@if [ $(shell root-config --version | cut -c1) -ge 6 ]; then \
 	cp $(BUILDDIR)/*.pcm $(LIBDIR); \
