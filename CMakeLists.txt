@@ -40,7 +40,18 @@ find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net)
 find_package(FFTW REQUIRED)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
-include(${ROOT_USE_FILE})
+
+message("ROOT_VERSION is set to ${ROOT_VERSION}")
+if( ${ROOT_VERSION} VERSION_GREATER "5.99/99")
+    message("Using ROOT_VERSION 6")
+    include(${ROOT_USE_FILE})
+else()
+#    include(RootNewMacros)
+     add_definitions(${ROOT_DEFINITIONS})	
+endif()
+
+
+message("ROOT_INCLUDE_DIRS is set to ${ROOT_INCLUDE_DIRS}")
 
 
 include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} include ${FFTW_INCLUDES})
@@ -60,17 +71,21 @@ ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h)
 add_library(${libname} SHARED ${SOURCE_FILES} ${DICTNAME}.cxx)
 target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
 
-add_custom_target(${DICTNAME}.pcm DEPENDS ${DICTNAME})
+if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
+    add_custom_target(${DICTNAME}.pcm DEPENDS ${DICTNAME})
+endif()
 
 
 message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
 message("DICTNAME is set to ${DICTNAME}" )
-message("CMAKE_LIBRARY_OUTPUT_DIRECTORY is set to ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
 install (FILES ${OUR_HEADER} DESTINATION ${UTIL_INC_DIR})
-install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
 	LIBRARY DESTINATION ${UTIL_LIB_DIR}
 	RUNTIME DESTINATION ${UTIL_BIN_DIR})
+#Only needed for ROOT6
+if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
+    install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
+endif() 
