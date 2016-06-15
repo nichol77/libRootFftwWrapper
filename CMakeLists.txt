@@ -1,6 +1,7 @@
 # CMakeLists.txt for event package. It creates a library with dictionary and a main program
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(RootFftwWrapper)
+set(libname "RootFftwWrapper")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
@@ -45,36 +46,31 @@ include(${ROOT_USE_FILE})
 include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} include ${FFTW_INCLUDES})
 add_definitions(${ROOT_CXX_FLAGS})
 
-file(GLOB OUR_HEADER
+file(GLOB HEADER_FILES
     "include/*.h"    
-)
-
-file(GLOB OUR_SOURCE
-    "src/*.cxx"    
 )
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cxx)
 
-set(DICTNAME "G__FFtDict")
+set(DICTNAME G__${libname})
 
-ROOT_GENERATE_DICTIONARY(${DICTNAME} ${OUR_HEADER} LINKDEF LinkDef.h)
+ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h)
 
 #---Create a shared library with geneated dictionary
-add_library(RootFftwWrapper SHARED ${SOURCE_FILES} ${DICTNAME}.cxx)
-target_link_libraries(RootFftwWrapper ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
+add_library(${libname} SHARED ${SOURCE_FILES} ${DICTNAME}.cxx)
+target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
 
 add_custom_target(${DICTNAME}.pcm DEPENDS ${DICTNAME})
 
 
-message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")	   
-message("OUR_SOURCE is set to ${OUR_SOURCE}")
+message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
 message("DICTNAME is set to ${DICTNAME}" )
 message("CMAKE_LIBRARY_OUTPUT_DIRECTORY is set to ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
 install (FILES ${OUR_HEADER} DESTINATION ${UTIL_INC_DIR})
 install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
-install (TARGETS RootFftwWrapper
+install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
 	LIBRARY DESTINATION ${UTIL_LIB_DIR}
 	RUNTIME DESTINATION ${UTIL_BIN_DIR})
