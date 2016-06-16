@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(RootFftwWrapper)
 set(libname "RootFftwWrapper")
 
+set (LIBRARY_VERSION_MAJOR 3)
+set (LIBRARY_VERSION_MINOR 0)
+set (LIBRARY_VERSION_PATCH 1)
+set (LIBRARY_VERSION_STRING ${LIBRARY_VERSION_MAJOR}.${LIBRARY_VERSION_MINOR}.${LIBRARY_VERSION_PATCH})
+ 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 # You need to tell CMake where to find the ROOT installation. This can be done in a number of ways:
@@ -16,20 +21,23 @@ if(DEFINED ENV{ANITA_UTIL_INSTALL_DIR})
     set(UTIL_LIB_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
     set(UTIL_INC_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/include)
     set(UTIL_BIN_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/bin)
+    set(UTIL_SHARE_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/share)
     set(LD_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
     set(INC_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/include)
 elseif(DEFINED ENV{ARA_UTIL_INSTALL_DIR})
     message("ARA_UTIL_INSTALL_DIR is set to $ENV{ANITA_UTIL_INSTALL_DIR}")
     set(UTIL_LIB_DIR $ENV{ARA_UTIL_INSTALL_DIR}/lib)
     set(UTIL_INC_DIR $ENV{ARA_UTIL_INSTALL_DIR}/include)
-    set(UTIL_BIN_DIR $ENV{ARA_UTIL_INSTALL_DIR}/bin)	
+    set(UTIL_BIN_DIR $ENV{ARA_UTIL_INSTALL_DIR}/bin)
+    set(UTIL_SHARE_DIR $ENV{ARA_UTIL_INSTALL_DIR}/share)
     set(LD_UTIL $ENV{ARA_UTIL_INSTALL_DIR}/lib)
     set(INC_UTIL $ENV{ARA_UTIL_INSTALL_DIR}/include)
 else()
     message("Will install to /usr/local  ANITA_UTIL_INSTALL_DIR not set")
     set(UTIL_LIB_DIR /usr/local/lib)
     set(UTIL_INC_DIR /usr/local/include)
-    set(UTIL_BIN_DIR /usr/local/bin)	
+    set(UTIL_BIN_DIR /usr/local/bin)
+    set(UTIL_SHARE_DIR /usr/local/share)
     set(LD_UTIL /usr/local/lib)
     set(INC_UTIL /usr/local/include)
 endif()
@@ -69,7 +77,12 @@ ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h)
 
 #---Create a shared library with geneated dictionary
 add_library(${libname} SHARED ${SOURCE_FILES} ${DICTNAME}.cxx)
+set_target_properties(${libname} PROPERTIES VERSION ${LIBRARY_VERSION_STRING}
+  SOVERSION ${LIBRARY_VERSION_MAJOR})
+
+
 target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
+
 
 if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
     add_custom_target(${DICTNAME}.pcm DEPENDS ${DICTNAME})
@@ -81,6 +94,7 @@ message("DICTNAME is set to ${DICTNAME}" )
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
 install (FILES ${OUR_HEADER} DESTINATION ${UTIL_INC_DIR})
+install (FILES cmake/modules/FindFFTW.cmake DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
 	LIBRARY DESTINATION ${UTIL_LIB_DIR}
