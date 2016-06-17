@@ -15,29 +15,38 @@ FFTW3 (http://www.fftw.org/)
 Making  and Installing
 ======================
 i) Install both ROOT and FFTW3 are on your system and that ROOTSYS is correctly set (or root-config is in your path) and that the directory containing libfftw3 is in either the system or your own LD_LIBRARY_PATH.
-ii) Edit the site specific section at the top of the Makefile (in general only the install variables need to be set)
-iii) To make type:
+ii) Make sure that cmake is installed on your system
+iii) Set the environmental variable ANITA_UTIL_INSTALL_DIR to point to your desired installation dir
+iii) To build the code do (from the libRootFftwWrapper directory):
+mkdir build
+cd build
+cmake ..
 make
-iv) To install libRootFftwWrapper set the environmental variable ANITA_UTIL_INSTALL_DIR to point to your desired installation dir and type:
 make install
-(N.B. the directories $ANITA_UTIL_INSTALL_DIR/include and $ANITA_UTIL_INSTALL_DIR/lib must exist)
 
-v) The FFTtoolsWisdomManager will attempt to save the best FFT plans for future use in a file fftw.wisdom
-   in either the directory pointed to by an environment variable FFTW_WISDOM_DIR or ANITA_UTIL_INSTALL_DIR.
-   By default FFTW_WISDOM_DIR is searched first.
-   One of these variables must point to a directory where the user has read/write permission.
-   (Some users set ANITA_UTIL_INSTALL_DIR to a directory requiring sudo, hence the new FFTW_WISDOM_DIR variable.)
+
+
+Mac Users
+=========
+For Mac OS X I would recommned usinge homebrew to install FFTW, ROOT and cmake. See http://brew.sh After installing brew you can get all the prerequisites by doing
+brew update
+brew install cmake
+brew install fftw
+brew tap homebrew/science
+brew install root6
+
+
 
 Usage from within ROOT
 =======================
-a) Ensure that the directory containing libRootFftwWrapper.so is in your LD_LIBRARY_PATH.
-b) To load trhe library you can:
-gSystem->Load("libRootFftwWrapper.so");
+a) Ensure that the directory containing the libRootFftwWrapper library is in your LD_LIBRARY_PATH.
+b) To load the library you can:
+gSystem->Load("libRootFftwWrapper");
 c) The FFTWComplex and FFTtools classes should now be accessible from the ROOT prompt or ROOT macro.
 
 FFTtools Description
 ======================
-All of the FFTtools functions as static meme=ber functions so they can be called without instantiating the class. Typical usage is:
+All of the FFTtools functions as static member functions so they can be called without instantiating the class. Typical usage is:
 TGraph *grPowerSpectrum = makePowerSpectrum(grInput);
 where grInput is a pointer to a TGraph containing the input waveform.
 
