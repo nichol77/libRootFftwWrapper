@@ -1,6 +1,7 @@
 #include "FFTtools.h" 
 #include <fftw3.h>
 #include "TMath.h"
+#include "TH2.h" 
 
 #ifdef ENABLE_VECTORIZE
 #include "vectormath_trig.h" 
@@ -23,9 +24,7 @@ static VEC INDEX (0,1);
 #endif
 
 /* Each point gets moved to 4 nearby evenly-spaced points */ 
-const int extirpolation_factor = 4; 
-
-static int factorial_table[] = 
+static unsigned factorial_table[] = 
   { 0,
     1,
     1,
@@ -43,7 +42,7 @@ static int factorial_table[] =
   };
 
 /* lagrange interpolation.. I think. based on NR code*/ 
-void extirpolate(double y, int n, double *yys, double x)
+void extirpolate(double y, int n, double *yys, double x, int extirpolation_factor)
 {
   // double * ys = (double*) __builtin_assume_aligned(yys, 32);
 #if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
@@ -53,6 +52,9 @@ void extirpolate(double y, int n, double *yys, double x)
 #endif  
   
   int ix = int(x); 
+
+  extirpolation_factor = std::max(0,extirpolation_factor); 
+  extirpolation_factor = std::min(sizeof(factorial_table)/sizeof(unsigned) - 1, size_t(extirpolation_factor));  
 
   // if it exactly equals a value, just set it 
   if (__builtin_expect(x == ix,0)) ys[ix-1] += y; 
@@ -84,7 +86,7 @@ void extirpolate(double y, int n, double *yys, double x)
 /* delegate so that can use optimization attributes */ 
 
 static TGraph * _lombScarglePeriodogram(int n,  double dt, const double * __restrict  x, const double * __restrict y, double oversample_factor  = 4 , 
-                       double high_factor = 2, TGraph * replaceme = 0) 
+                       double high_factor = 2, TGraph * replaceme = 0, int extirpolation_factor = 4) 
 #ifdef __clang__ 
    /* For OS X */
    // As best I can tell this would be the correct syntax for the fast math optimization with llvm
@@ -96,7 +98,7 @@ static TGraph * _lombScarglePeriodogram(int n,  double dt, const double * __rest
   __attribute((__optimize__("fast-math","tree-vectorize"))); /* enable associativity and other things that help autovectorize */ 
 #endif
 
-TGraph * _lombScarglePeriodogram(int n, double dt,  const double *  __restrict x, const double * __restrict y , double oversample_factor, double high_factor,  TGraph * out) 
+TGraph * _lombScarglePeriodogram(int n, double dt,  const double *  __restrict x, const double * __restrict y , double oversample_factor, double high_factor,  TGraph * out, int extirpolation_factor) 
 {
 
 
@@ -144,8 +146,8 @@ TGraph * _lombScarglePeriodogram(int n, double dt,  const double *  __restrict x
     double xx1 = fmod( (x[i] - x[0]) * scale_factor, 2 * nfreq); 
     double xx2 = fmod( 2 * (xx1++) , 2 * nfreq)+1; 
 
-    extirpolate(y[i] - mean, nwork,wk1, xx1); 
-    extirpolate(1., nwork,wk2, xx2); 
+    extirpolate(y[i] - mean, nwork,wk1, xx1, extirpolation_factor); 
+    extirpolate(1., nwork,wk2, xx2, extirpolation_factor); 
   }
 
   FFTWComplex * fft1 = (FFTWComplex* ) fftw_malloc(sizeof(FFTWComplex) * (nwork/2+1)); 
@@ -229,19 +231,19 @@ TGraph * _lombScarglePeriodogram(int n, double dt,  const double *  __restrict x
 
 }
 TGraph * FFTtools::lombScarglePeriodogram(int n, double dt, const double * __restrict x, const double * __restrict y,  double oversample_factor,
-                     double high_factor, TGraph * out) 
+                     double high_factor, TGraph * out, int extirpolation_factor) 
 {
 
-  return _lombScarglePeriodogram(n,dt, x,y, oversample_factor, high_factor,out); 
+  return _lombScarglePeriodogram(n,dt, x,y, oversample_factor, high_factor,out, extirpolation_factor); 
 }
 
 
 
 TGraph * FFTtools::lombScarglePeriodogram(const TGraph * g, double dt, double oversample_factor,
-                     double high_factor, TGraph * out) 
+                     double high_factor, TGraph * out, int extirpolation_factor) 
 {
 
-  return _lombScarglePeriodogram(g->GetN(),dt, g->GetX(), g->GetY(), oversample_factor, high_factor,out); 
+  return _lombScarglePeriodogram(g->GetN(),dt, g->GetX(), g->GetY(), oversample_factor, high_factor,out, extirpolation_factor); 
 }
 
 
@@ -312,5 +314,63 @@ TGraph * FFTtools::welchPeriodogram(const TGraph * gin, int segment_size, double
 }
 
 
+
+
+double * lombScarglePeriodogramSlow(int N, const double *x, const double *y, int nfreqs, const double * freqs, double * answer)
+{
+  if (!answer) answer = new double[nfreqs]; 
+
+  for (int ifreq = 0; ifreq < nfreqs; ifreq++) 
+  {
+
+    double sin2wt = 0; 
+    double cos2wt = 0; 
+    double two_w = freqs[ifreq] * 2 * TMath::Pi(); 
+    double mean = 0; 
+    for (int i =0; i < N; i++)
+    {
+      double c,s; 
+      sincos(x[i] * two_w, &s,&c); 
+      sin2wt += s; 
+      cos2wt += c; 
+      mean += y[i]; 
+    }
+
+    mean /= N; 
+
+    double tau = atan2(sin2wt, cos2wt) / two_w; 
+
+
+
+    double ys = 0; 
+    double yc = 0; 
+    double s2 = 0; 
+    double c2 = 0; 
+    
+
+    for (int i = 0; i < N; i++)
+    {
+      double yy = y[i] - mean; 
+
+      double s,c; 
+
+      sincos(two_w * (x[i] - tau), &s,&c); 
+
+      ys += yy * s; 
+      yc += yy * c; 
+
+      s2 += s*s; 
+      c2 += c*c; 
+    }
+
+    answer[ifreq] = ys*ys / s2 + yc*yc/c2; 
+  }
+
+  return answer; 
+}
+
+
+
+//TH2 *FFTtools::getPowerVsTimeUsingLombScargle(const TGraph * g, int nbins, double sampling_dt, double oversample, double 
 
 

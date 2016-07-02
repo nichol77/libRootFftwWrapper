@@ -31,6 +31,7 @@
 #include "RFSignal.h"
 
 class TRandom; 
+class TH2; 
 
 // FFTW
 #include <complex>
@@ -720,14 +721,18 @@ namespace FFTtools
 
 
    
+   /** "normal" lomb-scargle periodogram, not using the N log N algorithm in Press & Rybicki) */
+   double *  lombScarglePeriodogramSlow(int N, const double *x, const double * y, int nfreqs, const double * freqs, double * answer = 0); 
+
    /** fast periodogoram (as in Press & Rybicki) . Implementation in Periodogram.cxx */
    TGraph * lombScarglePeriodogram(const TGraph * g, double dt = 0, double oversample_factor  = 4 , 
-                       double high_factor = 2, TGraph * replaceme = 0)  ; 
+                       double high_factor = 2, TGraph * replaceme = 0, int extirpolation_factor =4)  ; 
    TGraph * lombScarglePeriodogram(int N, double dt, const double * __restrict x, 
                                    const double * __restrict y, double oversample_factor  = 4 , 
-                                   double high_factor = 2, TGraph * replaceme = 0)  ; 
+                                   double high_factor = 2, TGraph * replaceme = 0, int extirpolation_factor = 4)  ; 
 
 
+//   TH2 * getPowerVsTimeUsingLombScargle(const TGraph * g, int nbins, double sampling_dt = 0, double oversample_factor = 4, double high_factor = 2, TH2 * useme = 0); 
 
    /* Compute Stokes parameters from hpol / vpol and their hilbert transforms 
     * @param N number of samples
