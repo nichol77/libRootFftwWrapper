@@ -26,6 +26,10 @@ void FFTtools::ThermalNoise::setup()
   if (!rng) rng = gRandom;
   const double norm = 1./ sqrt(nosc) * rms;
 
+  freqs.reserve(nosc); 
+  A.reserve(nosc); 
+  phases.reserve(nosc); 
+
   for (int i = 0; i <nosc; i++) 
   {
     double f = 0;
@@ -102,7 +106,7 @@ double FFTtools::ThermalNoise::doEval(double t)
 
     if (i == nit-1 && leftover) //hopefully this gets unrolled? 
     {
-        vA.cutoff(4-leftover); 
+        vA.cutoff(leftover); 
     }
 
     val += horizontal_add(vA * sin(mul_add(vf,t,vph))); 
