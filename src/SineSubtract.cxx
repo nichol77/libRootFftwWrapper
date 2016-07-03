@@ -43,6 +43,62 @@
 
 extern int gErrorIgnoreLevel; // who ordered that? 
 
+static double guessPhase(const TGraph * g, double f) 
+{
+
+  double two_w = 4 * TMath::Pi() * f;
+  double vcos = 0;
+  double vsin = 0;
+
+  const double * t = g->GetX(); 
+  const double * y = g->GetY(); 
+  int N = g->GetN(); 
+
+#ifdef ENABLE_VECTORIZE
+
+  VEC v2w= two_w; 
+  VEC vecy; 
+  VEC vect ;
+  
+  int leftover = N % VEC_N;
+  int nit = N/VEC_N + (leftover ? 1 : 0); 
+
+  for (int i = 0; i < nit; i++)
+  {
+    if (i < nit -1 || !leftover)
+    {
+       vect.load(t+VEC_N*i); 
+       vecy.load(y+VEC_N*i); 
+    }
+    else
+    {
+       vect.load_partial(leftover, t+VEC_N*i); 
+       vecy.load_partial(leftover, y+VEC_N*i); 
+    }
+
+    VEC ang = vect * v2w; 
+    VEC vec_sin, vec_cos; 
+    vec_sin = sincos(&vec_cos, ang); 
+
+    vec_sin *= vecy; 
+    vec_cos *= vecy; 
+    vsin += horizontal_add(vec_sin); 
+    vcos += horizontal_add(vec_cos); 
+  }
+#else
+  for (int i = 0; i < N; i++)
+	{
+    double c,s;
+    sincos(two_w*t[i], &s,&c);
+    double v = y[i];
+    vcos +=c*v;
+    vsin +=s*v;
+  }
+#endif
+
+	return atan2(vsin,vcos);
+
+}
 
 
 static double normalize_angle(double phi)
@@ -112,6 +168,8 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
   {
 
     if (type > 0 && (int(coord) - 1)/2 != ti) continue; 
+    __builtin_prefetch(x[ti]); 
+    __builtin_prefetch(y[ti]); 
     double ph = normalize_angle(p[1 + 2*ti]); 
     double A = p[2+2*ti]; 
     if (wgt) A*=wgt[ti]; 
@@ -125,8 +183,8 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
     VEC vec_A(A); 
     VEC vec_cos(0); 
     VEC dYdp(0); 
-    int leftover = ns % VEC_N;
-    int nit = ns/VEC_N + (leftover ? 1 : 0); 
+    int leftover = ns[ti] % VEC_N;
+    int nit = ns[ti]/VEC_N + (leftover ? 1 : 0); 
 
 #ifdef SINE_SUBTRACT_FORCE_ALIGNED
     double * xx = (double*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
@@ -142,13 +200,21 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 
     for (int i = 0; i < nit; i++)
     {
+      if (i < nit-1 || !leftover)
+      {
 #if defined(SINE_SUBTRACT_FORCE_ALIGNED) || defined(SINE_SUBTRACT_USE_FLOATS)
-      vecx.load_a(xx+VEC_N*i); 
-      vecy.load(yy+VEC_N*i); 
+        vecx.load_a(xx+VEC_N*i); 
+        vecy.load(yy+VEC_N*i); 
 #else
-      vecx.load(xx+VEC_N*i); 
-      vecy.load(yy+VEC_N*i); 
+        vecx.load(xx+VEC_N*i); 
+        vecy.load(yy+VEC_N*i); 
 #endif
+      }
+      else
+      {
+        vecx.load_partial(leftover, xx+VEC_N*i); 
+        vecy.load_partial(leftover, yy+VEC_N*i); 
+      }
 
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
       VEC vec_sin = sincos(&vec_cos, vec_ang); 
@@ -172,7 +238,7 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
         vec_Y.cutoff(leftover); 
       }
 
-      deriv +=horizontal_add( vec_Y * dYdp)/ns; 
+      deriv +=horizontal_add( vec_Y * dYdp)/ns[ti]; 
 #else
 
       VEC ans = vec_Y * dYdp; 
@@ -182,14 +248,14 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
       int vecn = (i == nit-1 && leftover) ? leftover : VEC_N;
       for (int j = 0; j < vecn; j++) 
       {
-        deriv += ans_v[j]/ns; 
+        deriv += ans_v[j]/ns[ti]; 
       }
 
 #endif
     }
 
 #else
-    for (int i = 0; i < ns; i++)
+    for (int i = 0; i < ns[ti]; i++)
     {
       double t = x[ti][i]; 
       double sinang = sin(w*t + ph); 
@@ -209,7 +275,7 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
           break; 
       }
 
-      deriv += ((Y-y[ti][i]) * dYdp)/ns; 
+      deriv += ((Y-y[ti][i]) * dYdp)/ns[ti]; 
     }
 #endif
   }
@@ -254,13 +320,22 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 #endif
 
 
-    int leftover = ns % VEC_N;
-    int nit = ns/VEC_N + (leftover ? 1 : 0); 
+    int leftover = ns[ti] % VEC_N;
+    int nit = ns[ti]/VEC_N + (leftover ? 1 : 0); 
 
     for (int i = 0; i < nit; i++)
     {
-      vecx.load(xx+VEC_N*i); 
-      vecy.load(yy+VEC_N*i); 
+      if (i < nit -1 || !leftover)
+      {
+        vecx.load(xx+VEC_N*i); 
+        vecy.load(yy+VEC_N*i); 
+      }
+      else
+      {
+        vecx.load_partial(leftover, xx+VEC_N*i); 
+        vecy.load_partial(leftover, yy+VEC_N*i); 
+      }
+
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
       VEC vec_sin = sin(vec_ang); 
       VEC vec_Y = mul_sub(vec_sin, vec_A, vecy); 
@@ -272,20 +347,20 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
         vec_Y2.cutoff(leftover); 
       }
 
-      power += horizontal_add(vec_Y2)/ns; 
+      power += horizontal_add(vec_Y2)/ns[ti]; 
 #else 
       int vecn = (i == nit-1 && leftover) ? leftover : VEC_N;
       for (int j = 0; j< vecn; j++)
       {
-        power += vec_Y2[j]/ns; 
+        power += vec_Y2[j]/ns[ti]; 
       }
 #endif
     }
 #else
-    for (int i = 0; i < ns; i++)
+    for (int i = 0; i < ns[ti]; i++)
     {
       VEC_T Y = A * sin(w*x[ti][i] + ph) -y[ti][i]; 
-      power += Y*Y/ns; 
+      power += Y*Y/ns[ti]; 
     }
 #endif 
 
@@ -300,9 +375,12 @@ FFTtools::SineFitter::SineFitFn::~SineFitFn()
 #if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
 setXY(0,0,0,0); 
 #endif
+
+if (ns) delete [] ns; 
+
 }
 
-void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const double ** xx, const double ** yy, const double * wset) 
+void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, const double ** xx, const double ** yy, const double * wset) 
 {
   wgt = wset; 
 #ifdef SINE_SUBTRACT_USE_FLOATS
@@ -338,22 +416,22 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
     x = newx; 
     y = newy; 
   }
-
-  if (ns!=nsamples)
+   
+  for (int i = 0; i < ntraces; i++) 
   {
-    for (int i = 0; i < ntraces; i++) 
+    if (i >= nt || ns[i]!=nsamples[i])
     {
-      if (x[i]) free(x[i]); 
-      x[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(float)); 
-      if (y[i]) free(y[i]); 
-      y[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(float)); 
+       if (x[i]) free(x[i]); 
+       x[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(float)); 
+       if (y[i]) free(y[i]); 
+       y[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(float)); 
     }
   }
 
 
   for (int j = 0; j < ntraces; j++) 
   {
-    for (int i = 0; i < nsamples; i++) 
+    for (int i = 0; i < nsamples[j]; i++) 
     {
        x[j][i] = xx[j][i]; 
        y[j][i] = yy[j][i]; 
@@ -396,21 +474,22 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
     y = newy; 
   }
 
-  if (ns!=nsamples)
+  for (int i = 0; i < ntraces; i++) 
   {
-    for (int i = 0; i < ntraces; i++) 
+    if (i >= nt || ns[i]!=nsamples[i])
     {
-      free(x[i]); 
-      x[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(double)); 
-      y[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples * sizeof(double)); 
+       if (x[i]) free(x[i]); 
+       x[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(double)); 
+       y[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(double)); 
     }
   }
 
 
+
   for (int j = 0; j < ntraces; j++) 
   {
-    memcpy(x[j], xx[j], nsamples * sizeof(double)); 
-    memcpy(y[j], yy[j], nsamples * sizeof(double)); 
+    memcpy(x[j], xx[j], nsamples[i] * sizeof(double)); 
+    memcpy(y[j], yy[j], nsamples[i] * sizeof(double)); 
   }
 
   xp = xx; 
@@ -420,8 +499,21 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, int nsamples, const dou
   x = xx; 
   y = yy;
 #endif
+
+
+  if (nsamples)
+  {
+    if (ns && nt != ntraces) delete [] ns; 
+    ns = new int[ntraces];  
+    memcpy(ns,nsamples, ntraces*sizeof(int)); 
+  }
+  else 
+  {
+    if (ns) delete [] ns; 
+    ns=0; 
+  }
+
   nt = ntraces; 
-  ns = nsamples;
 }
 
 
@@ -452,7 +544,7 @@ static char * arrString(int n, const  double * arr, int sigfigs =8 )
 
 
 
-void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, const double **y, const double * w)
+void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double ** x, const double **y, const double * w)
 {
   f.setXY(ntraces,nsamples,x,y,w); 
 
@@ -479,48 +571,61 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
 
   }
 
-  double dt = (x[0][nsamples-1]  - x[0][0]) / (nsamples-1); 
+  //Estimate Nyquist to set frequency cut 
+  // Right now this just uses the first graph, although it would probably be smarter
+  // to use the average or something 
+  
+  double dt = (x[0][nsamples[0]-1]  - x[0][0]) / (nsamples[0]-1); 
   double fnyq = 1. / (2 * dt); 
-  double df = fnyq / nsamples; 
+  double df = fnyq / nsamples[0]; 
 
 
 
+  min.Clear(); 
 
   min.SetFunction(f); 
 
 
-  if (limits.max_n_df_relative_to_guess)
+  if (limits.max_n_df_relative_to_guess > 0)
   {
-    min.SetLimitedVariable(0, "f",freq, df/10., freq-df * limits.max_n_df_relative_to_guess, freq+df * limits.max_n_df_relative_to_guess); 
+    min.SetLimitedVariable(0, "f",freq, df  * limits.freq_start_error, freq-df * limits.max_n_df_relative_to_guess, freq+df * limits.max_n_df_relative_to_guess); 
   }
-  else
+  else if (limits.max_n_df_relative_to_guess == 0)
   {
-    min.SetVariable(0, "f",freq, df/10); 
+    min.SetFixedVariable(0,"f",freq); 
+  }
+  else 
+  {
+    min.SetVariable(0, "f",freq, df * limits.freq_start_error); 
   }
 
 
-  double damp =0.1* amp[0]; 
+  double damp = limits.amp_start_error* amp[0]; 
 
 
   for (int i = 0; i < ntraces; i++) 
   {
-    min.SetVariable(1+2*i, TString::Format("phi%d",i).Data(),phase[i], TMath::Pi()/64); 
+    min.SetVariable(1+2*i, TString::Format("phi%d",i).Data(),phase[i], limits.phase_start_error); 
 
-    if (limits.maxA_relative_to_guess && limits.minA_relative_to_guess)
+    if (limits.maxA_relative_to_guess > 0 && limits.minA_relative_to_guess > 0)
     {
        min.SetLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp, amp[0]*limits.minA_relative_to_guess, amp[0]*limits.maxA_relative_to_guess); 
     }
-    else if (limits.maxA_relative_to_guess)
+    else if (limits.maxA_relative_to_guess > 0)
     {
        min.SetUpperLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp, amp[0]*limits.maxA_relative_to_guess); 
     }
-    else if (limits.minA_relative_to_guess)
+    else if (limits.minA_relative_to_guess > 0)
     {
        min.SetLowerLimitedVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp, amp[0]*limits.minA_relative_to_guess);
     }
-    else
+    else if (limits.minA_relative_to_guess < 0 && limits.maxA_relative_to_guess > 0)
     {
        min.SetVariable(2+2*i, TString::Format("A%d",i).Data(), amp[0], damp); 
+    }
+    else
+    {
+      min.SetFixedVariable(2 + 2 * i, TString::Format("A%d",i).Data(), amp[0]); 
     }
   }
 
@@ -549,10 +654,10 @@ void FFTtools::SineFitter::doFit(int ntraces, int nsamples, const double ** x, c
 
 
 FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bool store)
-  : maxiter(maxiter), min_power_reduction(min_power_reduction), store(store)
+  : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),  min_power_reduction(min_power_reduction), store(store)
 {
 
-  power_estimator = LOMBSCARGLE; 
+  power_estimator = FFT; 
   oversample_factor = 2; 
   high_factor = 1; 
   neighbor_factor2 = 0.15; 
@@ -634,39 +739,48 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
 
   int low = tmin < 0 || tmin >= g[0]->GetN() ? 0 : tmin; 
-  int high = tmax <= 0 || tmax > g[0]->GetN() ? g[0]->GetN() : tmax; 
+  int high[ntraces];  
 
+  int Nuse[ntraces];
 
-  int Nuse = high - low; 
+  int NuseMax = 0; 
 
   //zero mean and compute power at the same time. 
   double power = 0; 
   for (int ti = 0; ti < ntraces; ti++) 
   {
+    high[ti] = tmax <= 0 || tmax > g[ti]->GetN() ? g[ti]->GetN() : tmax; 
+    Nuse[ti] = high[ti] - low; 
+
+    if (Nuse[ti] > NuseMax) NuseMax = Nuse[ti]; 
+
     double mean = g[ti]->GetMean(2); 
-    for (int i = low; i <high ; i++)
+    for (int i = low; i <high[ti] ; i++)
     {
       g[ti]->GetY()[i] -=mean; 
-      power += g[ti]->GetY()[i] * g[ti]->GetY()[i]; 
+      power += g[ti]->GetY()[i] * g[ti]->GetY()[i] / Nuse[ti]; 
     }
   }
 
-  r.powers.push_back(power/Nuse/ntraces); 
+  r.powers.push_back(power/ntraces); 
 
   if (store) 
   {
     gs.insert(gs.end(), ntraces, std::vector<TGraph*>()); 
-
     for (int i = 0; i < ntraces; i++) 
     {
       g[i]->SetTitle(TString::Format("Initial Waveform %d",i)); 
-      gs[i].push_back(new TGraph(*g[i])); 
+      gs[i].push_back(new TGraph(g[i]->GetN(), g[i]->GetX(), g[i]->GetY())); 
     }
   }
 
   int ntries = 0; 
 
-  int spectrum_N = power_estimator == FFT ? Nuse/2 + 1 : Nuse * oversample_factor * high_factor / 2; 
+  double hf = high_factor; 
+  double fnyq = 1./(2*dt); 
+  if (fmax.size()) hf = std::min(*std::max_element(fmax.begin(), fmax.end()) / fnyq, high_factor); 
+
+  int spectrum_N = power_estimator == FFT ? NuseMax/2 + 1 : NuseMax * oversample_factor * hf / 2; 
 
   TGraph* power_spectra[ntraces]; 
   TGraph* fft_phases[ntraces]; // not all power estimation options use this
@@ -682,8 +796,39 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   r.amps.insert(r.amps.end(),ntraces, std::vector<double>()); 
   r.amps_errs.insert(r.amps_errs.end(),ntraces, std::vector<double>()); 
 
-  double fnyq = 1./(2*dt); 
   int nattempts = 0; 
+
+
+  /** We needed padded copies of traces if they don't all have the same length
+   * so that the spectrum has the same bins. This might be replaced
+   * by a more intelligent way of doing things later (i.e. interpolating the
+   * spectrum properly)
+   * 
+   * Alternatively it wouldn't hurt to zero pad to a power of 2 for a bit of extra efficiency
+   * Maybe I'll do that later. 
+   * */ 
+  TGraph * gPadded[ntraces]; 
+  memset(gPadded,0,sizeof(gPadded)); 
+
+  for (int ti = 0; ti < ntraces; ti++)
+  {
+    if (Nuse[ti] < NuseMax)
+    {
+      gPadded[ti] = new TGraph(NuseMax); 
+
+      memcpy(gPadded[ti]->GetX(), g[ti]->GetX(), Nuse[ti] *sizeof(double));
+      memcpy(gPadded[ti]->GetY(), g[ti]->GetY(), Nuse[ti] *sizeof(double));
+
+      for (int i = Nuse[ti]; i < NuseMax; i++) 
+      {
+        gPadded[ti]->GetX()[i] = TMath::Min(gPadded[ti]->GetX()[i-1] + dt,  i * dt); 
+        gPadded[ti]->GetY()[i] = 0; //should be unnecessary 
+      }
+    }
+
+  }
+
+
   while(true) 
   {
 
@@ -691,32 +836,33 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     for (int ti = 0; ti  < ntraces; ti++)
     {
 
+      TGraph * take_spectrum_of_this = Nuse[ti] < NuseMax ? gPadded[ti] : g[ti]; 
+
       if (power_estimator == LOMBSCARGLE)
       {
-        double hf = high_factor; 
-        if (fmax.size()) hf = std::min(*std::max_element(fmax.begin(), fmax.end()) / fnyq, high_factor); 
-        FFTtools::lombScarglePeriodogram(Nuse, dt, g[ti]->GetX() + low, g[ti]->GetY() + low, oversample_factor, hf, power_spectra[ti]);
+
+         FFTtools::lombScarglePeriodogram(NuseMax, dt, take_spectrum_of_this->GetX() + low, take_spectrum_of_this->GetY() + low, oversample_factor, hf, power_spectra[ti]);
       }
       else  //FFT 
       {
-        double df = 1./(Nuse * dt); 
+        double df = 1./(NuseMax * dt); 
         if (fft_phases[ti] == 0)
         {
           fft_phases[ti] = new TGraph(spectrum_N); 
         }
 
-        TGraph * ig = g[ti]; 
+        TGraph * ig = take_spectrum_of_this; 
         if (dt > 0) // must interpolate
         {
-          ig = FFTtools::getInterpolatedGraph(g[ti], dt); 
-          ig->Set(g[0]->GetN());  // ensure same length
+          ig = FFTtools::getInterpolatedGraph(take_spectrum_of_this, dt); 
+          ig->Set(NuseMax);  // ensure same length
         }
 
-        FFTWComplex * the_fft = FFTtools::doFFT(Nuse, ig->GetY() + low); 
+        FFTWComplex * the_fft = FFTtools::doFFT(NuseMax, ig->GetY() + low); 
 
         for (int i = 0; i < spectrum_N; i++)
         {
-          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / Nuse / 16; 
+          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / NuseMax / 16; //why was this factor of 16 here? 
           if (i > 0 && i <spectrum_N-1) power_spectra[ti]->GetY()[i] *=2; 
           fft_phases[ti]->GetY()[i] = the_fft[i].getPhase(); 
           power_spectra[ti]->GetX()[i] = df *i; 
@@ -736,8 +882,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
     int max_i = -1; 
 
-    double mag_sum[spectrum_N] __attribute__((aligned(32))); 
-    memset(mag_sum, 0, sizeof(mag_sum)); 
+    double mag_sum[spectrum_N]; 
+    memset(mag_sum, 0, sizeof(double) * spectrum_N); 
     double max_adj_mag2 = 0; 
     double max_f = 0; 
 
@@ -814,12 +960,30 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     }
 
 
+    if ( (abs_maxiter > 0 && nattempts > abs_maxiter)
+        || (max_successful_iter > 0 && int(r.freqs.size()) >= max_successful_iter)
+        ) 
+    {
+      if (store) 
+      {
+        spectra.push_back(new TGraph(spectrum_N,spectra_x, spectra_y)); 
+        spectra[spectra.size()-1]->SetTitle(TString::Format("Spectrum after %lu iterations",r.powers.size()-1)); 
+        delete [] spectra_x; 
+        delete [] spectra_y; 
+      }
+
+ 
+      break; 
+    }
+
+
+
     double guess_ph[ntraces]; 
     double guess_A = 0; 
 
     for (int ti = 0; ti < ntraces; ti++)
     {
-      guess_ph[ti] = fft_phases[ti] ? fft_phases[ti]->GetY()[max_i] : 0; 
+      guess_ph[ti] = fft_phases[ti] ? fft_phases[ti]->GetY()[max_i] : guessPhase(g[ti], max_f); 
 
       guess_A += sqrt(power_spectra[ti]->GetY()[max_i]) / ntraces; 
     }
@@ -863,11 +1027,13 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     }
 
 
+    
+
 
     if (ratio < min_power_reduction)
     {
       failed_bins.insert(max_i); 
-      if (ntries++ > maxiter)   
+      if (++ntries > maxiter)   
       {
         break;
       }
@@ -912,6 +1078,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       }
 
     }
+
+
   }
 
   for (int i = 0; i < ntraces; i++) 
@@ -930,7 +1098,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
 int FFTtools::SineSubtract::getNSines() const 
 {
-  return r.phases[0].size(); 
+  return r.freqs.size(); 
 }
 
 void FFTtools::SineSubtract::makeSlides(const char * title, const char * fileprefix, const char * outdir , const char * format) const 

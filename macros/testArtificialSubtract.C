@@ -66,17 +66,17 @@
   }
 
 
-  FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,true); 
-  sub->setVerbose(verbose); 
+  FFTtools::SineSubtract sub (max_failed_iterations,min_power_ratio,true); 
+  sub.setVerbose(verbose); 
 
   if (use_freq_limits)
   {
-    sub->setFreqLimits(min_freq, max_freq); 
+    sub.setFreqLimits(min_freq, max_freq); 
   }
 
-  sub->subtractCW(ntraces, g, reinterpolate ?  dt : 0); 
+  sub.subtractCW(ntraces, g, reinterpolate ?  dt : 0); 
 
-  sub->makePlots(); 
+  sub.makePlots(); 
 
   for (int i = 0; i < nfreq; i++) 
   {
@@ -104,7 +104,7 @@
     }
   }
 
-  for (int i = 0; i < sub->getNSines(); i++) 
+  for (int i = 0; i < sub.getNSines(); i++) 
   {
     double recoA[ntraces]; 
     double recoPh[ntraces]; 

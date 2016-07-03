@@ -136,20 +136,39 @@ namespace FFTtools
    {
      public: 
 
-       /** The maximum multiplicative factor the amplitudes can deviate from the guess. 0 to disable. */ 
+       /** The maximum multiplicative factor the amplitudes can deviate from the guess. Negative to disable, 0 to fix amplitude. */ 
        double maxA_relative_to_guess; 
 
-       /** The minimum multiplicative factor the amplitudes can deviate from the guess. 0 to disable. */ 
+       /** The minimum multiplicative factor the amplitudes can deviate from the guess. Negative to disable, 0 to fix amplitude.  Note that if either min or max is 0, then it will be fixed.*/ 
        double minA_relative_to_guess; 
 
-       /** The maximum multiplatice factor of fnyq/nsamples the fit frequency can deviate from the guess. 0 to disable. */
+       /** The maximum multiplative factor of fnyq/nsamples the fit frequency can deviate from the guess. Negative to disable, 0 to fix frequency.  Note that if either min or max is 0, then it will be fixed.*/
        double max_n_df_relative_to_guess; 
 
-       SineFitterLimits(double maxA_relative_to_guess = 4, double minA_relative_to_guess = 0.25, double max_n_df_relative_to_guess = 1) : 
-                               maxA_relative_to_guess(maxA_relative_to_guess), 
-                               minA_relative_to_guess(minA_relative_to_guess),
-                               max_n_df_relative_to_guess(max_n_df_relative_to_guess) 
+       /** The starting error of the phase, in radians */
+       double phase_start_error; 
+
+       /** The fractional starting error of the amplitude */ 
+       double amp_start_error; 
+
+       /** The error, as a fraction of df, of the frequency estimate */ 
+       double freq_start_error; 
+
+
+
+       SineFitterLimits(double maxA_relative_to_guess_ = 4, double minA_relative_to_guess_ = 0.25, 
+                        double max_n_df_relative_to_guess_ = 1, double phase_start_error_ = TMath::Pi() / 16, 
+                        double amp_start_error_ = 0.1, double freq_start_error_  = 0.1) : 
+                               maxA_relative_to_guess(maxA_relative_to_guess_), 
+                               minA_relative_to_guess(minA_relative_to_guess_),
+                               max_n_df_relative_to_guess(max_n_df_relative_to_guess_) , 
+                               phase_start_error(phase_start_error_) , 
+                               amp_start_error(amp_start_error_) , 
+                               freq_start_error(freq_start_error_)  
                              {;} 
+
+
+             
    }; 
 
   /** The SineFitter class handles the actual minimization of a set of points to 
@@ -176,13 +195,13 @@ namespace FFTtools
 
         /** Perform the minimation to 1 or more traces. setGuess must be called before. 
          * @param ntrace the number of traces we will minimize
-         * @param nsamples the number of samples per trace. Right now they must all be the same, but this limitation could be removed without too much work should it become necessary.
+         * @param nsamples the number of samples per trace.
          * @param x x-values of the traces to use. x[0] should be first trace, etc. 
          * @param y y-values of the traces to use. x[0] should be first trace, etc. 
          * @param w weights of each trace's y value. If 0, all are treated the same. 
          *
          **/
-        void doFit(int ntrace, int nsamples, const double ** x, const double **y, const double * w = 0); 
+        void doFit(int ntrace, const int * nsamples, const double ** x, const double **y, const double * w = 0); 
 
         /** Get the best fit frequency. Only makes sense to call after doFit */ 
         double getFreq() const {return freq;} 
@@ -214,6 +233,7 @@ namespace FFTtools
         /** Set the limit parameters */ 
         void setLimitOptions(const SineFitterLimits * lims) { limits = *lims; }
 
+        ROOT::Minuit2::Minuit2Minimizer * minimizer() { return &min; } 
 
       private:
         ROOT::Minuit2::Minuit2Minimizer min; 
@@ -257,7 +277,7 @@ namespace FFTtools
              * @param y y-values of the traces to use. x[0] should be first trace, etc. 
              * @param w weights of each trace, or null to always use the same
              */
-            void setXY(int ntraces, int nsamples, const double **xx, const double **yy, const double * w = 0); 
+            void setXY(int ntraces, const int * nsamples, const double **xx, const double **yy, const double * w = 0); 
 
             /** This evaluates the objective function for a parameter vector p */ 
             virtual double DoEval(const double *p) const; 
@@ -273,7 +293,7 @@ namespace FFTtools
 
 
           private:
-            int ns; 
+            int *ns; 
             int nt; 
 #ifdef SINE_SUBTRACT_USE_FLOATS
             float **x; 
@@ -493,6 +513,12 @@ namespace FFTtools
         /* Set the maximum number of failed iterations before giving up. */
         void setMaxIterationsWithoutReduction(int max) { maxiter = max; } 
 
+        /** Sets the maximum absolute number of iterations, even if power reduction is still happening. If max <= 0, there is no max */ 
+        void setAbsoluteMaxIterations(int max) { abs_maxiter = max; } 
+
+        /** Sets the maximum number of successful iterations, useful if you're trying to subtract a particular sinusoidi. If max <=0, there is no max*/ 
+        void setMaxSuccessfulIterations(int max) { max_successful_iter = max; } 
+
         /** Set the threshold for considering an iteration successful. This is a percentage of power reduction. */
         void setMinPowerReduction(double min) {min_power_reduction = min; }; 
 
@@ -514,7 +540,7 @@ namespace FFTtools
          **/ 
         void makePlots(TCanvas * cpower = 0,TCanvas *cspectra = 0, int ncols = 4) const; 
 
-        /**  Make Beamer slides showing all interations, for those moments when you desperately need slides to show. 
+        /**  Make Beamer slides showing all iterations, for those moments when you desperately need slides to show. 
          *
          * @param title Used in the frame title
          * @param sinsub UIsed for naming files 
@@ -524,8 +550,12 @@ namespace FFTtools
          * */ 
         void makeSlides(const char * title = "SineSubtract", const char * prefix = "sinsub", const char * outdir = ".", const char* format = "png") const; 
 
+        SineFitter * sineFitter() { return &fitter; } 
+
       private: 
+        int abs_maxiter; 
         int maxiter; 
+        int max_successful_iter; 
         int tmin, tmax; 
         std::vector<double> fmin; 
         std::vector<double> fmax; 
