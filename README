@@ -14,9 +14,9 @@ FFTW3 (http://www.fftw.org/)
 
 Making  and Installing
 ======================
-i) Install both ROOT and FFTW3 are on your system and that ROOTSYS is correctly set (or root-config is in your path) and that the directory containing libfftw3 is in either the system or your own LD_LIBRARY_PATH.
+i) Ensure both ROOT and FFTW3 are on your system and that ROOTSYS is correctly set (or root-config is in your path) and that the directory containing libfftw3 is in either the system or your own LD_LIBRARY_PATH.
 ii) Make sure that cmake is installed on your system
-iii) Set the environmental variable ANITA_UTIL_INSTALL_DIR to point to your desired installation dir
+iii) Set the environmental variable ANITA_UTIL_INSTALL_DIR to point to your desired installation dir (libraries will be installed in a lib subdirectory from this location)
 iii) To build the code do (from the libRootFftwWrapper directory):
 mkdir build
 cd build
@@ -39,8 +39,8 @@ brew install root6
 
 Usage from within ROOT
 =======================
-a) Ensure that the directory containing the libRootFftwWrapper library is in your LD_LIBRARY_PATH.
-b) To load the library you can:
+a) Ensure that the directory containing the libRootFftwWrapper library is in your LD_LIBRARY_PATH (e.g. ANITA_UTIL_INSTALL_DIR/lib )
+b) To load the library you can (note the lack of .so or .dylib):
 gSystem->Load("libRootFftwWrapper");
 c) The FFTWComplex and FFTtools classes should now be accessible from the ROOT prompt or ROOT macro.
 
