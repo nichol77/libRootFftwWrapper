@@ -316,7 +316,7 @@ TGraph * FFTtools::welchPeriodogram(const TGraph * gin, int segment_size, double
 
 
 
-double * lombScarglePeriodogramSlow(int N, const double *x, const double *y, int nfreqs, const double * freqs, double * answer)
+double * FFTtools::lombScarglePeriodogramSlow(int N, const double *x, const double *y, int nfreqs, const double * freqs, double * answer)
 {
   if (!answer) answer = new double[nfreqs]; 
 
@@ -330,7 +330,7 @@ double * lombScarglePeriodogramSlow(int N, const double *x, const double *y, int
     for (int i =0; i < N; i++)
     {
       double c,s; 
-      sincos(x[i] * two_w, &s,&c); 
+      __sincos(x[i] * two_w, &s,&c); 
       sin2wt += s; 
       cos2wt += c; 
       mean += y[i]; 
@@ -354,7 +354,7 @@ double * lombScarglePeriodogramSlow(int N, const double *x, const double *y, int
 
       double s,c; 
 
-      sincos(two_w * (x[i] - tau), &s,&c); 
+      __sincos(two_w * (x[i] - tau), &s,&c); 
 
       ys += yy * s; 
       yc += yy * c; 

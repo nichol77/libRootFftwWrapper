@@ -89,7 +89,7 @@ static double guessPhase(const TGraph * g, double f)
   for (int i = 0; i < N; i++)
 	{
     double c,s;
-    sincos(two_w*t[i], &s,&c);
+    __sincos(two_w*t[i], &s,&c);
     double v = y[i];
     vcos +=c*v;
     vsin +=s*v;
