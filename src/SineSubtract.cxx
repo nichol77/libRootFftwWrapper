@@ -146,7 +146,7 @@ ROOT::Math::IBaseFunctionMultiDim* FFTtools::SineFitter::SineFitFn::Clone() cons
 
 FFTtools::SineFitter::SineFitFn::SineFitFn() 
 {
-  ns = 0; 
+  ns = NULL; 
   nt = 0; 
   x= 0; 
   y = 0; 
@@ -500,16 +500,26 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
   y = yy;
 #endif
 
-
   if (nsamples)
   {
-    if (ns && nt != ntraces) delete [] ns; 
-    ns = new int[ntraces];  
+    if (!ns) 
+    {
+      ns = new int[ntraces]; 
+    }
+    else if (nt != ntraces)
+    {
+      delete [] ns; 
+      ns = new int[ntraces];  
+    }
     memcpy(ns,nsamples, ntraces*sizeof(int)); 
   }
   else 
   {
-    if (ns) delete [] ns; 
+    if (ns) 
+    {
+      delete [] ns; 
+    }
+
     ns=0; 
   }
 
