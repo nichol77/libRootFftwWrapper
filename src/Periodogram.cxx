@@ -3,6 +3,13 @@
 #include "TMath.h"
 #include "TH2.h" 
 
+
+#ifdef __APPLE__
+#define SINCOS __sincos
+#else
+#define SINCOS sincos
+#endif
+
 #ifdef ENABLE_VECTORIZE
 #include "vectormath_trig.h" 
 #ifdef __AVX__
@@ -330,7 +337,7 @@ double * FFTtools::lombScarglePeriodogramSlow(int N, const double *x, const doub
     for (int i =0; i < N; i++)
     {
       double c,s; 
-      __sincos(x[i] * two_w, &s,&c); 
+      SINCOS(x[i] * two_w, &s,&c); 
       sin2wt += s; 
       cos2wt += c; 
       mean += y[i]; 
@@ -354,7 +361,7 @@ double * FFTtools::lombScarglePeriodogramSlow(int N, const double *x, const doub
 
       double s,c; 
 
-      __sincos(two_w * (x[i] - tau), &s,&c); 
+      SINCOS(two_w * (x[i] - tau), &s,&c); 
 
       ys += yy * s; 
       yc += yy * c; 

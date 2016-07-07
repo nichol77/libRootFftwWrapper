@@ -5,8 +5,10 @@
 
 #ifndef __APPLE__
 #include <malloc.h>
+#define SINCOS sincos 
 #else
 #include <malloc/malloc.h>
+#define SINCOS __sincos
 #endif
 
 #ifdef SINE_SUBTRACT_PROFILE
@@ -40,6 +42,10 @@
 
 
 #endif 
+
+
+
+
 
 extern int gErrorIgnoreLevel; // who ordered that? 
 
@@ -89,7 +95,7 @@ static double guessPhase(const TGraph * g, double f)
   for (int i = 0; i < N; i++)
 	{
     double c,s;
-    __sincos(two_w*t[i], &s,&c);
+    SINCOS(two_w*t[i], &s,&c);
     double v = y[i];
     vcos +=c*v;
     vsin +=s*v;
