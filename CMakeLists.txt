@@ -97,7 +97,7 @@ message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
 message("DICTNAME is set to ${DICTNAME}" )
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
-install (FILES ${OUR_HEADER} DESTINATION ${UTIL_INC_DIR})
+install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
 install (FILES cmake/modules/FindFFTW.cmake DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
