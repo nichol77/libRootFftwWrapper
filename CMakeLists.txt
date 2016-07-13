@@ -62,7 +62,7 @@ endif()
 message("ROOT_INCLUDE_DIRS is set to ${ROOT_INCLUDE_DIRS}")
 
 
-include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} include ${FFTW_INCLUDES})
+include_directories(${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include ${FFTW_INCLUDES})
 add_definitions(${ROOT_CXX_FLAGS})
 
 file(GLOB HEADER_FILES
@@ -70,6 +70,8 @@ file(GLOB HEADER_FILES
 )
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cxx)
+#file(GLOB_RECURSE THIS_LD LinkDef.h)
+
 
 set(DICTNAME G__${libname})
 
@@ -102,5 +104,5 @@ install (TARGETS ${libname}
 #Only needed for ROOT6
 if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
   install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
-  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
+#  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
 endif() 
