@@ -2831,6 +2831,7 @@ int FFTtools::loadWisdom(const char * file)
 
 #ifdef ENABLE_VECTORIZE
 #include "vectorclass.h"
+#include "vectormath_trig.h"
 #define VEC Vec4d 
 #define VEC_N 4
 #define VEC_T double
@@ -2927,4 +2928,242 @@ void FFTtools::stokesParameters(int N, const double * __restrict x, const double
 }
 
 
+void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples, double * phase, double *amp, double * real, double * imag)
+{
+
+  if (nmultiples < 1) return; 
+  if (nmultiples == 1) return dftAtFreq(g,f,phase,amp,real,imag); 
+
+  double w = 2 * TMath::Pi() * f; 
+
+  const double * t = g->GetX();
+  const double * y = g->GetX();
+  int N = g->GetN(); 
+
+  //build up sin table 
+  double sin_f[N], cos_f[N]; 
+  double sin_nf[N], cos_nf[N]; 
+
+  double vcos = 0;
+  double vsin = 0; 
+
+#ifdef ENABLE_VECTORIZE
+  VEC vecy; 
+  VEC vect; 
+  VEC vw = w; 
+
+  int leftover = N % VEC_N; 
+  int nit = N / VEC_N + (leftover ? 1 : 0); 
+
+  // do first pass and compute base frequency; 
+
+  for (int i = 0; i < nit; i++) 
+  {
+    if (i < nit -1 || !leftover)
+    {
+       vect.load(t+VEC_N*i); 
+       vecy.load(y+VEC_N*i); 
+    }
+    else
+    {
+       vect.load_partial(leftover, t+VEC_N*i); 
+       vecy.load_partial(leftover, y+VEC_N*i); 
+    }
+
+
+    VEC ang = vect * vw; 
+    VEC vec_sin, vec_cos; 
+    vec_sin = sincos(&vec_cos, ang); 
+
+
+
+    if ( i < nit -1 || !leftover) 
+    {
+      vec_sin.store(sin_f + i * VEC_N); 
+      vec_cos.store(cos_f + i * VEC_N); 
+    }
+    else
+    {
+
+      vec_sin.store_partial(leftover, sin_f + i * VEC_N); 
+      vec_cos.store_partial(leftover, cos_f + i * VEC_N); 
+    }
+
+
+    vec_sin *= vecy; 
+    vec_cos *= vecy; 
+    vsin += horizontal_add(vec_sin); 
+    vcos += horizontal_add(vec_cos); 
+  }
+
+
+#else
+  
+  //do first pass and compute base frequency
+ 
+
+  for (int i = 0; i < N; i++)
+  {
+    SINCOS(w* t[i], sin_f[i], cos_f[i]); 
+    double v = y[i]; 
+    vcos += v*c; 
+    vsin += v*s; 
+  }
+#endif
+
+  if (phase) phase[0] = atan2(vsin,vcos); 
+  if (amp) amp[0] = sqrt(vsin*vsin + vcos*vcos); 
+  if (real) real[0] = vcos;
+  if (imag) imag[0] = vsin; 
+
+  memcpy(sin_nf, sin_f, sizeof(sin_f)); 
+  memcpy(cos_nf, cos_f, sizeof(cos_f)); 
+
+
+
+  for (int j = 1; j < nmultiples; j++)
+  {
+    vcos = 0; 
+    vsin = 0; 
+
+#ifdef ENABLE_VECTORIZE
+    VEC vsin_f; 
+    VEC vcos_f; 
+    VEC vsin_nf; 
+    VEC vcos_nf; 
+    for (int i = 0; i < nit; i++)
+    {
+      if (i < nit -1 || !leftover)
+      {
+         vect.load(t+VEC_N*i); 
+         vecy.load(y+VEC_N*i); 
+         vsin_f.load(sin_f + VEC_N * i); 
+         vcos_f.load(cos_f + VEC_N * i); 
+         vsin_nf.load(sin_nf + VEC_N * i); 
+         vcos_nf.load(cos_nf + VEC_N * i); 
+      }
+      else
+      {
+         vect.load_partial(leftover, t+VEC_N*i); 
+         vecy.load_partial(leftover, y+VEC_N*i); 
+         vsin_f.load_partial(leftover, sin_f + VEC_N * i); 
+         vcos_f.load_partial(leftover, cos_f + VEC_N * i); 
+         vsin_nf.load_partial(leftover, sin_nf + VEC_N * i); 
+         vcos_nf.load_partial(leftover, cos_nf + VEC_N * i); 
+      }
+
+      VEC vec_sin = vcos_f * vcos_nf - vsin_f * vsin_nf; 
+      VEC vec_cos = vcos_f * vsin_nf + vsin_f * vcos_nf; 
+
+      if ( i < nit -1 || !leftover) 
+      {
+        vec_sin.store(sin_nf + i * VEC_N); 
+        vec_cos.store(cos_nf + i * VEC_N); 
+      }
+      else
+      {
+
+        vec_sin.store_partial(leftover, sin_nf + i * VEC_N); 
+        vec_cos.store_partial(leftover, cos_nf + i * VEC_N); 
+      }
+
+      vec_sin *= vecy; 
+      vec_cos *= vecy; 
+
+      vsin += horizontal_add(vec_sin); 
+      vcos += horizontal_add(vec_cos); 
+    }
+
+#else
+    for (int i = 0; i < N; i++)
+    {
+      double tempcos = cos_f[i] * cos_nf[i] - sin_f[i] * sin_nf[i]; 
+      double temspin = cos_f[i] * sin_nf[i] + sin_f[i] *cos_nf[i]; 
+      cos_nf[i] = tempcos; 
+      sin_nf[i] = tempsin; 
+
+      vcos += temp_cos * y[i]; 
+      vsin += temp_sin * y[i]; 
+
+      vec_sin *= vecy; 
+      vec_cos *= vecy; 
+      vsin += horizontal_add(vec_sin); 
+      vcos += horizontal_add(vec_cos); 
+    }
+#endif
+
+    if (phase) phase[j] = atan2(vsin,vcos); 
+    if (amp) amp[j] = sqrt(vsin*vsin + vcos*vcos); 
+    if (real) real[j] = vcos; 
+    if (imag) imag[j] = vsin; 
+
+  }
+
+}
+
+
+void FFTtools::dftAtFreq(const TGraph * g, double f, double * phase , double * amp, double * real, double * imag) 
+{
+
+  double w = 2 * TMath::Pi() * f;
+  double vcos = 0;
+  double vsin = 0;
+
+  const double * t = g->GetX(); 
+  const double * y = g->GetY(); 
+  int N = g->GetN(); 
+
+#ifdef ENABLE_VECTORIZE
+
+  VEC vw= w; 
+  VEC vecy; 
+  VEC vect ;
+  
+  int leftover = N % VEC_N;
+  int nit = N/VEC_N + (leftover ? 1 : 0); 
+
+  for (int i = 0; i < nit; i++)
+  {
+    if (i < nit -1 || !leftover)
+    {
+       vect.load(t+VEC_N*i); 
+       vecy.load(y+VEC_N*i); 
+    }
+    else
+    {
+       vect.load_partial(leftover, t+VEC_N*i); 
+       vecy.load_partial(leftover, y+VEC_N*i); 
+    }
+
+    VEC ang = vect * vw; 
+    VEC vec_sin, vec_cos; 
+    vec_sin = sincos(&vec_cos, ang); 
+
+    vec_sin *= vecy; 
+    vec_cos *= vecy; 
+    vsin += horizontal_add(vec_sin); 
+    vcos += horizontal_add(vec_cos); 
+  }
+#else
+  for (int i = 0; i < N; i++)
+	{
+    double c,s;
+    SINCOS(two_w*t[i], &s,&c);
+    double v = y[i];
+    vcos +=c*v;
+    vsin +=s*v;
+  }
+#endif
+  if (real)
+    *real = vcos; 
+
+  if (imag)
+    *imag = vsin; 
+
+  if (phase) 
+    *phase=atan2(vsin,vcos);
+
+  if (amp) 
+    *amp = sqrt(vsin*vsin + vcos*vcos);  
+}
 

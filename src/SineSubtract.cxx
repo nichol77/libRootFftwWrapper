@@ -47,64 +47,16 @@
 
 
 
+
 extern int gErrorIgnoreLevel; // who ordered that? 
 
-static double guessPhase(const TGraph * g, double f) 
+static double guessPhase(const TGraph * g, double freq) 
 {
-
-  double two_w = 4 * TMath::Pi() * f;
-  double vcos = 0;
-  double vsin = 0;
-
-  const double * t = g->GetX(); 
-  const double * y = g->GetY(); 
-  int N = g->GetN(); 
-
-#ifdef ENABLE_VECTORIZE
-
-  VEC v2w= two_w; 
-  VEC vecy; 
-  VEC vect ;
-  
-  int leftover = N % VEC_N;
-  int nit = N/VEC_N + (leftover ? 1 : 0); 
-
-  for (int i = 0; i < nit; i++)
-  {
-    if (i < nit -1 || !leftover)
-    {
-       vect.load(t+VEC_N*i); 
-       vecy.load(y+VEC_N*i); 
-    }
-    else
-    {
-       vect.load_partial(leftover, t+VEC_N*i); 
-       vecy.load_partial(leftover, y+VEC_N*i); 
-    }
-
-    VEC ang = vect * v2w; 
-    VEC vec_sin, vec_cos; 
-    vec_sin = sincos(&vec_cos, ang); 
-
-    vec_sin *= vecy; 
-    vec_cos *= vecy; 
-    vsin += horizontal_add(vec_sin); 
-    vcos += horizontal_add(vec_cos); 
-  }
-#else
-  for (int i = 0; i < N; i++)
-	{
-    double c,s;
-    SINCOS(two_w*t[i], &s,&c);
-    double v = y[i];
-    vcos +=c*v;
-    vsin +=s*v;
-  }
-#endif
-
-	return atan2(vsin,vcos);
-
+  double phase; 
+  FFTtools::dftAtFreq(g,freq,&phase,0); 
+  return phase; 
 }
+
 
 
 static double normalize_angle(double phi)
