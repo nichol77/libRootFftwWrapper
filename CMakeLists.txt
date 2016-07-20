@@ -1,5 +1,6 @@
 # CMakeLists.txt for event package. It creates a library with dictionary and a main program
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.10)
+
 project(RootFftwWrapper)
 set(libname "RootFftwWrapper")
 
@@ -44,7 +45,7 @@ endif()
 
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
-find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net)
+find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net Minuit2)
 find_package(FFTW REQUIRED)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
@@ -60,9 +61,9 @@ endif()
 
 
 message("ROOT_INCLUDE_DIRS is set to ${ROOT_INCLUDE_DIRS}")
+message("FFTW_INCLUDES is set to ${FFTW_INCLUDES}")
 
-
-include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} include ${FFTW_INCLUDES})
+include_directories(${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include ${FFTW_INCLUDES})
 add_definitions(${ROOT_CXX_FLAGS})
 
 file(GLOB HEADER_FILES
@@ -70,6 +71,8 @@ file(GLOB HEADER_FILES
 )
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cxx)
+#file(GLOB_RECURSE THIS_LD LinkDef.h)
+
 
 set(DICTNAME G__${libname})
 
@@ -81,7 +84,8 @@ set_target_properties(${libname} PROPERTIES VERSION ${LIBRARY_VERSION_STRING}
   SOVERSION ${LIBRARY_VERSION_MAJOR})
 
 
-target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
+#target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
+target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} )
 
 
 if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
@@ -93,7 +97,7 @@ message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
 message("DICTNAME is set to ${DICTNAME}" )
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
-install (FILES ${OUR_HEADER} DESTINATION ${UTIL_INC_DIR})
+install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
 install (FILES cmake/modules/FindFFTW.cmake DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
@@ -102,5 +106,5 @@ install (TARGETS ${libname}
 #Only needed for ROOT6
 if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
   install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
-  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
+#  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
 endif() 
