@@ -272,7 +272,7 @@ namespace FFTtools
             /** Feed the FitFn the appropriate data. Note that if SINE_SUBTRACT_USE_FLOATS or SINE_SUBTRACT_FORCE_ALIGNED are defined, these are copied. 
              * Otherwise, we leave them where they are.
              * @param ntrace the number of traces we will minimize
-             * @param nsamples the number of samples per trace. Right now they must all be the same, but this limitation could be removed without too much work should it become necessary.
+             * @param nsamples the number of samples per trace.
              * @param x x-values of the traces to use. x[0] should be first trace, etc. 
              * @param y y-values of the traces to use. x[0] should be first trace, etc. 
              * @param w weights of each trace, or null to always use the same
