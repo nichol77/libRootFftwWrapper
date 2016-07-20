@@ -750,6 +750,33 @@ namespace FFTtools
                          double * I = 0, double * Q = 0, double * U = 0, double * V = 0); 
 
 
+
+   /** Compute the DFT term  at a given frequency. Probably not want you want to do for a series of frequencies where one can 
+    *  take advantage of trig relations, etc. 
+    *
+    *  @param g What to  look at
+    *  @param freq the frequency
+    *  @param phase pointer where phase will be stored or 0 to not store anything
+    *  @param amp pointer where amplitude will be stored or 0 to not store anything
+    *  @param real pointer where real will be stored or 0 to not store anything
+    *  @param imag pointer where imag will be stored or 0 to not store anything
+    */ 
+
+   void dftAtFreq(const TGraph * g, double freq, double * phase, double * amp = 0, double * real = 0, double * imag = 0); 
+
+
+   /** Compute the DFT term at a given frequency and n multiples of it. Timebase does not have to be even. Phase and amp should be big enough to store nmultiples or 0 if you don't want to fill one. 
+    * @param g waveform to look at 
+    * @param freq base frequency
+    * @param nmultiples number of multiples to consider
+    * @param phase pointer to array where phase will be stored, or 0 to not store anything. 
+    * @param amp pointer to array where amp will be stored, or 0 to not store anything. 
+    * @param real pointer where real will be stored or 0 to not store anything
+    * @param imag pointer where imag will be stored or 0 to not store anything
+    *
+    * */ 
+   void dftAtFreqAndMultiples(const TGraph * g, double freq, int nmultiples, double * phase, double * amp = 0, double * real = 0, double * imag = 0); 
+
 }
    
 #endif //FFTTOOLS_H
