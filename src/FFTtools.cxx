@@ -2934,7 +2934,7 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
   if (nmultiples < 1) return; 
   if (nmultiples == 1) return dftAtFreq(g,f,phase,amp,real,imag); 
 
-  double two_w = 4 * TMath::Pi() * f; 
+  double w = 2 * TMath::Pi() * f; 
 
   const double * t = g->GetX();
   const double * y = g->GetX();
@@ -2950,7 +2950,7 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
 #ifdef ENABLE_VECTORIZE
   VEC vecy; 
   VEC vect; 
-  VEC v2w = two_w; 
+  VEC vw = w; 
 
   int leftover = N % VEC_N; 
   int nit = N / VEC_N + (leftover ? 1 : 0); 
@@ -2971,7 +2971,7 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
     }
 
 
-    VEC ang = vect * v2w; 
+    VEC ang = vect * vw; 
     VEC vec_sin, vec_cos; 
     vec_sin = sincos(&vec_cos, ang); 
 
@@ -3004,7 +3004,7 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
 
   for (int i = 0; i < N; i++)
   {
-    SINCOS(two_w * t[i], sin_f[i], cos_f[i]); 
+    SINCOS(w* t[i], sin_f[i], cos_f[i]); 
     double v = y[i]; 
     vcos += v*c; 
     vsin += v*s; 
@@ -3105,7 +3105,7 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
 void FFTtools::dftAtFreq(const TGraph * g, double f, double * phase , double * amp, double * real, double * imag) 
 {
 
-  double two_w = 4 * TMath::Pi() * f;
+  double w = 2 * TMath::Pi() * f;
   double vcos = 0;
   double vsin = 0;
 
@@ -3115,7 +3115,7 @@ void FFTtools::dftAtFreq(const TGraph * g, double f, double * phase , double * a
 
 #ifdef ENABLE_VECTORIZE
 
-  VEC v2w= two_w; 
+  VEC vw= w; 
   VEC vecy; 
   VEC vect ;
   
@@ -3135,7 +3135,7 @@ void FFTtools::dftAtFreq(const TGraph * g, double f, double * phase , double * a
        vecy.load_partial(leftover, y+VEC_N*i); 
     }
 
-    VEC ang = vect * v2w; 
+    VEC ang = vect * vw; 
     VEC vec_sin, vec_cos; 
     vec_sin = sincos(&vec_cos, ang); 
 
