@@ -7,6 +7,12 @@
 #include "TF1.h" 
 #include <algorithm>
 
+#ifndef __APPLE__
+#define SINCOS sincos 
+#else
+#define SINCOS __sincos
+#endif
+
 
 using namespace std;
 
@@ -3004,7 +3010,10 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
 
   for (int i = 0; i < N; i++)
   {
-    SINCOS(w* t[i], sin_f[i], cos_f[i]); 
+    double c,s; 
+    SINCOS(w* t[i], &s,&c); 
+    sin_f[i] = s; 
+    cos_f[i] = c; 
     double v = y[i]; 
     vcos += v*c; 
     vsin += v*s; 
@@ -3078,17 +3087,12 @@ void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples,
     for (int i = 0; i < N; i++)
     {
       double tempcos = cos_f[i] * cos_nf[i] - sin_f[i] * sin_nf[i]; 
-      double temspin = cos_f[i] * sin_nf[i] + sin_f[i] *cos_nf[i]; 
+      double tempsin = cos_f[i] * sin_nf[i] + sin_f[i] *cos_nf[i]; 
       cos_nf[i] = tempcos; 
       sin_nf[i] = tempsin; 
 
-      vcos += temp_cos * y[i]; 
-      vsin += temp_sin * y[i]; 
-
-      vec_sin *= vecy; 
-      vec_cos *= vecy; 
-      vsin += horizontal_add(vec_sin); 
-      vcos += horizontal_add(vec_cos); 
+      vcos += tempcos * y[i]; 
+      vsin += tempsin * y[i]; 
     }
 #endif
 
@@ -3148,7 +3152,7 @@ void FFTtools::dftAtFreq(const TGraph * g, double f, double * phase , double * a
   for (int i = 0; i < N; i++)
 	{
     double c,s;
-    SINCOS(two_w*t[i], &s,&c);
+    SINCOS(w*t[i], &s,&c);
     double v = y[i];
     vcos +=c*v;
     vsin +=s*v;
