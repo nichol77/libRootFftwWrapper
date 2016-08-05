@@ -108,3 +108,106 @@ if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
   install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
 #  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
 endif() 
+
+
+
+
+#################################################################################
+###  Manual vectorization option 
+###  Maybe in the future this can be made a CMake module or something 
+################################################################################# 
+
+set (VECTORDIR vectorclass) 
+option(VECTORIZE "Enable Manual SIMD Vectorization" ON) 
+if (VECTORIZE) 
+  add_definitions( -DENABLE_VECTORIZE ) 
+
+  if(CMAKE_COMPILER_IS_GNUCXX) 
+    add_definitions(  -fabi-version=0 ) 
+  endif() 
+
+  if (EXISTS ${VECTORDIR}/vectorclass.zip )
+    message (" Found vectorclass already downloaded... ") 
+
+  else () 
+    file(MAKE_DIRECTORY ${VECTORDIR} ) 
+    message (" Downloading vector class...")
+    file(DOWNLOAD http://www.agner.org/optimize/vectorclass.zip ${VECTORDIR}/vectorclass.zip) 
+
+    #TODO there is probably a more cross platform way of doing this 
+    execute_process(COMMAND unzip ${VECTORDIR}/vectorclass.zip -d ${VECTORDIR} )
+    execute_process(COMMAND unzip ${VECTORDIR}/special.zip -d ${VECTORDIR} ) 
+  endif() 
+
+
+  ## is this right? who knows 
+  include_directories( ${CMAKE_BINARY_DIR}/${VECTORDIR} ) 
+
+
+endif (VECTORIZE) 
+
+
+
+##################################################################
+###  Linear algebra options 
+##################################################################
+
+option(USE_EIGEN "Use Eigen3 for certain linear algebra options" OFF) 
+set (EIGEN3_INCLUDE_DIR "/usr/include" CACHE String "Eigen3 include path") 
+option(USE_ARMADILLO "Use Armadillo for certain linear algebra options" OFF) 
+
+if (USE_EIGEN AND USE_ARMADILLO) 
+
+  message(FATAL_ERROR "USE_EIGEN and USE_ARMADILLO are mutually exclusive") 
+
+elseif(USE_EIGEN) 
+  add_definitions ( -DUSE_EIGEN) 
+  include_directories (  ${EIGEN3_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR}/eigen3 ) 
+elseif(USE_ARMADILLO) 
+
+  add_definitions( -DUSE_ARMADILLO) 
+  target_link_libraries(${libname} armadillo) 
+
+endif() 
+
+
+###############################################################################
+#### Multithread options 
+################################################################################
+option(ENABLE_OPENMP "Enable OpenMP support (experimenta, mutually exclusive with ENABLE_THREAD_SAFE) for doFft and doInvFft" OFF) 
+option(ENABLE_THREAD_SAFE "Make fft methods threadsafe (mutually exclusive with ENABLE_OPENP)" OFF) 
+
+if (ENABLE_OPENMP AND ENABLE_THREAD_SAFE)
+
+  message(FATAL_ERROR "ENABLE_THREAD_SAFE and ENABLE_OPENMP are mutually exclusive") 
+
+elseif(ENABLE_THREAD_SAFE) 
+  add_definitions( -DFFTTOOLS_THREAD_SAFE )
+elseif(ENABLE_OPENMP) 
+
+  FIND_PACKAGE( OpenMP REQUIRED)
+  if(OPENMP_FOUND)
+    message("OPENMP FOUND")
+    add_definitions (-DFFTTOOLS_USE_OMP) 
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  else() 
+    message(FATAL_ERROR "you tried to use openmp but Cmake couldn't find compiler support") 
+  endif() 
+endif() 
+
+
+
+#### Misc options  #### 
+
+option(USE_PATIENT_PLANS "Use FFTW_PATIENT" OFF) 
+if (USE_PATIENT_PLANS) 
+  add_definitions ( -DFFTW_USE_PATIENT ) 
+endif() 
+
+
+
+
+
+
