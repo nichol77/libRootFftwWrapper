@@ -30,7 +30,7 @@ int main (int nargs, char ** args)
 //  int trace_max = 450; 
 
 
-  bool verbose = true; 
+  bool verbose = false; 
   gRandom->SetSeed(13); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
 
   //end config
