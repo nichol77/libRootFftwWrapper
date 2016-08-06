@@ -528,7 +528,7 @@ double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
 
 
 
-/** done with complicated code */ 
+/* done with complicated code */ 
 
 
 Double_t *FFTtools::combineValuesUsingFFTs(Int_t numArrays, Double_t **thePtrPtr, Int_t eachLength) {
