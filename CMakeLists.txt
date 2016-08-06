@@ -1,4 +1,5 @@
-# CMakeLists.txt for event package. It creates a library with dictionary and a main program
+# CMakeLists.txt for libRootFftwWrapper.
+# 
 cmake_minimum_required(VERSION 2.8.10)
 
 project(RootFftwWrapper)
@@ -97,6 +98,7 @@ message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
 message("DICTNAME is set to ${DICTNAME}" )
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
+
 install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
 install (FILES cmake/modules/FindFFTW.cmake DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
 install (TARGETS ${libname}
@@ -109,6 +111,57 @@ if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
 #  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
 endif() 
 
+
+
+###############################################################################################
+### Binaries
+### I'm a CMAKE n00b so ther's probably a much better way to do this? 
+###############################################################################################
+
+set (BINSRCDIR test) 
+macro( do_binary binary_name ) 
+  add_executable(${binary_name} ${BINSRCDIR}/${binary_name}.cxx) 
+  target_link_libraries(${binary_name}  ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} ${libname})
+endmacro() 
+
+do_binary(testFFTtools) 
+do_binary(testSubtract) 
+
+
+
+#################################################################################3
+### The default build configuration is INSANE. No optimization? What is this 1971? 
+
+message (" Adding new build type") 
+
+set(CMAKE_CXX_FLAGS_DEFAULT 
+  "-Os -g -Wall" 
+  CACHE STRING "c++ Flags used during default libRootFftwWrapper builds" 
+  FORCE ) 
+
+set(CMAKE_C_FLAGS_DEFAULT 
+  "-Os -g -Wall"
+  CACHE STRING "c Flags used during default libRootFftwWrapper builds" 
+  FORCE ) 
+
+set(CMAKE_EXE_LINKER_FLAGS_DEFAULT 
+  "-g"
+  CACHE STRING "ld Flags used during default libRootFftwWrapper builds" 
+  FORCE ) 
+
+set(CMAKE_SHARED_LINKER_FLAGS_DEFAULT 
+  "-g"
+  CACHE STRING "ld Flags used during default libRootFftwWrapper builds" 
+  FORCE ) 
+
+
+mark_as_advanced ( CMAKE_CXX_FLAGS_DEFAULT  CMAKE_C_FLAGS_DEFAULT CMAKE_EXE_LINKER_FLAGS_DEFAULT CMAKE_SHARED_LINKER_FLAGS_DEFAULT) 
+
+if (NOT CMAKE_BUILD_TYPE) 
+  set (CMAKE_BUILD_TYPE Default
+    CACHE STRING "Choose tye type of build: None Debug Release RelWithDebInfo MinSizeRel Default"
+    FORCE ) 
+endif()
 
 
 
@@ -134,7 +187,7 @@ if (VECTORIZE)
     message (" Downloading vector class...")
     file(DOWNLOAD http://www.agner.org/optimize/vectorclass.zip ${VECTORDIR}/vectorclass.zip) 
 
-    #TODO there is probably a more cross platform way of doing this 
+    #TODO there is probably a more cross platform way of doing this... 
     execute_process(COMMAND unzip ${VECTORDIR}/vectorclass.zip -d ${VECTORDIR} )
     execute_process(COMMAND unzip ${VECTORDIR}/special.zip -d ${VECTORDIR} ) 
   endif() 
@@ -153,7 +206,7 @@ endif (VECTORIZE)
 ##################################################################
 
 option(USE_EIGEN "Use Eigen3 for certain linear algebra options" OFF) 
-set (EIGEN3_INCLUDE_DIR "/usr/include" CACHE String "Eigen3 include path") 
+set (EIGEN3_INCLUDE_DIR "/usr/include/eigen3" CACHE String "Eigen3 include path") 
 option(USE_ARMADILLO "Use Armadillo for certain linear algebra options" OFF) 
 
 if (USE_EIGEN AND USE_ARMADILLO) 
@@ -162,7 +215,7 @@ if (USE_EIGEN AND USE_ARMADILLO)
 
 elseif(USE_EIGEN) 
   add_definitions ( -DUSE_EIGEN) 
-  include_directories (  ${EIGEN3_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR}/eigen3 ) 
+  include_directories (  ${EIGEN3_INCLUDE_DIR} ) 
 elseif(USE_ARMADILLO) 
 
   add_definitions( -DUSE_ARMADILLO) 
@@ -192,19 +245,66 @@ elseif(ENABLE_OPENMP)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+
+    do_binary(testOpenMP) 
   else() 
     message(FATAL_ERROR "you tried to use openmp but Cmake couldn't find compiler support") 
   endif() 
 endif() 
 
 
+#### api compatibility 
+
+option ( FORCE_OLD_GPP_ABI " Force old g++ ABI; this might be necessary if using new g++ with ROOT compiled with older g++ or other similar situations" OFF ) 
+if (FORCE_OLD_GPP_ABI) 
+  add_definitions( -D_GLIBCXX_USE_CXX11_ABI=0 ) 
+endif() 
+    
+
+
+### Let's see if this works 
+macro(stupid_option option_name option_description) 
+  option (${option_name} ${option_description} OFF) 
+  if (${option_name}) 
+    add_definitions ( -D${option_name} )
+  endif()
+endmacro() 
+
+
+
+
+#### Random Sine Subtraction options #### 
+stupid_option(SINE_SUBTRACT_USE_FLOATS  "Use floats for vectorized sine subtraction") 
+mark_as_advanced(SINE_SUBTRACT_USE_FLOATS)
+stupid_option(SINE_SUBTRACT_PROFILE  "Enable Sine Subtraction profiling (you probably don't want to do this)") 
+mark_as_advanced(SINE_SUBTRACT_PROFILE)
+
+#option ( SINE_SUBTRACT_USE_FLOATS "Use floats for vectorized Sine Subtraction" OFF)
+#mark_as_advanced( SINE_SUBTRACT_USE_FLOATS) 
+#if ( SINE_SUBTRACT_USE_FLOATS) 
+#  add_definitions ( -DSINE_SUBTRACT_USE_FLOATS)
+#endif()
+#
+#option ( SINE_SUBTRACT_PROFILE "Enable Sine Subtraction profiling (you probably don't want to do this) " OFF)
+#mark_as_advanced( SINE_SUBTRACT_PROFILE) 
+#if ( SINE_SUBTRACT_PROFILE) 
+#  add_definitions ( -DSINE_SUBTRACT_PROFILE)
+#endif()
+#
+#
 
 #### Misc options  #### 
 
-option(USE_PATIENT_PLANS "Use FFTW_PATIENT" OFF) 
-if (USE_PATIENT_PLANS) 
-  add_definitions ( -DFFTW_USE_PATIENT ) 
-endif() 
+stupid_option(FFTW_USE_PATIENT  "Use FFTW Patient plans... not recommended unless you are good about saving wisdom")
+mark_as_advanced(FFTW_USE_PATIENT) 
+
+#option(USE_PATIENT_PLANS "Use FFTW_PATIENT" OFF) 
+#mark_as_advanced( USE_PATIENT_PLANS) 
+#
+#if (USE_PATIENT_PLANS) 
+#  add_definitions ( -DFFTW_USE_PATIENT ) 
+#endif() 
+
 
 
 
