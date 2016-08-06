@@ -17,13 +17,21 @@ Making  and Installing
 i) Ensure both ROOT and FFTW3 are on your system and that ROOTSYS is correctly set (or root-config is in your path) and that the directory containing libfftw3 is in either the system or your own LD_LIBRARY_PATH.
 ii) Make sure that cmake is installed on your system
 iii) Set the environmental variable ANITA_UTIL_INSTALL_DIR to point to your desired installation dir (libraries will be installed in a lib subdirectory from this location)
-iii) To build the code do (from the libRootFftwWrapper directory):
-mkdir build
-cd build
-cmake ..
-make
-make install
+iii) To build the code: 
 
+
+  Right now, we recommend you build using cmake: 
+
+   (optional) make configure
+   make 
+   make install 
+
+  To use the old build system:  
+   (optional) modify Makefile.config to suit your needs 
+    make legacy 
+    make legacy-install 
+
+  Trying to mix the two build systems might get things confused 
 
 
 Mac Users
