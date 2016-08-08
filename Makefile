@@ -16,13 +16,13 @@ install: cmake-install
 doc: legacy-doc
 
 cmake-build: build/Makefile 
-	@make -C  ./build
+	@+make -C  ./build
 
 legacy-doc: 
 	@make -f Makefile.legacy doc 
 
 legacy: 
-	@make -f Makefile.legacy 
+	@+make -f Makefile.legacy 
 
 legacy-clean: 
 	@make -f Makefile.legacy clean 
