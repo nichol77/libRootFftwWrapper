@@ -232,16 +232,16 @@ endif()
 ###############################################################################
 #### Multithread options 
 ################################################################################
-option(ENABLE_OPENMP "Enable OpenMP support (experimenta, mutually exclusive with ENABLE_THREAD_SAFE) for doFft and doInvFft" OFF) 
-option(ENABLE_THREAD_SAFE "Make fft methods threadsafe (mutually exclusive with ENABLE_OPENP)" OFF) 
+option(FFTTOOLS_ENABLE_OPENMP "Enable OpenMP support (experimenta, mutually exclusive with FFTTOOLS_ENABLE_THREAD_SAFE) for doFft and doInvFft" OFF) 
+option(FFTTOOLS_ENABLE_THREAD_SAFE "Make fft methods threadsafe (mutually exclusive with FFTTOOLS_ENABLE_OPEMP)" OFF) 
 
-if (ENABLE_OPENMP AND ENABLE_THREAD_SAFE)
+if (FFTTOOLS_ENABLE_OPENMP AND FFTTOOLS_ENABLE_THREAD_SAFE)
 
-  message(FATAL_ERROR "ENABLE_THREAD_SAFE and ENABLE_OPENMP are mutually exclusive") 
+  message(FATAL_ERROR "FFTTOOLS_ENABLE_THREAD_SAFE and FFTTOOLS_ENABLE_OPENMP are mutually exclusive") 
 
-elseif(ENABLE_THREAD_SAFE) 
+elseif(FFTTOOLS_ENABLE_THREAD_SAFE) 
   add_definitions( -DFFTTOOLS_THREAD_SAFE )
-elseif(ENABLE_OPENMP) 
+elseif(FFTTOOLS_ENABLE_OPENMP) 
 
   FIND_PACKAGE( OpenMP REQUIRED)
   if(OPENMP_FOUND)
