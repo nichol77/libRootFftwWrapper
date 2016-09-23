@@ -3,6 +3,7 @@
 #define FFTWCOMPLEX_H
 #include "TMath.h"
 #include <ostream>
+#include <complex>
 
 //!  This is a wrapper class for a complex number
 /*!
@@ -83,6 +84,13 @@ public:
   inline double getPhase() const{
     return TMath::ATan2(im,re);
   }
+
+  operator std::complex<double>() 
+  {
+    return std::complex<double>(re,im); 
+
+  }
+
 };
 
 // overload string stream operator... just for fun
