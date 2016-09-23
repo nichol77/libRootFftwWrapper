@@ -200,6 +200,13 @@ namespace FFTtools
         IIRFilter(size_t order, const double * acoeffs, const double * bcoeffs) 
           : order(order+1), acoeffs(acoeffs, acoeffs+order+1), bcoeffs(bcoeffs, bcoeffs + order+1) {; } 
 
+        IIRFilter(std::complex<double> gain, size_t nzeroes, std::complex<double> * digi_zeroes, size_t npoles, std::complex<double> * digi_poles) 
+        {
+          computeCoeffsFromDigiPoles(gain, nzeroes, digi_zeroes, npoles, digi_poles); 
+          order = npoles > nzeroes ? npoles : nzeroes; 
+
+        }
+
         virtual void filterOut(size_t n, const double * w, double * out) const; 
         virtual std::complex<double> transfer(std::complex<double> z) const ;  
 
@@ -215,6 +222,7 @@ namespace FFTtools
         size_t order; 
         std::vector<double> acoeffs; 
         std::vector<double> bcoeffs; 
+        void computeCoeffsFromDigiPoles(std::complex<double> gain, size_t nzeroes, std::complex<double> * zeros, size_t npoles, std::complex<double> * poles); 
     };
 
     /* Classic filter topologies */ 

@@ -264,8 +264,8 @@ static void poly(unsigned int n, const std::complex<double> * zeroes, std::compl
 void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, double dw)
 {
 
-  double W=tan(TMath::Pi()*w/2);   // to s plane
-  double Wh = tan(TMath::Pi()*(w+dw)/2);   
+  double W=tan(TMath::Pi()*w/2);   // prewarp frequencies 
+  double Wh = tan(TMath::Pi()*(w+dw)/2);  
   double Wl = tan(TMath::Pi()*(w-dw)/2);  
   double dW = (Wh - Wl)/2 ; 
 
@@ -396,8 +396,6 @@ void FFTtools::TransformedZPKFilter::bilinearTransform()
   
   size_t n = std::max(poles.size(), zeroes.size()) ; 
 
-  bcoeffs.clear(); bcoeffs.insert(bcoeffs.begin(), n+1,0); 
-  acoeffs.clear(); acoeffs.insert(acoeffs.begin(), n+1,0); 
 
   digi_poles.clear(); digi_poles.insert(digi_poles.begin(), n,0); 
   digi_zeroes.clear(); digi_zeroes.insert(digi_zeroes.begin(), n,0); 
@@ -426,18 +424,8 @@ void FFTtools::TransformedZPKFilter::bilinearTransform()
   digi_gain = std::real(digi_gain); 
 
   //Now, get coefficients from poles and zeroes
-  std::vector< std::complex<double> >bpoly(n+1);
-  poly(n, &digi_zeroes[0],&bpoly[0]); 
 
-  std::vector<std::complex<double> >apoly(n+1);
-  poly(n, &digi_poles[0],&apoly[0]); 
-
-  for (unsigned int i = 0; i < n+ 1; i++)
-  {
-       bcoeffs[i] = (double) std::real(digi_gain * bpoly[n - i]);             
-       acoeffs[i] = (double) std::real(apoly[n - i]);             
-  }
-
+  computeCoeffsFromDigiPoles(digi_gain, n, &digi_zeroes[0], n, &digi_poles[0]); 
 }
 
 
@@ -672,6 +660,28 @@ FFTtools::DifferenceFilter::DifferenceFilter(int order)
 
 
 
+void FFTtools::IIRFilter::computeCoeffsFromDigiPoles(std::complex<double> digi_gain, size_t nzeroes, std::complex<double> * digi_zeroes, size_t npoles, std::complex<double> * digi_poles) 
+{
+
+  bcoeffs.clear(); bcoeffs.insert(bcoeffs.begin(), nzeroes+1,0); 
+  acoeffs.clear(); acoeffs.insert(acoeffs.begin(), npoles+1,0); 
+
+  std::vector< std::complex<double> >bpoly(nzeroes+1);
+  poly(nzeroes, &digi_zeroes[0],&bpoly[0]); 
+
+  std::vector<std::complex<double> >apoly(npoles+1);
+  poly(npoles, &digi_poles[0],&apoly[0]); 
+
+  for (unsigned int i = 0; i < nzeroes+ 1; i++)
+  {
+       bcoeffs[i] = (double) std::real(digi_gain * bpoly[nzeroes - i]);             
+
+  }
+  for (unsigned int i = 0; i < npoles+ 1; i++)
+  {
+       acoeffs[i] = (double) std::real(apoly[npoles - i]);             
+  }
+}
 
 
 
