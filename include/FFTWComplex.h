@@ -58,13 +58,9 @@ public:
   
   inline FFTWComplex& operator/=(const FFTWComplex &rhs){
     Double_t norm = rhs.getAbsSq();
-    (*this) *= rhs;
+    (*this) *= rhs.conj();
     re /= norm;
     im /= norm;    
-    //   Double_t newRe = re*rhs.re - im*rhs.im;
-    // Double_t newIm = im*rhs.re + re*rhs.im;    
-    // re = newRe/norm;
-    // im = newIm/norm;  
     return *this;
   }    
 
@@ -89,6 +85,13 @@ public:
   {
     return std::complex<double>(re,im); 
 
+  }
+
+  inline FFTWComplex conj() const
+  {
+    FFTWComplex copy(*this); 
+    copy.im = -copy.im; 
+    return copy; 
   }
 
 };
