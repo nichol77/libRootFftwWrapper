@@ -1,5 +1,5 @@
 {
-  gSystem->Load("lib/libRootFftwWrapper.so"); 
+  gSystem->Load("build/libRootFftwWrapper.so"); 
 
 
   const Int_t NRGBs = 5;
