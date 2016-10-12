@@ -22,6 +22,16 @@ public:
   inline FFTWComplex operator*(const FFTWComplex &rhs){
     return FFTWComplex(*this) *= rhs;
   }
+
+  inline FFTWComplex operator*(double d){
+    return FFTWComplex(*this) *= FFTWComplex(d,0);
+  }
+
+
+  inline FFTWComplex operator*=(double d){
+    return FFTWComplex(*this) *= FFTWComplex(d,0);
+  }
+ 
   
   inline FFTWComplex& operator*=(const FFTWComplex &rhs){
     Double_t newRe = re*rhs.re - im*rhs.im;
@@ -55,7 +65,19 @@ public:
   inline FFTWComplex operator/(const FFTWComplex &rhs){
     return FFTWComplex(*this) /= rhs;
   }
-  
+
+  inline FFTWComplex operator/(double d ){
+    return FFTWComplex(*this) /= d;
+  }
+ 
+    inline FFTWComplex& operator/=(double d){
+    re /= d;
+    im /= d;    
+    return *this;
+  }    
+
+
+
   inline FFTWComplex& operator/=(const FFTWComplex &rhs){
     Double_t norm = rhs.getAbsSq();
     (*this) *= rhs.conj();
