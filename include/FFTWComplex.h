@@ -17,20 +17,13 @@ public:
   double re; ///<The real part
   double im; ///<The imaginary part
   
-  FFTWComplex(double real, double imag):re(real),im(imag){}
+  FFTWComplex(double real, double imag=0):re(real),im(imag){}
+
 
   inline FFTWComplex operator*(const FFTWComplex &rhs){
     return FFTWComplex(*this) *= rhs;
   }
 
-  inline FFTWComplex operator*(double d){
-    return FFTWComplex(*this) *= FFTWComplex(d,0);
-  }
-
-
-  inline FFTWComplex operator*=(double d){
-    return FFTWComplex(*this) *= FFTWComplex(d,0);
-  }
  
   
   inline FFTWComplex& operator*=(const FFTWComplex &rhs){
@@ -65,17 +58,6 @@ public:
   inline FFTWComplex operator/(const FFTWComplex &rhs){
     return FFTWComplex(*this) /= rhs;
   }
-
-  inline FFTWComplex operator/(double d ){
-    return FFTWComplex(*this) /= d;
-  }
- 
-    inline FFTWComplex& operator/=(double d){
-    re /= d;
-    im /= d;    
-    return *this;
-  }    
-
 
 
   inline FFTWComplex& operator/=(const FFTWComplex &rhs){
