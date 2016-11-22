@@ -99,8 +99,10 @@ message("DICTNAME is set to ${DICTNAME}" )
 message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
 
+file (GLOB CMAKE_FILES "cmake/modules/*.cmake")
+
 install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
-install (FILES cmake/modules/FindFFTW.cmake DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
+install (FILES ${CMAKE_FILES} DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
 	LIBRARY DESTINATION ${UTIL_LIB_DIR}
