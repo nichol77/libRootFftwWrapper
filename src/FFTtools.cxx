@@ -14,6 +14,8 @@
 #endif
 
 
+
+
 using namespace std;
 
 
@@ -379,7 +381,8 @@ void FFTtools::doInvFFTNoClobber(int length, const FFTWComplex * in, double * ou
 #endif
 
   fftw_complex new_in[length/2+1] __attribute__((aligned(32)));
-#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+
+#if ( __clang__major__ >3 || (__clang_major__==3 && __clang_minor__ >=6)  || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || (__GNUC__ > 4))
   FFTWComplex * ain = (FFTWComplex*) __builtin_assume_aligned(in,32);
 #else
   FFTWComplex * ain = (FFTWComplex*) in;
@@ -387,7 +390,7 @@ void FFTtools::doInvFFTNoClobber(int length, const FFTWComplex * in, double * ou
   memcpy(new_in, ain, (length/2+1) * sizeof(FFTWComplex)); 
   fftw_execute_dft_c2r(plan,new_in, out);
 
-#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+#if ( __clang__major__ >3 || (__clang_major__==3 && __clang_minor__ >=6)  || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || (__GNUC__ > 4))
   double * aout = (double*) __builtin_assume_aligned(out,32);   
 #else
   double * aout = (double*) out;
@@ -414,9 +417,9 @@ void FFTtools::doInvFFTClobber(int length, FFTWComplex * in, double * out)
 #endif
 
 
+#if ( __clang__major__ >3 || (__clang_major__==3 && __clang_minor__ >=6)  || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || (__GNUC__ > 4))
   fftw_execute_dft_c2r(plan, (fftw_complex*) in, out);
 
-#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
   double * aout = (double*) __builtin_assume_aligned(out,32);   
 #else
   double * aout = (double*) out;

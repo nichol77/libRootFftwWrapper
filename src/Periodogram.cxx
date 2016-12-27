@@ -52,7 +52,8 @@ static unsigned factorial_table[] =
 void extirpolate(double y, int n, double *yys, double x, int extirpolation_factor)
 {
   // double * ys = (double*) __builtin_assume_aligned(yys, 32);
-#if (__clang__ || (__GNUC__ >= 4 && __GNUC_MINOR__ >= 7))
+  //
+#if ( __clang__major__ >3 || (__clang_major__==3 && __clang_minor__ >=6)  || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || (__GNUC__ > 4))
   double * ys = (double*) __builtin_assume_aligned(yys, 32);  
 #else
   double * ys = (double*) yys;
