@@ -2,6 +2,7 @@
 #include "TGraph.h" 
 #include "TCanvas.h" 
 #include "TStyle.h" 
+#include "TMutex.h" 
 
 #ifndef __APPLE__
 #include <malloc.h>
@@ -42,6 +43,11 @@
 
 
 #endif 
+
+
+
+static int counter; 
+static TMutex tf1_mutex; 
 
 
 
@@ -632,6 +638,7 @@ FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bo
   verbose = false; 
   tmin = 0; 
   tmax = 0; 
+  id = counter++; 
 
 #ifdef ENABLE_VECTORIZE
   no_subnormals();  // Unlikely to occur, but worth it if they do
@@ -789,7 +796,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
       for (int i = Nuse[ti]; i < NuseMax; i++) 
       {
-        gPadded[ti]->GetX()[i] = TMath::Min(gPadded[ti]->GetX()[i-1] + dt,  i * dt); 
+        gPadded[ti]->GetX()[i] = gPadded[ti]->GetX()[i-1] + dt; 
         gPadded[ti]->GetY()[i] = 0; //should be unnecessary 
       }
     }
@@ -1030,10 +1037,12 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
         g[ti]->GetY()[i] -= A* sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
       }
 
-      if (store) 
+      if (store)  
       {
         //add sine we subtracted to previous graph 
-        TF1 * fn = new TF1(TString::Format("fitsin%lu_%d",r.powers.size(),ti), "[0] * sin(2*pi*[1] * x + [2])",g[ti]->GetX()[0], g[ti]->GetX()[g[ti]->GetN()-1]); 
+        tf1_mutex.Lock();  
+        TF1 * fn = new TF1(TString::Format("fitsin%lu_%d_%d",r.powers.size(),ti,id), "[0] * sin(2*pi*[1] * x + [2])",g[ti]->GetX()[0], g[ti]->GetX()[g[ti]->GetN()-1]); 
+        tf1_mutex.UnLock();  
         fn->SetParameter(0,fitter.getAmp()[ti]); 
         fn->SetParameter(1,fitter.getFreq()); 
         fn->SetParameter(2,fitter.getPhase()[ti]); 
