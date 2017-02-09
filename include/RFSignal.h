@@ -22,12 +22,15 @@ public:
   Double_t *getFreqs();
   Double_t *getMags();
   Double_t *getPhases();
+  void setFreqs(Int_t nfreq, Double_t *freqs);
+  void setMags(Double_t *mags);
+  void setPhases(Double_t *phases);
   FFTWComplex *getComplexNums();
   Int_t getNumFreqs();
   void addToSignal(RFSignal *grSignal);
   void applyFilter(RFFilter *theFilter);
   void updateTimeDomain();//because we could operate on freq domain once it has already been extracted!
-
+  
  private:  
   void fillFreqStuff();
   void extractFromComplex();

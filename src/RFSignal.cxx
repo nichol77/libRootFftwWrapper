@@ -133,6 +133,29 @@ FFTWComplex *RFSignal::getComplexNums()
   return fComplexNums;
 }
 
+void RFSignal::setFreqs(Int_t nfreq, Double_t *freqs){
+  fGotFreqs=1;
+  fNumFreqs=nfreq;
+  fFreqs = new double [fNumFreqs];
+  for(int i=0;i<fNumFreqs;i++) fFreqs[i]=freqs[i];
+}
+
+void RFSignal::setMags(Double_t *mags){
+  if (fGotFreqs){
+    for (int i=0;i<fNumFreqs;i++) fMags[i]=mags[i];
+  } else {
+    std::cout << "You need to set the Freqs first" << std::endl;
+  }
+}
+
+void RFSignal::setPhases(Double_t *phases){
+  if (fGotFreqs){
+    for (int i=0;i<fNumFreqs;i++) fPhases[i]=phases[i];
+  } else {
+    std::cout << "You need to set the Freqs first" << std::endl;
+  }
+}
+
 void RFSignal::fillFreqStuff()
 {
   fGotFreqs=1;
