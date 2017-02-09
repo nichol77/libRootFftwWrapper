@@ -136,17 +136,29 @@ FFTWComplex *RFSignal::getComplexNums()
 void RFSignal::setFreqs(Int_t nfreq, Double_t *freqs){
   fGotFreqs=1;
   fNumFreqs=nfreq;
+  fNpoints=(nfreq+1)*2;
   fFreqs = new double [fNumFreqs];
-  for(int i=0;i<fNumFreqs;i++) fFreqs[i]=freqs[i];
+  // std::cout << " Freq and points " << nfreq << " " << fNumFreqs << " " << fNpoints << std::endl; 
+  for(int i=0;i<fNumFreqs;i++){
+    fFreqs[i]=freqs[i];
+    // std::cout << fFreqs[i] << std::endl;
+  }
 }
 
 void RFSignal::setMagsPhases(Double_t *mags, Double_t *phases){
   if (fGotFreqs){
+    fMags        = new double      [fNumFreqs];
+    fPhases      = new double      [fNumFreqs];
+    fComplexNums = new FFTWComplex [fNumFreqs];
+    // std::cout << "NUM FREQS " << fNumFreqs << std::endl;
     for (int i=0;i<fNumFreqs;i++){
       fMags[i]       = mags[i];
       fPhases[i]     = phases[i];
       fComplexNums[i].setMagPhase(mags[i], phases[i]);
+      // std::cout << fMags[i] << " " << fPhases[i] << " " << fComplexNums[i].getAbs() << " " << fComplexNums[i].getPhase() << std::endl;
     }
+    extractFromComplex();
+
   } else {
     std::cout << "You need to set the Freqs first" << std::endl;
   }
@@ -205,21 +217,21 @@ void RFSignal::updateTimeDomain(){
 
 void RFSignal::extractFromComplex()
 {
-//   std::cout << "EXTRACT:\n";
-  //  std::cout << "Here also\n";
+   std::cout << "EXTRACT:\n";
+    std::cout << "Here also\n";
   fGotFreqs=1;
   double deltaF=fFreqs[1]-fFreqs[0];
   double deltaT=1./(deltaF*fNpoints);
   if(fMvNs)
     deltaT*=1e3;
   double temp=0;
-//   std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
-//     	    << "\n";
-//   std::cout << "RFSignal: dT " << deltaT << " dF " << deltaF
-// 	    << "\n";
+   std::cout << "RFSignal: " << fNpoints << "\t" << fComplexNums[1].getAbs()
+     	    << "\n";
+   std::cout << "RFSignal: dT " << deltaT << " dF " << deltaF
+ 	    << "\n";
   double *fVoltVals = FFTtools::doInvFFT(fNpoints,fComplexNums);
-//   std::cout << "RFSignal: V " << fVoltVals[0] << "\t" << fVoltVals[1] 
-// 	    << "\n";
+   std::cout << "RFSignal: V " << fVoltVals[0] << "\t" << fVoltVals[1] 
+ 	    << "\n";
   for(int i=0;i<fNpoints;i++) {
     fX[i]=temp;
     temp+=deltaT;
