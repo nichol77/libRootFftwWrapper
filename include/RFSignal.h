@@ -23,8 +23,7 @@ public:
   Double_t *getMags();
   Double_t *getPhases();
   void setFreqs(Int_t nfreq, Double_t *freqs);
-  void setMags(Double_t *mags);
-  void setPhases(Double_t *phases);
+  void setMagsPhases(Double_t *mags, Double_t *phases);
   FFTWComplex *getComplexNums();
   Int_t getNumFreqs();
   void addToSignal(RFSignal *grSignal);

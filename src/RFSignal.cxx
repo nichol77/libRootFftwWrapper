@@ -140,17 +140,13 @@ void RFSignal::setFreqs(Int_t nfreq, Double_t *freqs){
   for(int i=0;i<fNumFreqs;i++) fFreqs[i]=freqs[i];
 }
 
-void RFSignal::setMags(Double_t *mags){
+void RFSignal::setMagsPhases(Double_t *mags, Double_t *phases){
   if (fGotFreqs){
-    for (int i=0;i<fNumFreqs;i++) fMags[i]=mags[i];
-  } else {
-    std::cout << "You need to set the Freqs first" << std::endl;
-  }
-}
-
-void RFSignal::setPhases(Double_t *phases){
-  if (fGotFreqs){
-    for (int i=0;i<fNumFreqs;i++) fPhases[i]=phases[i];
+    for (int i=0;i<fNumFreqs;i++){
+      fMags[i]       = mags[i];
+      fPhases[i]     = phases[i];
+      fComplexNums[i].setMagPhase(mags[i], phases[i]);
+    }
   } else {
     std::cout << "You need to set the Freqs first" << std::endl;
   }
