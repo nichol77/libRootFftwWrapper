@@ -3212,8 +3212,9 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
 
   for (int i = 0; i < N; i++) 
   {
-    std::complex<double> logOut = std::complex<double>(logmag[i],phase[i]); 
-    output[i] = FFTWComplex( std::exp(logOut)); 
+    double mag = G[i] < minval ? minval : G[i]; 
+    output[i].re = mag * cos(phase[i]); 
+    output[i].im = mag * sin(phase[i]); 
   }
 
   delete logmag; 

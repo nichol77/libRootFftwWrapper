@@ -9,7 +9,7 @@ void testMinPhase(int N = 256, double dt = 0.5)
   double * G = new double[fftN]; 
   for (int i = 0; i < fftN; i++) 
   {
-   G[i] = i < fftN/5  || i > fftN*4/5 ? 0 : 1; 
+   G[i] = i < fftN/5  || i > fftN*4/5 ? 0 : sqrt(fftN); 
   }
   FFTWComplex * mps=FFTtools::makeMinimumPhase(fftN,G); 
 
