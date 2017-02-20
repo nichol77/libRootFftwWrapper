@@ -19,6 +19,9 @@ public:
   
   FFTWComplex(double real, double imag=0):re(real),im(imag){}
 
+  /** Constructor from std::complex  */ 
+  FFTWComplex(const std::complex<double>  & c) : re(c.real()), im(c.imag()) {; } 
+
 
   inline FFTWComplex operator*(const FFTWComplex &rhs){
     return FFTWComplex(*this) *= rhs;
