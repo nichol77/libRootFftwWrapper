@@ -187,6 +187,7 @@ TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
 static std::map<int, std::pair<fftw_plan, fftw_plan> > cached_plans; //this caches both plans for a given length
 
 
+
 /* error if you try to compile with both */ 
 #ifdef FFTTOOLS_THREAD_SAFE
 #ifdef FFTTOOLS_USE_OMP
@@ -3173,4 +3174,54 @@ void FFTtools::dftAtFreq(const TGraph * g, double f, double * phase , double * a
   if (amp) 
     *amp = sqrt(vsin*vsin + vcos*vcos);  
 }
+
+
+
+
+//////////////////////////////////////
+
+
+
+FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
+{
+  double minval =  TMath::Power(10,mindb/20); 
+  double min = log(minval); 
+
+
+  double * logmag = (double*) fftw_malloc(sizeof(double) * N); 
+  double * phase = (double*) fftw_malloc(sizeof(double) * N); 
+  FFTWComplex * output = (FFTWComplex*) fftw_malloc(N * sizeof(FFTWComplex)); 
+  FFTWComplex * scratch = output; 
+
+  for (int i = 0; i < N; i++)
+  {
+    logmag[i]=  G[i] < minval ? min : log(G[i]); 
+  }
+
+  //hilbert transform the log mag, preusing a portion of the output array 
+  doFFT(N, logmag, scratch); 
+
+  for (int i = 0; i < N/2+1;i++) 
+  {
+    double temp = scratch[i].im; 
+    scratch[i].im = scratch[i].re; 
+    scratch[i].re = -temp; 
+  }
+
+  doInvFFTClobber(N, scratch, phase); 
+
+  for (int i = 0; i < N; i++) 
+  {
+    std::complex<double> logOut = std::complex<double>(logmag[i],phase[i]); 
+    output[i] = FFTWComplex( std::exp(logOut)); 
+  }
+
+  delete logmag; 
+  delete phase; 
+  return output; 
+}
+
+
+
+
 

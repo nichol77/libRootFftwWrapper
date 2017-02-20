@@ -116,6 +116,7 @@ namespace FFTtools
    FFTWComplex *doFFT(int length,double *theInput);    
 
    
+
    /** Version of doFFT don't require copying of memory. If these are not aligned properly (i.e. allocated with fftw_malloc, memalign or equivalent), bad things might happen. */ 
    void doFFT(int length, const double * properly_aligned_input, FFTWComplex * properly_aligned_output); 
 
@@ -776,6 +777,18 @@ namespace FFTtools
     *
     * */ 
    void dftAtFreqAndMultiples(const TGraph * g, double freq, int nmultiples, double * phase, double * amp = 0, double * real = 0, double * imag = 0); 
+
+
+   /** Given a desired amplitude  response G, makes a minimum phase version of the waveform. This takes advantage
+    * of the fact that for a minimum phase signal, the phase response equals the hilbert transform of the log magnitude. 
+    * @param N, the length of the amplitude response (typically the time domain length/ 2 + 1), 
+    * @param F, the amplitude response G(w) with w in normalized units (first component is dc, last is nyquist). This is in linear units. 
+    * @param mindb, an absolute zero in the frequency response cannot be represented with a minimum phase filter. Anything with a (power) magnitude smaller than mindb will be made equal to mindb 
+    * @returns A minimum phase version of the waveform. 
+    */ 
+   FFTWComplex * makeMinimumPhase(int N, const double * G,  double mindb = -100); 
+
+
 
 }
    
