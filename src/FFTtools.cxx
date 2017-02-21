@@ -3201,7 +3201,7 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
   //hilbert transform the log mag, preusing a portion of the output array 
   doFFT(N, logmag, scratch); 
 
-  for (int i = 0; i < N/2+1;i++) 
+  for (int i = 0; i <= N/2;i++) 
   {
     double temp = scratch[i].im; 
     scratch[i].im = scratch[i].re; 
@@ -3210,11 +3210,22 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
 
   doInvFFTClobber(N, scratch, phase); 
 
+  
   for (int i = 0; i < N; i++) 
   {
     double mag = G[i] < minval ? minval : G[i]; 
-    output[i].re = mag * cos(phase[i]); 
-    output[i].im = mag * sin(phase[i]); 
+
+    if ( i == 0 || i == N-1) 
+    {
+      output[i].re = mag; 
+      output[i].im = 0; 
+
+    }
+    else
+    {
+      output[i].re = mag/sqrt(2) * cos(phase[i]); 
+      output[i].im = mag/sqrt(2) * sin(phase[i]); 
+    }
   }
 
   delete logmag; 

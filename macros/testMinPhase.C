@@ -9,11 +9,24 @@ void testMinPhase(int N = 256, double dt = 0.5)
   double * G = new double[fftN]; 
   for (int i = 0; i < fftN; i++) 
   {
-   G[i] = i < fftN/5  || i > fftN*4/5 ? 0 : sqrt(fftN); 
+//   G[i] = i < fftN/5  || i > fftN*4/5 ? 0 : sqrt(fftN); 
+
+    double w = double(i)/fftN; ; 
+    G[i] = 1./sqrt(1 + w*w) *sqrt(N); 
+
   }
   FFTWComplex * mps=FFTtools::makeMinimumPhase(fftN,G); 
 
+
   double * y = FFTtools::doInvFFT(N, mps); 
+
+  FFTWComplex *fft = FFTtools::doFFT(N,y); 
+
+  for (int i =0; i < fftN; i++) 
+  {
+    std::cout << mps[i] <<  " ::: " << fft[i] << std::endl; 
+  }
+
 
 
   TGraph *g = new TGraph(N); 
