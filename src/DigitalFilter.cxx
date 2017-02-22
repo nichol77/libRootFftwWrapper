@@ -685,3 +685,89 @@ void FFTtools::IIRFilter::computeCoeffsFromDigiPoles(std::complex<double> digi_g
 
 
 
+TString FFTtools::IIRFilter::asString() const 
+{
+
+  /*This is woefully inefficient, but hopefully nobody uses this in a loop */ 
+
+
+  TString top =  "      "; 
+  TString mid =  "H(z)= "; 
+  TString bot =  "      "; 
+
+  top += TString::Format("%.4g ",bcoeffs[0]); 
+
+  for (unsigned i = 1; i < bcoeffs.size(); i++) 
+  {
+    top += TString::Format(" + %.4g z^-%u", bcoeffs[i],i); 
+  }
+
+
+  bot += TString::Format("%.4g ",acoeffs[0]); 
+  for (unsigned i = 1; i < acoeffs.size(); i++) 
+  {
+    bot += TString::Format(" + %.4g z^-%u", acoeffs[i],i); 
+  }
+
+  if (top.Length() < bot.Length())
+  {
+    int diffmid = bot.Length() - mid.Length(); 
+    for (int i = 0; i < diffmid; i++) mid+= "-"; 
+    int diff = bot.Length()-top.Length(); 
+    for (int i = 0; i < (diff)/2; i++) top = " " + top; 
+  }
+  else
+  {
+
+    int diffmid = top.Length() - mid.Length(); 
+    for (int i = 0; i < diffmid; i++) mid+= "-"; 
+    int diff = top.Length()-bot.Length(); 
+    for (int i = 0; i < (diff)/2; i++) bot = " " + bot; 
+  }
+
+  return "IIR Transfer Function: \n" + top + "\n" + mid + "\n" + bot + "\n"; 
+}
+
+
+FFTtools::ThiranFilter::ThiranFilter(double delay, int order)
+{
+  //implementation based on https://ccrma.stanford.edu/~jos/pasp/Thiran_Allpass_Interpolators.html
+
+  if (delay < 0) 
+  {
+
+    fprintf(stderr,"ThiranFilter requires non-negative delay\n"); 
+    order = 0; 
+  }
+
+  if (order < 1) 
+  {
+    order = ceil(delay); 
+  }
+
+  int N = order; //to make code more readable 
+
+  acoeffs.push_back(1); 
+  for (int k = 1; k <= N; k++) 
+  {
+    double a_k = ( (k % 2)  ? -1 : 1) * TMath::Binomial(N,k); 
+
+    for (int n = 0; n <= N; n++)
+    {
+      a_k *= (delay - N + n); 
+      a_k /= (delay - N + k + n); 
+    }
+
+    acoeffs.push_back(a_k); 
+  }
+
+  //the bcoeffs will be the acoeffs backwards
+
+  for (int i = N; i >=0; i--) 
+  {
+    bcoeffs.push_back(acoeffs[i]); 
+  }
+
+}
+
+

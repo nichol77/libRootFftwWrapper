@@ -2,6 +2,7 @@
 #define FFTTOOLS_DIGITAL_FILTER_HH
 
 class TGraph; 
+#include "TString.h" 
 #include <vector>
 #include <complex>
 #include <cstdlib>
@@ -218,6 +219,10 @@ namespace FFTtools
         const double* getBcoeffs() const { return &bcoeffs[0]; } 
         virtual ~IIRFilter() {;}
 
+        /* Make a string description of the filter. */
+        TString asString() const; 
+
+
       protected:
         size_t order; 
         std::vector<double> acoeffs; 
@@ -319,6 +324,20 @@ namespace FFTtools
         ChebyshevIFilter(FilterTopology type, size_t order, double ripple_db, double w, double dw = 0); 
         virtual ~ChebyshevIFilter() {;}
     };
+
+
+    /* Thiran AllPass filter. Can be used to implement a delay. */ 
+    class ThiranFilter : public IIRFilter 
+    {
+
+      public:
+        /** Construct a Thiran All pass filter with a given delay (in samples). An order can be requested or otherwise chosen automatically (to equal int(delay)) if 
+         * a negative number is passed. delay must be positive. 
+         */
+        ThiranFilter(double delay, int order = -1) ; 
+
+
+    }; 
 
 }
 
