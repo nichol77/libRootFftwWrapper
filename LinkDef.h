@@ -42,6 +42,7 @@
 #pragma link C++ class FFTtools::RCFilter; 
 #pragma link C++ class FFTtools::ButterworthFilter; 
 #pragma link C++ class FFTtools::ChebyshevIFilter; 
+#pragma link C++ class FFTtools::ThiranFilter; 
 
 
 
