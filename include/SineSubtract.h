@@ -374,6 +374,18 @@ namespace FFTtools
         SineSubtract(int max_iter_without_reduction = 3, double min_power_reduction = 0.05, bool store = false); 
 
 
+        /** Create a new SineSubtract. A few options may be set here, although they can all be changed by setters later too 
+         * (and there are other options that can only be set by setters. 
+         * 
+         *  @param freq_dependent_min_power_reductionmin_power_reduction Set the minimum power reduction necessary to keep an iteration, varying with frequency (freq in GHz). 
+         *  @param max_iter_without_reduction  Set the maximum number of failed iterations before giving up. An iteration fails if the subtraction does not produce the required power reduction.
+         *  @param store If true, intermediate steps will be saved. This incurs some overhead, so is mostly useful for making pretty plots and diagnostics. 
+         *
+         */
+
+        SineSubtract(const TGraph * freq_dependent_min_power_reduction, int max_iter_without_reduction = 3, bool store = false); 
+
+
         /** Deallocate everything */ 
         virtual ~SineSubtract(); 
 
@@ -511,16 +523,20 @@ namespace FFTtools
         const SineSubtractResult * getResult() const { return &r; } 
 
         /* Set the maximum number of failed iterations before giving up. */
-        void setMaxIterationsWithoutReduction(int max) { maxiter = max; } 
+        void setMaxIterationsWithoutReduction(int max) { maxiter = max;  } 
 
         /** Sets the maximum absolute number of iterations, even if power reduction is still happening. If max <= 0, there is no max */ 
         void setAbsoluteMaxIterations(int max) { abs_maxiter = max; } 
 
-        /** Sets the maximum number of successful iterations, useful if you're trying to subtract a particular sinusoidi. If max <=0, there is no max*/ 
+        /** Sets the maximum number of successful iterations, useful if you're trying to subtract a particular sinusoid. If max <=0, there is no max*/ 
         void setMaxSuccessfulIterations(int max) { max_successful_iter = max; } 
 
         /** Set the threshold for considering an iteration successful. This is a percentage of power reduction. */
-        void setMinPowerReduction(double min) {min_power_reduction = min; }; 
+        void setMinPowerReduction(double min) {min_power_reduction = min; g_min_power = 0;}; 
+
+        /* Set the frequency-dependent max number of failed iterations before giving up. */
+        void setMinPowerReduction(const TGraph *g) { g_min_power= g; }  
+
 
         /** Togggle storage of intermediate traces */
         void setStore(bool s) { store = s; }
@@ -543,12 +559,13 @@ namespace FFTtools
         /**  Make Beamer slides showing all iterations, for those moments when you desperately need slides to show. 
          *
          * @param title Used in the frame title
-         * @param sinsub UIsed for naming files 
+         * @param prefix Used for naming files (e.g. sinsub will produce sinsub_0, sinsub_1, etc )
          * @param outdir Output directory
-         * @param format The format of the plots
+         * @param format The format of the plots (e.g. png, pdf) 
+         * @param standalone If true, makes a self contained presentation, otherwise, can be copied and pasted in. 
          *
          * */ 
-        void makeSlides(const char * title = "SineSubtract", const char * prefix = "sinsub", const char * outdir = ".", const char* format = "png") const; 
+        void makeSlides(const char * title = "SineSubtract", const char * prefix = "sinsub", const char * outdir = ".", const char* format = "png", bool standalone = true) const; 
 
         SineFitter * sineFitter() { return &fitter; } 
 
@@ -568,6 +585,8 @@ namespace FFTtools
         double oversample_factor ; 
         double high_factor; 
         PowerSpectrumEstimator power_estimator;
+
+        const TGraph * g_min_power; 
 
         bool verbose; 
         void reset(); 

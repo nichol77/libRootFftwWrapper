@@ -2,6 +2,7 @@
 #include "TGraph.h" 
 #include "TCanvas.h" 
 #include "TStyle.h" 
+#include "TMutex.h" 
 
 #ifndef __APPLE__
 #include <malloc.h>
@@ -45,6 +46,8 @@
 
 
 
+static TMutex fnLock; 
+static int fnCount = 0; 
 
 
 
@@ -620,6 +623,27 @@ void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double
   }
 }
 
+FFTtools::SineSubtract::SineSubtract(const TGraph * gmp, int maxiter, bool store)
+  : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),  min_power_reduction(gmp->GetMean(2)), store(store)
+{
+
+  g_min_power = gmp; 
+  power_estimator = FFT; 
+  oversample_factor = 2; 
+  high_factor = 1; 
+  neighbor_factor2 = 0.15; 
+  verbose = false; 
+  tmin = 0; 
+  tmax = 0; 
+
+#ifdef ENABLE_VECTORIZE
+  no_subnormals();  // Unlikely to occur, but worth it if they do
+#endif
+
+  
+}
+
+
 
 FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bool store)
   : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),  min_power_reduction(min_power_reduction), store(store)
@@ -632,6 +656,7 @@ FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bo
   verbose = false; 
   tmin = 0; 
   tmax = 0; 
+  g_min_power =0; 
 
 #ifdef ENABLE_VECTORIZE
   no_subnormals();  // Unlikely to occur, but worth it if they do
@@ -978,7 +1003,11 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     double ratio = 1. - power /r.powers[r.powers.size()-1]; 
     if (verbose) printf("Power Ratio: %f\n", ratio); 
 
-    if(store && (ratio >= min_power_reduction || ntries == maxiter))
+
+    double mpr = g_min_power ? g_min_power->Eval(max_f) : min_power_reduction; 
+
+
+    if(store && (ratio >= mpr || ntries == maxiter))
     {
       spectra.push_back(new TGraph(spectrum_N,spectra_x, spectra_y)); 
       if (r.powers.size() > 1)
@@ -998,7 +1027,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     
 
 
-    if (ratio < min_power_reduction)
+    if (ratio < mpr)
     {
       failed_bins.insert(max_i); 
       if (++ntries > maxiter)   
@@ -1033,7 +1062,11 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       if (store) 
       {
         //add sine we subtracted to previous graph 
-        TF1 * fn = new TF1(TString::Format("fitsin%lu_%d",r.powers.size(),ti), "[0] * sin(2*pi*[1] * x + [2])",g[ti]->GetX()[0], g[ti]->GetX()[g[ti]->GetN()-1]); 
+        
+        
+        fnLock.Lock(); 
+        TF1 * fn = new TF1(TString::Format("fitsin_%d_%lu_%d",fnCount++, r.powers.size(),ti), "[0] * sin(2*pi*[1] * x + [2])",g[ti]->GetX()[0], g[ti]->GetX()[g[ti]->GetN()-1]); 
+        fnLock.UnLock(); 
         fn->SetParameter(0,fitter.getAmp()[ti]); 
         fn->SetParameter(1,fitter.getFreq()); 
         fn->SetParameter(2,fitter.getPhase()[ti]); 
@@ -1069,7 +1102,7 @@ int FFTtools::SineSubtract::getNSines() const
   return r.freqs.size(); 
 }
 
-void FFTtools::SineSubtract::makeSlides(const char * title, const char * fileprefix, const char * outdir , const char * format) const 
+void FFTtools::SineSubtract::makeSlides(const char * title, const char * fileprefix, const char * outdir , const char * format, bool standalone) const 
 {
 
   gROOT->SetBatch(kTRUE);
@@ -1101,6 +1134,13 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
   }
 
   FILE * texfile = fopen(TString::Format("%s/%s.tex", outdir, fileprefix),"w"); 
+
+  if(standalone)
+  {
+    fprintf(texfile,"\\documentclass[hyperref={pdfpagelabels=false}]{beamer} \\mode<presentation> { \\usetheme{Boadilla} \\usecolortheme{beaver} }\n"); 
+    fprintf(texfile, "\\setbeamertemplate{navigation symbols}{}\n"); 
+    fprintf(texfile,"\\begin{document}\n"); 
+  }
 
   for (int i = 0; i < niter; i++) 
   {
@@ -1152,6 +1192,10 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
     fflush(texfile); 
   }
 
+  if (standalone)
+  {
+    fprintf(texfile,"\\end{document}\n"); 
+  }
   fclose(texfile); 
 
   gROOT->ForceStyle(kFALSE);
