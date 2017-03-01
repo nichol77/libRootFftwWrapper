@@ -295,7 +295,7 @@ void FFTtools::getInterpolatedGraphSparseInvert(const TGraph * g, TGraph * out, 
 
 #if !defined(USE_EIGEN) && !defined(USE_ARMADILLO) 
   static bool already_scolded = false; 
-  if (!already_scolded) printf("WARNING: Strongly recommend compiling with eigen3 (or even armadillo) support when calling getInterpolatedGraphSparseInvert. See Makefile.config in libRootFftwWrapper. \n"); 
+  if (!already_scolded) printf("WARNING: Strongly recommend compiling with eigen3 (or even armadillo) support when calling getInterpolatedGraphSparseInvert. Run buildAnita.sh 1 in anitaBuildTool and explicitly enable either USE_EIGEN or USE_ARMADILLO.  \n"); 
   already_scolded = true; 
 #endif 
 

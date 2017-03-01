@@ -590,6 +590,7 @@ namespace FFTtools
 
         bool verbose; 
         void reset(); 
+        unsigned id; 
 
         SineFitter fitter; 
     }; 

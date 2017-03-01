@@ -48,6 +48,8 @@
 
 static TMutex fnLock; 
 static int fnCount = 0; 
+static int counter; 
+
 
 
 
@@ -657,6 +659,7 @@ FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bo
   tmin = 0; 
   tmax = 0; 
   g_min_power =0; 
+  id = counter++; 
 
 #ifdef ENABLE_VECTORIZE
   no_subnormals();  // Unlikely to occur, but worth it if they do
@@ -814,7 +817,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
       for (int i = Nuse[ti]; i < NuseMax; i++) 
       {
-        gPadded[ti]->GetX()[i] = TMath::Min(gPadded[ti]->GetX()[i-1] + dt,  i * dt); 
+        gPadded[ti]->GetX()[i] = gPadded[ti]->GetX()[i-1] + dt; 
         gPadded[ti]->GetY()[i] = 0; //should be unnecessary 
       }
     }
@@ -1059,7 +1062,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
         g[ti]->GetY()[i] -= A* sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
       }
 
-      if (store) 
+      if (store)  
       {
         //add sine we subtracted to previous graph 
         
