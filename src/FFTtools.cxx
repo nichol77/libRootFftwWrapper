@@ -933,13 +933,10 @@ TGraph *FFTtools::makeInverseInverseSpectrum(TGraph *grWave) {
 
 }
 
-TGraph *FFTtools::getHilbertTransform(TGraph *grWave)
+double* FFTtools::getHilbertTransform(int length, const double * y)
 {
-  double *oldY = grWave->GetY();
-  double *oldX = grWave->GetX();
-  //    double deltaT=oldX[1]-oldX[0];
-  int length=grWave->GetN();
-  FFTWComplex *theFFT=doFFT(length,oldY);  
+
+  FFTWComplex *theFFT=doFFT(length,y);  
   int newLength=(length/2)+1;
   for(int i=0;i<newLength;i++) {
     double tempIm=theFFT[i].im;
@@ -948,9 +945,17 @@ TGraph *FFTtools::getHilbertTransform(TGraph *grWave)
   }
   double *hilbert = doInvFFT(length,theFFT);
   
+  delete [] theFFT;
+  return hilbert; 
+}
+TGraph *FFTtools::getHilbertTransform(TGraph *grWave)
+{
+  double *oldY = grWave->GetY();
+  double *oldX = grWave->GetX();
+  int length=grWave->GetN();
+  double *hilbert = getHilbertTransform(length, oldY); 
   TGraph *grHilbert = new TGraph(length,oldX,hilbert);
   delete [] hilbert;
-  delete [] theFFT;
 
   return grHilbert;
 }
@@ -3189,27 +3194,14 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
 
 
   double * logmag = (double*) fftw_malloc(sizeof(double) * N); 
-  double * phase = (double*) fftw_malloc(sizeof(double) * N); 
   FFTWComplex * output = (FFTWComplex*) fftw_malloc(N * sizeof(FFTWComplex)); 
-  FFTWComplex * scratch = output; 
 
   for (int i = 0; i < N; i++)
   {
     logmag[i]=  G[i] < minval ? min : log(G[i]); 
   }
 
-  //hilbert transform the log mag, preusing a portion of the output array 
-  doFFT(N, logmag, scratch); 
-
-  for (int i = 0; i <= N/2;i++) 
-  {
-    double temp = scratch[i].im; 
-    scratch[i].im = scratch[i].re; 
-    scratch[i].re = -temp; 
-  }
-
-  doInvFFTClobber(N, scratch, phase); 
-
+  double * phase = getHilbertTransform(N, logmag); 
   
   for (int i = 0; i < N; i++) 
   {
@@ -3224,7 +3216,7 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
     else
     {
       output[i].re = mag/sqrt(2) * cos(phase[i]); 
-      output[i].im = mag/sqrt(2) * sin(phase[i]); 
+      output[i].im = mag/sqrt(2) * sin(phase[i]); //TODO check if this negative sign should be here!!! Might be a convention thing. 
     }
   }
 
@@ -3235,5 +3227,32 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
 
 
 
+double FFTtools::checkCausality(int N, const FFTWComplex * signal)
+{
+  double * real = new double[N]; 
+  double * imag = new double[N]; 
+
+  for (int i = 0; i < N; i++) 
+  {
+    real[i] = signal[i].re; 
+    imag[i] = signal[i].im; 
+  }
+
+  double * hilbert = getHilbertTransform(N, real); 
+
+  double sum2=0; 
+  for (int i = 0; i < N; i++) 
+  {
+    double diff=hilbert[i]-imag[i]; 
+    sum2+= diff*diff; 
+  }
+
+
+  delete real;
+  delete hilbert; 
+  delete imag; 
+
+  return sqrt(sum2/N); 
+}
 
 

@@ -331,6 +331,12 @@ namespace FFTtools
     \return A pointer to a TGraph containing the Hilbert transform
   */
    TGraph *getHilbertTransform(TGraph *grWave);
+
+
+   /** Hilbert transform on an array y is input,N is length*/ 
+   double *  getHilbertTransform(int N, const double * y) ; 
+
+
   //! The Hilbert envelope of the input TGraph. This is defined as e_i=sqrt(v_i^2 + h_i^2), where e_i, v_i and h_i are the i-th sample of the envelope, input graph and hilbert transform of the input graph repsectively.
   /*!
     \param grWave A pointer to the input TGraph
@@ -789,6 +795,10 @@ namespace FFTtools
    FFTWComplex * makeMinimumPhase(int N, const double * G,  double mindb = -100); 
 
 
+   /** Checks if a signal is causal or not by comparing the imaginary part to the hilber transform of the real part and returning the square difference (scaled by N). 
+    * A perfectly causal system will return 0, but numerical inaccuracy may make that not true. 
+    * */ 
+   double checkCausality(int N, const FFTWComplex * signal) ; 
 
 }
    
