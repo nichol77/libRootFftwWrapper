@@ -776,7 +776,7 @@ FFTtools::ThiranFilter::ThiranFilter(double delay, int order)
 
 
 
-TPad* FFTtools::DigitalFilter::drawResponse( TPad * c, int n, int delay) 
+TPad* FFTtools::DigitalFilter::drawResponse( TPad * c, int n, int delay)  const
 {
   if (!c) c = new TCanvas("filterResponse","Filter Response"); 
   c->Divide(2,2);; 
