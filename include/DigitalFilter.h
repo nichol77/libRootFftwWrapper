@@ -123,7 +123,7 @@ namespace FFTtools
       public: 
 
         /* Initialize filter series with a filter */ 
-        DigitalFilterSeries(const DigitalFilter * f) { add(f); } 
+        DigitalFilterSeries(const DigitalFilter * f, bool takeOwnership = false) { add(f,takeOwnership); } 
 
         /* Empty filter series */ 
         DigitalFilterSeries() {; } 
@@ -133,11 +133,21 @@ namespace FFTtools
         virtual std::complex<double> transfer(std::complex<double> z) const;  
 
         /* Add a filter to the series. Does NOT take ownership of it */ 
-        virtual void add(const DigitalFilter *f) { series.push_back(f); }
-        virtual ~DigitalFilterSeries() {; }
+        virtual void add(const DigitalFilter *f, bool o) { series.push_back(f); own.push_back(o); }
+        virtual void clear() 
+        {
+         for (size_t i =0; i< series.size(); i++) 
+         { 
+           if (own[i]) delete series[i]; 
+         } 
+         series.clear(); 
+         own.clear(); 
+        }
+        virtual ~DigitalFilterSeries() {clear(); }
 
       protected:
         std::vector<const DigitalFilter*> series; 
+        std::vector<bool> own; 
 
     }; 
 
