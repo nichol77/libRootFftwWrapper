@@ -110,7 +110,7 @@ namespace FFTtools
         virtual TGraph * groupDelay(size_t n = 101) const { TGraph *gd = 0; response(n,0,0,&gd); return gd; }
 
         /** Draws the amplitude, phase, group delay and impulse response into the pad. Returns the pad.  */ 
-        virtual TPad* drawResponse(TPad * c = 0, int n = 101, int delay = 50); 
+        virtual TPad* drawResponse(TPad * c = 0, int n = 101, int delay = 50) const; 
 
         /* Computes transfer function */ 
         virtual std::complex<double> transfer(std::complex<double> z) const = 0;  
