@@ -433,7 +433,7 @@ void FFTtools::doInvFFTClobber(int length, FFTWComplex * in, double * out)
 }
 
 
-FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
+FFTWComplex *FFTtools::doFFT(int length, const double *theInput) {
   //Here is what the sillyFFT program should be doing;    
 
   const int numFreqs= (length/2)+1;
@@ -479,7 +479,7 @@ FFTWComplex *FFTtools::doFFT(int length, double *theInput) {
 
 
 
-double *FFTtools::doInvFFT(int length, FFTWComplex *theInput) {
+double *FFTtools::doInvFFT(int length, const FFTWComplex *theInput) {
   // This is what sillyFFT should be doing
   //    //Takes account of normailisation 
   // Although note that fftw_plan_dft_c2r_1d assumes that the frequency array is only the positive half, so it gets scaled by sqrt(2) to account for symmetry

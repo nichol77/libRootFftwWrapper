@@ -106,14 +106,14 @@ namespace FFTtools
     \param theInput The input array of complex numbers of <i>(length/2 +1)</i>
     \return An array of <i>length</i> real numbers
   */
-   double *doInvFFT(int length, FFTWComplex *theInput);
+   double *doInvFFT(int length, const FFTWComplex *theInput);
   //! Computes an FFT of an array of real numbers.
   /*!
     \param length The length of the input array.
     \param theInput The input array of <i>length</i> real numbers.
     \return An array of <i>length/2 + 1</i> complex numbers
   */
-   FFTWComplex *doFFT(int length,double *theInput);    
+   FFTWComplex *doFFT(int length,const double *theInput);    
 
    
 
