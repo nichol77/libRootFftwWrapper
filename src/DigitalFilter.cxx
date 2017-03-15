@@ -540,16 +540,18 @@ std::complex<double> FFTtools::IIRFilter::transfer(std::complex<double> z) const
   std::complex<double> num = bcoeffs[0]; 
   for( size_t i = 1; i < bcoeffs.size(); i++) 
   {
-    num += pow(z,-i) * bcoeffs[i]; 
+    num += std::pow(z,-double(i)) * bcoeffs[i]; 
   }
 
   std::complex<double> denom = acoeffs[0]; 
   for( size_t i = 1; i < acoeffs.size(); i++) 
   {
-    denom += pow(z,-i) * acoeffs[i]; 
+    denom += std::pow(z,-double(i)) * acoeffs[i]; 
   }
 
-  return num/denom; 
+  std::complex<double> answer = num/denom; 
+
+  return answer; 
 }
 
 
