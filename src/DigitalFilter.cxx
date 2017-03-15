@@ -1,5 +1,6 @@
 #include "DigitalFilter.h" 
 #include <complex>
+#include "TCanvas.h" 
 #include <assert.h>
 #include "TGraph.h" 
 #include "TAxis.h"
@@ -114,11 +115,11 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
   if (ggroup) 
   {
     unwrap(ggroup->GetN(), ggroup->GetY(), 360); 
-    double last = ggroup->GetY()[0]; 
+    double last = 2*ggroup->GetY()[0];  //TODO do I want this factor of 2? 
     ggroup->GetY()[0] = 0; 
     for (int i = 1; i < ggroup->GetN(); i++) 
     {
-     double current = ggroup->GetY()[i]; 
+     double current = 2*ggroup->GetY()[i]; 
      ggroup->GetY()[i] = last - current; 
      last = current; 
     }
@@ -129,7 +130,7 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
 
     ggroup->SetTitle("Group Delay"); 
     ggroup->GetXaxis()->SetTitle("Normalized Frequency (f/f_{nyq})"); 
-    ggroup->GetYaxis()->SetTitle("Normalized Time (t/(2T))"); 
+    ggroup->GetYaxis()->SetTitle("Normalized Time (t/(T))"); 
   }
 }
 
@@ -145,6 +146,7 @@ void FFTtools::DigitalFilter::impulse(size_t n, double * out, size_t delay) cons
 TGraph * FFTtools::DigitalFilter::impulseGraph(size_t n, double dt, size_t delay) const 
 {
   TGraph * g = new TGraph(n); 
+  g->SetTitle(TString::Format("Impulse Response (T=%g, delay=%lu)", dt, delay)); 
   impulse(n,g->GetY(), delay); 
   for (size_t i = 0; i < n; i++) { g->GetX()[i] = i * dt; }
   return g; 
@@ -773,3 +775,27 @@ FFTtools::ThiranFilter::ThiranFilter(double delay, int order)
 }
 
 
+
+TPad* FFTtools::DigitalFilter::drawResponse( TPad * c, int n, int delay) 
+{
+  if (!c) c = new TCanvas("filterResponse","Filter Response"); 
+  c->Divide(2,2);; 
+
+  TGraph * amp = 0; 
+  TGraph * ph = 0; 
+  TGraph * grp = 0; 
+  response(n,&amp,&ph,&grp); 
+
+  c->cd(1); 
+  amp->Draw(); 
+  c->cd(2); 
+  ph->Draw(); 
+  c->cd(3); 
+  grp->Draw(); 
+  c->cd(4); 
+  impulseGraph(n,1,delay)->Draw("alp"); 
+ 
+
+  return c; 
+
+}

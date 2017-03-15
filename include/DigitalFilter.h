@@ -2,6 +2,7 @@
 #define FFTTOOLS_DIGITAL_FILTER_HH
 
 class TGraph; 
+class TPad; 
 #include "TString.h" 
 #include <vector>
 #include <complex>
@@ -107,6 +108,9 @@ namespace FFTtools
         /* return phase response response with n points */ 
         virtual TGraph* phaseResponse(size_t n = 101) const { TGraph *ph = 0; response(n,0,&ph); return ph; }
         virtual TGraph * groupDelay(size_t n = 101) const { TGraph *gd = 0; response(n,0,0,&gd); return gd; }
+
+        /** Draws the amplitude, phase, group delay and impulse response into the pad. Returns the pad.  */ 
+        virtual TPad* drawResponse(TPad * c = 0, int n = 101, int delay = 50); 
 
         /* Computes transfer function */ 
         virtual std::complex<double> transfer(std::complex<double> z) const = 0;  
