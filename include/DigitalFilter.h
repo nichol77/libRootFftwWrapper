@@ -241,7 +241,7 @@ namespace FFTtools
         { computePolesAndZeroes(); } 
 
         /** initialize filter from digital zeroes/poles/gain */ 
-        IIRFilter(std::complex<double> gain, size_t nzeroes, std::complex<double> * digiZeroes, size_t npoles, std::complex<double> * digiPoles) 
+        IIRFilter(std::complex<double> gain, size_t nzeroes, const std::complex<double> * digiZeroes, size_t npoles, const std::complex<double> * digiPoles) 
           : digi_gain(gain), digi_poles(digiPoles, digiPoles + npoles), digi_zeroes(digiZeroes, digiZeroes + nzeroes), gzero(0), gpole(0) 
         {
           computeCoeffsFromDigiPoles(); 
@@ -422,7 +422,6 @@ namespace FFTtools
          * slightly more sophisticated than that because it will divide through by the gain to give a
          * 1 as the first a coeff. */
         InverseFilter(const IIRFilter &other); 
-        InverseFilter(const FIRFilter &other); 
     }; 
 
 

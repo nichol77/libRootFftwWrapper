@@ -681,7 +681,14 @@ void FFTtools::IIRFilter::computePolesAndZeroes()
 
   pb.SetParameters(&scaled_bcoeffs[0]); 
   digi_zeroes = pb.FindRoots(); 
+
+  ROOT::Math::Polynomial pa(acoeffs.size()-1); 
+  pa.SetParameters(&acoeffs[0]); 
+
+  digi_poles = pa.FindRoots(); 
+
 }
+
 
 FFTtools::IIRFilter::IIRFilter(const FIRFilter & other) 
   : order(other.getOrder() + other.getDelay()) , bcoeffs(order), gzero(0), gpole(0) 
@@ -710,12 +717,12 @@ void FFTtools::IIRFilter::computeCoeffsFromDigiPoles()
 
   for (unsigned int i = 0; i < nzeroes+ 1; i++)
   {
-       bcoeffs[i] = (double) std::real(digi_gain * bpoly[nzeroes - i]);             
+    bcoeffs[i] = (double) std::real(digi_gain * bpoly[nzeroes - i]);             
   }
 
   for (unsigned int i = 0; i < npoles+ 1; i++)
   {
-       acoeffs[i] = (double) std::real(apoly[npoles - i]);             
+    acoeffs[i] = (double) std::real(apoly[npoles - i]);             
   }
 }
 
@@ -796,17 +803,17 @@ static void reflectRoots(int N, const std::complex<double> *  roots, std::vector
   for (int i = 0; i < N; i++) 
   {
     double M = abs(roots[i]); 
-    if ( M < 1) // woohoo 
+    if ( M-1 < -1e-9) // woohoo 
     {
       output[i] = roots[i]; 
     }
-    else if (M > 1)  //reflect it 
+    else if (M-1 > 1e-9)  //reflect it 
     {
       output[i] = 1./roots[i]; 
     }
     else //attenuate it a bit
     {
-      output[i] = roots[i] - std::complex<double>(eps,eps); 
+      output[i] = roots[i]*(1-eps); 
     }
   }
 }
@@ -820,6 +827,9 @@ FFTtools::MinimumPhaseFilter::MinimumPhaseFilter(const IIRFilter & other, double
   
   order = other.getOrder(); 
   digi_gain = other.getDigiGain();
+  digi_poles.resize(other.nDigiPoles()); 
+  digi_zeroes.resize(other.nDigiZeroes()); 
+
   reflectRoots(other.nDigiPoles(), other.getDigiPoles(), digi_poles, eps); 
   reflectRoots(other.nDigiZeroes(), other.getDigiZeroes(), digi_zeroes, eps); 
 
@@ -943,5 +953,12 @@ TPad* FFTtools::DigitalFilter::drawResponse( TPad * c, int n, int delay)  const
  
 
   return c; 
-
 }
+
+
+FFTtools::InverseFilter::InverseFilter(const FFTtools::IIRFilter & other) 
+  :  IIRFilter(1./other.getDigiGain(), other.nDigiPoles(), other.getDigiPoles(), other.nDigiZeroes(), other.getDigiZeroes())
+{
+  computeCoeffsFromDigiPoles(); 
+}
+
