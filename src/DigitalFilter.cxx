@@ -3,11 +3,16 @@
 #include "TCanvas.h" 
 #include <assert.h>
 #include "TGraph.h" 
+#include "TH2.h" 
 #include "TAxis.h"
+#include "TStyle.h" 
 #include "TMath.h"
 #include "FFTtools.h" 
+#include "Math/Polynomial.h" 
 #include "FFTWindow.h" 
+#include "TEllipse.h" 
 
+#include <strings.h>
 #include "TMatrixD.h"
 #include "TDecompLU.h"
 
@@ -138,7 +143,7 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
 void FFTtools::DigitalFilter::impulse(size_t n, double * out, size_t delay) const 
 {
   double in[n]; 
-  for (size_t i = 0; i < n; i++) in[i] = 0; 
+  memset(in,0,n*sizeof(double)); 
   in [delay] = 1; 
   filterOut(n,in,out); 
 }
@@ -427,7 +432,7 @@ void FFTtools::TransformedZPKFilter::bilinearTransform()
 
   //Now, get coefficients from poles and zeroes
 
-  computeCoeffsFromDigiPoles(digi_gain, n, &digi_zeroes[0], n, &digi_poles[0]); 
+  computeCoeffsFromDigiPoles(); 
 }
 
 
@@ -662,10 +667,37 @@ FFTtools::DifferenceFilter::DifferenceFilter(int order)
   }
 }
 
-
-
-void FFTtools::IIRFilter::computeCoeffsFromDigiPoles(std::complex<double> digi_gain, size_t nzeroes, std::complex<double> * digi_zeroes, size_t npoles, std::complex<double> * digi_poles) 
+void FFTtools::IIRFilter::computePolesAndZeroes() 
 {
+  digi_gain = bcoeffs[0]; 
+
+  ROOT::Math::Polynomial pb(bcoeffs.size()-1); 
+  std::vector<double> scaled_bcoeffs(bcoeffs.size()); 
+
+  for (unsigned i = 0; i < bcoeffs.size(); i++) 
+  {
+    scaled_bcoeffs[i] = bcoeffs[i] / bcoeffs[0]; 
+  }
+
+  pb.SetParameters(&scaled_bcoeffs[0]); 
+  digi_zeroes = pb.FindRoots(); 
+}
+
+FFTtools::IIRFilter::IIRFilter(const FIRFilter & other) 
+  : order(other.getOrder() + other.getDelay()) , bcoeffs(order), gzero(0), gpole(0) 
+{
+  memcpy(&bcoeffs[other.getDelay()], other.getCoeffs(), other.getOrder()*sizeof(double)); 
+  acoeffs.push_back(1); 
+  computePolesAndZeroes(); 
+}
+
+
+
+void FFTtools::IIRFilter::computeCoeffsFromDigiPoles()
+{
+
+  unsigned nzeroes = nDigiZeroes(); 
+  unsigned npoles = nDigiPoles(); 
 
   bcoeffs.clear(); bcoeffs.insert(bcoeffs.begin(), nzeroes+1,0); 
   acoeffs.clear(); acoeffs.insert(acoeffs.begin(), npoles+1,0); 
@@ -679,13 +711,127 @@ void FFTtools::IIRFilter::computeCoeffsFromDigiPoles(std::complex<double> digi_g
   for (unsigned int i = 0; i < nzeroes+ 1; i++)
   {
        bcoeffs[i] = (double) std::real(digi_gain * bpoly[nzeroes - i]);             
-
   }
+
   for (unsigned int i = 0; i < npoles+ 1; i++)
   {
        acoeffs[i] = (double) std::real(apoly[npoles - i]);             
   }
 }
+
+static TEllipse ell(0,0,1,1); 
+
+void FFTtools::IIRFilter::Draw(const char * opt, int color) const
+{
+  bool same = strcasestr(opt,"Same"); 
+//  bool pol = !same && strcasestr(opt,"pol"); 
+
+  
+  if (!gpole) 
+  {
+    gpole = new TGraph(nDigiPoles()); 
+    for (size_t i = 0; i < nDigiPoles(); i++) 
+    {
+      gpole->SetPoint(i, digi_poles[i].real(), digi_poles[i].imag()); 
+    }
+    gpole->SetMarkerStyle(5); 
+
+  }
+
+  if (!gzero) 
+  {
+    gzero = new TGraph(nDigiZeroes()); 
+    for (size_t i = 0; i < nDigiZeroes(); i++) 
+    {
+      gzero->SetPoint(i, digi_zeroes[i].real(), digi_zeroes[i].imag()); 
+    }
+    gzero->SetMarkerStyle(4); 
+  }
+
+
+
+  if (!same) 
+  {
+    /* figure out  maximum abs */ 
+
+    double max = 0; 
+
+    for (size_t i = 0; i < nDigiPoles(); i++) 
+    {
+      if (std::abs(digi_poles[i]) > max)
+        max = std::abs(digi_poles[i]); 
+    }
+
+    for (size_t i = 0; i < nDigiZeroes(); i++) 
+    {
+      if (std::abs(digi_zeroes[i]) > max)
+        max = std::abs(digi_zeroes[i]); 
+    }
+
+    int optstat = gStyle->GetOptStat(); 
+    int optfit = gStyle->GetOptFit(); 
+    TH2I ax("polaxis","Pole-Zero Plot", 10,-max,max,10,-max,max); 
+    gStyle->SetOptStat(0); 
+    ax.DrawCopy("a"); 
+    gStyle->SetOptStat(optstat); 
+    gStyle->SetOptFit(optfit); 
+    ell.Draw(); 
+  }
+
+
+  gpole->SetMarkerColor(color); 
+  gzero->SetMarkerColor(color); 
+
+  gpole->Draw("msame"); 
+  gzero->Draw("msame"); 
+}
+
+
+
+
+static void reflectRoots(int N, const std::complex<double> *  roots, std::vector<std::complex<double> > & output, double eps) 
+{
+
+
+  for (int i = 0; i < N; i++) 
+  {
+    double M = abs(roots[i]); 
+    if ( M < 1) // woohoo 
+    {
+      output[i] = roots[i]; 
+    }
+    else if (M > 1)  //reflect it 
+    {
+      output[i] = 1./roots[i]; 
+    }
+    else //attenuate it a bit
+    {
+      output[i] = roots[i] - std::complex<double>(eps,eps); 
+    }
+  }
+}
+
+
+
+
+FFTtools::MinimumPhaseFilter::MinimumPhaseFilter(const IIRFilter & other, double eps) 
+{
+
+  
+  order = other.getOrder(); 
+  digi_gain = other.getDigiGain();
+  reflectRoots(other.nDigiPoles(), other.getDigiPoles(), digi_poles, eps); 
+  reflectRoots(other.nDigiZeroes(), other.getDigiZeroes(), digi_zeroes, eps); 
+
+  computeCoeffsFromDigiPoles(); 
+}
+
+
+
+
+
+
+
 
 
 
