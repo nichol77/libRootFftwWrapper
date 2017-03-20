@@ -342,7 +342,6 @@ namespace FFTtools
         void bilinearTransform(); 
         double gain; 
         TransformedZPKFilter() { ; } 
-        std::complex<double> digi_gain; 
 
     }; 
 
