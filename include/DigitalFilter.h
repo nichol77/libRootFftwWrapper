@@ -268,10 +268,8 @@ namespace FFTtools
         std::complex<double> getDigiGain() const { return digi_gain; } 
         virtual ~IIRFilter() {;}
 
-<<<<<<< HEAD
         /* Make a string description of the filter. */
         TString asString() const; 
-=======
         /** Draw pole zero diagram 
          *
          *  Allowed options: 
@@ -280,7 +278,6 @@ namespace FFTtools
          *    pol   - draw polar axis 
          * */ 
         virtual void Draw(const char * opt= "", int color=1) const; 
->>>>>>> c317a1f... first pass at some filter reorganization, minimum phase and inverse filters, and drawing of IIR filters (maybe)
 
 
       protected:
