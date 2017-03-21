@@ -178,6 +178,17 @@ namespace FFTtools
       public:
         //width_right < 0 means width_right = width_left 
         SavitzkyGolayFilter(int polynomial_order, int width_left, int width_right=-1, int derivative = 0);  
+
+        int getOrder() const { return polynomial_order; } 
+        int getWidthLeft() const { return width_left; } 
+        int getWidthRight() const { return width_right; } 
+        int getDerivative() const { return derivative; } 
+
+      private: 
+        int polynomial_order; 
+        int width_left; 
+        int width_right; 
+        int derivative; 
     }; 
 
 

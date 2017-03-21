@@ -473,7 +473,8 @@ static void computeSavitzkyGolayCoefficients(double *x, int m, int nl, int nr, i
 
 
 FFTtools::SavitzkyGolayFilter::SavitzkyGolayFilter(int polynomial_order, int wleft, int wright, int deriv) 
-  : FIRFilter(wright < 0 ? 2*wleft + 1 : wleft +wright +1, wright < 0 ? 0 : wright- wleft,true)
+  : FIRFilter(wright < 0 ? 2*wleft + 1 : wleft +wright +1, wright < 0 ? 0 : wright- wleft,true),
+    polynomial_order(polynomial_order), width_left(wleft), width_right(wright < 0 ? wleft : wright ), derivative(deriv) 
 {
   if (wright < 0) wright = wleft; 
   computeSavitzkyGolayCoefficients(&coeffs[0], polynomial_order, wleft, wright, deriv); 
