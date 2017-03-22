@@ -7,7 +7,7 @@
  * \class FFTtools::SineSubtract 
  *
  * \brief This class contains an independent implementation of the sine
- * subtraction CW removal algorithm, suggestested suggested by Andres/ Steph
+ * subtraction CW removal algorithm, suggested by Andres/ Steph
  * (ANITA Elog 621).
  *
  * Cosmin Deaconu <cozzyd@kicp.uchicago.edu> is responsible for this mess. 
@@ -25,15 +25,14 @@
  * also possible to enable storage of intermediate graphs and power spectra at
  * each step.  This is useful for diagnostics and making pretty plots, but
  * incurs some overhead, so is not recommended for production use.
- * Gratuituosly, there are methods to generate plots and even Beamer slides. 
+ * Gratuitously, there are methods to generate plots and even Beamer slides. 
  *
  * A sketch of the algorithm is: 
  *
- *    - Rectify waveform and estimate power spectrum. 
+ *    - Rectify waveform and estimate power spectrum (according to the power spectrum option). 
  *
- *    - Find peak, fmax, in power spectrum by finding magnitude^2/(1+nfails) at
- *    least neighbor_factor^2 bigger than a neighboring magnitude^2/(1+nfails).
- *    (see below for meaning of nfails)
+ *    - Find peak, fmax, in power spectrum by finding max magnitude/(1+nfails)^nfails_exp) , 
+ *      according to the peak finding option. See below for meaning of nfails. 
  *
  *    - Find sine ( A (sin wt + phi)) that when subtracted minimizes "power"
  *    (avg(v_i^2)); initialize with w = 2pi fmax, A = mag, phase from fft.
@@ -94,12 +93,7 @@
  *
  * TODO list: 
  *
- *  - Better peak finding algorithm (maybe smooth + non-maximum suppression or
-     *  a wavelet-based peak-finder... but that would be super slow)  
- *
- *  - Better *  tuning of default step sizes / limits ? 
- *
- *  - Tuning of n_fails scaling?  
+ *  - Better  tuning of default step sizes / limits ? 
  *
  *  - Minuit2 adds quite a bit of overhead, and is one of the things preventing
  *  this from running even faster
@@ -358,6 +352,9 @@ namespace FFTtools
     }; 
 
 
+    /** The SineSubtract class  handles the number of iterations
+     * and initialization of the fitter. 
+     */ 
     class SineSubtract 
     {
 
@@ -454,24 +451,93 @@ namespace FFTtools
         void setTraceLimits(int min, int max) { tmin = min; tmax = max; }
 
 
-        /** Currently there are two ways to estimate the power spectrum,  FFT and a fast Lomb-Scargle Periodogram. 
+
+        /** 
+         *  \enum PowerSpectrumEstimator
+         *
+         *  These are the algorithms for estimating the power spectrum, used to help estimate
+         *  the starting parameters. 
          */
         enum PowerSpectrumEstimator
         {
-          FFT, 
-          LOMBSCARGLE
+          FFT, /// (default) Compute power spectrum using magnigude of FFT, see FFT_Param enum for parameter names and defaults
+          LOMBSCARGLE /// Compute power spectrum using LombScargle Periodogram, see below for parameter names
         }; 
 
 
-        /** Set the power spectrum estimator used to reduce the problem space */ 
-        void setPowerSpectrumEstimator(PowerSpectrumEstimator estimator) {power_estimator = estimator; }
+        /** The parameters for PowerSpectrumEstimator FFT */ 
+        enum FFT_Params
+        {
+          FFT_NPAD, /// default =0 
+          FFT_NPARAMS
+        }; 
 
-        /** Sets the oversample factor for the Lomb-Scargle Periodogram. This only has an effect if LOMBSCARGLE is the power estimator. */
-        void setOversampleFactor(double of) {oversample_factor = of;}
+        /** The parameters for PowerSpectrumEstimator LOMBSCARGLE*/ 
+        enum LOMBSCARGLE_Params
+        {
+          LS_OVERSAMPLE_FACTOR, ///default =2
+          LS_NPARAMS
+        }; 
+
+
+        /** Each time an iteration fails, the power spectrum bin is weighted by
+         * 1./(1+nfails)^exp to discourage further usage */ 
+        void setNFailsExponent(double exp = 0.5) { nfail_exponent = exp ; }
+
+
+        /** Set the power spectrum estimator used to initialize the SineSubtractFilter. 
+         *  See  documentation for PowerSpectrumEstimator for what the types mean (or pass 0 to use the defaults). 
+         **/ 
+        void setPowerSpectrumEstimator(PowerSpectrumEstimator estimator, const double * params = 0); 
+
+
+        /** 
+         * \enum PeakFindingOption 
+         *
+         * These are the algorithms for finding the peak of the power spectrum.
+         **/
+        enum PeakFindingOption
+        {
+          GLOBALMAX, /// Just uses the global maximum (you probably don't want this) . No params. 
+          NEIGHBORFACTOR, /// (default) requires being at least neighbor_factor bigger than one of the neighbors. See NEIGHBORFACTOR_Params for parametser
+          TSPECTRUM, ///Use TSpectrum (probably super slow). See TSPECTRUM_Params for parameters. 
+          SAVGOLSUB /// Subtract baseline computed with Savitzky Golay filter first. See SAVGOLSUB_Params for parameters. 
+        }; 
+
+
+        enum NEIGHBORFACTOR_Params
+        {
+          NF_NEIGHBOR_FACTOR, ///default = 0.15 
+          NF_NPARAMS
+        }; 
+
+        /* These are basically based on the 
+         * options to TSpectrum::searchHighRes
+         */ 
+        enum TSPECTRUM_Params
+        {
+          TS_SIGMA, /// default = 2
+          TS_THRESHOLD, /// default = 0.05
+          TS_NDECONV_ITERATIONS, //default = 3
+          TS_AVERAGE_WINDOW, //default = 3
+          TS_NPARAMS
+        }; 
+
+        enum SAVGOLSUB_Params
+        {
+          SGS_ORDER, ///default = 3 (treated as int) 
+          SGS_WIDTH, ///default = 5 , really halfwidth, (treated as int) 
+          SGS_NPARAMS
+        }; 
+
+
+        /** Set the peak finding option used to seed the sinusoid fitter. See PeakFindingOption for possibilities. 
+         * params depends on the particular peak finder you want (or pass 0 for defaults). */ 
+
+        void setPeakFindingOption(PeakFindingOption peak, const double * params = 0); 
 
         /** Returns a pointer to a vector of the sequence of powers vs. iteration */ 
         const std::vector<double> * getPowerSequence() const { return &r.powers; } 
-
 
         /** If storage of graphs is enabled, returns a pointer to a nested vector of stored graphs */ 
         const std::vector<std::vector<TGraph*> > * getStoredGraphs() const { return &gs; }
@@ -534,15 +600,12 @@ namespace FFTtools
         /** Set the threshold for considering an iteration successful. This is a percentage of power reduction. */
         void setMinPowerReduction(double min) {min_power_reduction = min; g_min_power = 0;}; 
 
-        /* Set the frequency-dependent max number of failed iterations before giving up. */
+        /* Set the frequency-dependent threshold before giving up. */
         void setMinPowerReduction(const TGraph *g) { g_min_power= g; }  
 
 
         /** Togggle storage of intermediate traces */
         void setStore(bool s) { store = s; }
-
-        /** Set the neighbor factor, which is used to determine if something is a peak in the spectrum */ 
-        void setNeighborFactor(double n) { neighbor_factor2 = n*n; } 
 
         /** Makes the fitter use this SineFitterLimits */
         void setFitterLimitOptions( const SineFitterLimits * lims) { fitter.setLimitOptions(lims); }
@@ -572,6 +635,7 @@ namespace FFTtools
       private: 
         int abs_maxiter; 
         int maxiter; 
+        double nfail_exponent; 
         int max_successful_iter; 
         int tmin, tmax; 
         std::vector<double> fmin; 
@@ -581,16 +645,22 @@ namespace FFTtools
         std::vector<TGraph*> spectra; 
         SineSubtractResult r; 
         bool store; 
-        double neighbor_factor2; 
-        double oversample_factor ; 
         double high_factor; 
+
         PowerSpectrumEstimator power_estimator;
+        double * power_estimator_params; 
+        PeakFindingOption peak_option; 
+        double * peak_option_params; 
 
         const TGraph * g_min_power; 
 
         bool verbose; 
         void reset(); 
         unsigned id; 
+
+        /** some utility stuff */ 
+        int findMaxFreq(int Nfreq, const double * freq, const double * mag, const int * nfails) const; 
+        bool allowedFreq(double f, double df) const; 
 
         SineFitter fitter; 
     }; 

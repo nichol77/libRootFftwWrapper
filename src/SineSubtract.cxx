@@ -3,6 +3,8 @@
 #include "TCanvas.h" 
 #include "TStyle.h" 
 #include "TMutex.h" 
+#include "DigitalFilter.h" 
+#include "TSpectrum.h" 
 
 #ifndef __APPLE__
 #include <malloc.h>
@@ -17,7 +19,6 @@
 #endif
 
 #include "TMath.h"
-#include <set>
 #include "FFTtools.h"
 #include "TF1.h" 
 #include "TH2.h"
@@ -626,18 +627,20 @@ void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double
 }
 
 FFTtools::SineSubtract::SineSubtract(const TGraph * gmp, int maxiter, bool store)
-  : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),  min_power_reduction(gmp->GetMean(2)), store(store)
-{
+  : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),
+  min_power_reduction(gmp->GetMean(2)), store(store),
+  power_estimator_params(0), peak_option_params(0)
 
+{
   g_min_power = gmp; 
-  power_estimator = FFT; 
-  oversample_factor = 2; 
+  setPowerSpectrumEstimator(FFT); 
+  setPeakFindingOption(NEIGHBORFACTOR); 
   high_factor = 1; 
-  neighbor_factor2 = 0.15; 
   verbose = false; 
   tmin = 0; 
   tmax = 0; 
-
+  nfail_exponent =0.5; 
+  id = counter++; 
 #ifdef ENABLE_VECTORIZE
   no_subnormals();  // Unlikely to occur, but worth it if they do
 #endif
@@ -648,24 +651,24 @@ FFTtools::SineSubtract::SineSubtract(const TGraph * gmp, int maxiter, bool store
 
 
 FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bool store)
-  : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),  min_power_reduction(min_power_reduction), store(store)
+  : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),
+    min_power_reduction(min_power_reduction), store(store),
+    power_estimator_params(0), peak_option_params(0)
+
 {
 
-  power_estimator = FFT; 
-  oversample_factor = 2; 
+  setPowerSpectrumEstimator(FFT); 
+  setPeakFindingOption(NEIGHBORFACTOR); 
   high_factor = 1; 
-  neighbor_factor2 = 0.15; 
   verbose = false; 
   tmin = 0; 
   tmax = 0; 
   g_min_power =0; 
+  nfail_exponent =0.5; 
   id = counter++; 
-
 #ifdef ENABLE_VECTORIZE
   no_subnormals();  // Unlikely to occur, but worth it if they do
 #endif
-
-  
 }
 
 void FFTtools::SineSubtractResult::append(const SineSubtractResult *r) 
@@ -730,9 +733,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   TStopwatch sw; 
 #endif
   reset(); 
+  double orig_dt = dt; 
 
-  std::multiset<int> failed_bins; //nfails for each bin 
-
+  if (!dt) dt = g[0]->GetX()[1] - g[0]->GetX()[0]; 
 
   int low = tmin < 0 || tmin >= g[0]->GetN() ? 0 : tmin; 
   int high[ntraces];  
@@ -776,7 +779,15 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   double fnyq = 1./(2*dt); 
   if (fmax.size()) hf = std::min(*std::max_element(fmax.begin(), fmax.end()) / fnyq, high_factor); 
 
-  int spectrum_N = power_estimator == FFT ? NuseMax/2 + 1 : NuseMax * oversample_factor * hf / 2; 
+  double pad_scale_factor = 1; 
+  if (power_estimator == FFT) pad_scale_factor = (1+power_estimator_params[FFT_NPAD]); 
+
+
+  int spectrum_N = power_estimator == FFT ? (pad_scale_factor*NuseMax)/2 + 1
+                                          : NuseMax * power_estimator_params[LS_OVERSAMPLE_FACTOR] * hf / 2; 
+
+
+  std::vector<int> nfails(spectrum_N); 
 
   TGraph* power_spectra[ntraces]; 
   TGraph* fft_phases[ntraces]; // not all power estimation options use this
@@ -795,27 +806,24 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   int nattempts = 0; 
 
 
-  /** We needed padded copies of traces if they don't all have the same length
-   * so that the spectrum has the same bins. This might be replaced
-   * by a more intelligent way of doing things later (i.e. interpolating the
-   * spectrum properly)
-   * 
-   * Alternatively it wouldn't hurt to zero pad to a power of 2 for a bit of extra efficiency
-   * Maybe I'll do that later. 
-   * */ 
+  /** We need padded copies of traces if they don't all have the same length
+   * so that the spectrum has the same bins (or if we want to pad for extra resolution)
+   *
+   **/ 
   TGraph * gPadded[ntraces]; 
   memset(gPadded,0,sizeof(gPadded)); 
 
+
   for (int ti = 0; ti < ntraces; ti++)
   {
-    if (Nuse[ti] < NuseMax)
+    if (Nuse[ti] < NuseMax || pad_scale_factor > 1.)
     {
-      gPadded[ti] = new TGraph(NuseMax); 
+      gPadded[ti] = new TGraph(NuseMax * pad_scale_factor); 
 
       memcpy(gPadded[ti]->GetX(), g[ti]->GetX(), Nuse[ti] *sizeof(double));
       memcpy(gPadded[ti]->GetY(), g[ti]->GetY(), Nuse[ti] *sizeof(double));
 
-      for (int i = Nuse[ti]; i < NuseMax; i++) 
+      for (int i = Nuse[ti]; i < gPadded[ti]->GetN(); i++) 
       {
         gPadded[ti]->GetX()[i] = gPadded[ti]->GetX()[i-1] + dt; 
         gPadded[ti]->GetY()[i] = 0; //should be unnecessary 
@@ -827,38 +835,38 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
   while(true) 
   {
-
     nattempts++; 
+
     for (int ti = 0; ti  < ntraces; ti++)
     {
 
-      TGraph * take_spectrum_of_this = Nuse[ti] < NuseMax ? gPadded[ti] : g[ti]; 
+      TGraph * take_spectrum_of_this = gPadded[ti] ? gPadded[ti] : g[ti];  
 
       if (power_estimator == LOMBSCARGLE)
       {
 
-         FFTtools::lombScarglePeriodogram(NuseMax, dt, take_spectrum_of_this->GetX() + low, take_spectrum_of_this->GetY() + low, oversample_factor, hf, power_spectra[ti]);
+         FFTtools::lombScarglePeriodogram(NuseMax, dt, take_spectrum_of_this->GetX() + low, take_spectrum_of_this->GetY() + low, power_estimator_params[LS_OVERSAMPLE_FACTOR], hf, power_spectra[ti]);
       }
-      else  //FFT 
+      else //FFT 
       {
-        double df = 1./(NuseMax * dt); 
+        double df = 1./(NuseMax * dt * pad_scale_factor); 
         if (fft_phases[ti] == 0)
         {
           fft_phases[ti] = new TGraph(spectrum_N); 
         }
 
         TGraph * ig = take_spectrum_of_this; 
-        if (dt > 0) // must interpolate
+        if (orig_dt > 0) // must interpolate
         {
           ig = FFTtools::getInterpolatedGraph(take_spectrum_of_this, dt); 
-          ig->Set(NuseMax);  // ensure same length
+          ig->Set(NuseMax * pad_scale_factor);  // ensure same length
         }
 
-        FFTWComplex * the_fft = FFTtools::doFFT(NuseMax, ig->GetY() + low); 
+        FFTWComplex * the_fft = FFTtools::doFFT(NuseMax * pad_scale_factor, ig->GetY() + low); 
 
         for (int i = 0; i < spectrum_N; i++)
         {
-          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / NuseMax / 16; //why was this factor of 16 here? 
+          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / NuseMax / 16 / pad_scale_factor; //why was this factor of 16 here? 
           if (i > 0 && i <spectrum_N-1) power_spectra[ti]->GetY()[i] *=2; 
           fft_phases[ti]->GetY()[i] = the_fft[i].getPhase(); 
           power_spectra[ti]->GetX()[i] = df *i; 
@@ -873,15 +881,13 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
           delete ig; 
         }
       }
+
+      
     }
 
 
-    int max_i = -1; 
 
-    double mag_sum[spectrum_N]; 
-    memset(mag_sum, 0, sizeof(double) * spectrum_N); 
-    double max_adj_mag2 = 0; 
-    double max_f = 0; 
+    std::vector<double> mag_sum(spectrum_N); 
 
     double * spectra_x=0, *spectra_y=0; 
 
@@ -901,60 +907,22 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       }
     }
 
-
-    double df = power_spectra[0]->GetX()[1] - power_spectra[0]->GetX()[0]; 
-
-    // find the maximum! 
-    for (int i = 0; i < spectrum_N; i++)
+    
+    if (store)
     {
-      double freq =  power_spectra[0]->GetX()[i]; 
-
-      double adj_mag2 = mag_sum[i] / (1+failed_bins.count(i)); 
-      double neigh_mag2_low = i == 0 ? DBL_MAX : mag_sum[i-1];; 
-      double neigh_mag2_high = i == spectrum_N-1 ? DBL_MAX : mag_sum[i+1]; 
-
-//      printf("%f %f\n", freq, adj_mag2); 
-
-      if (store) 
+      for (int i = 0; i < spectrum_N; i++)
       {
-        spectra_x[i] = freq; 
-        spectra_y[i] = mag_sum[i]/ntraces; 
-      }
-
-      //check if within allowed frequencies
-      if (fmin.size())
-      {
-        bool ok = false; 
-        for (unsigned i = 0; i < fmin.size(); i++) 
-        {
-          if (freq+df >= fmin[i] && freq-df <= fmax[i]) 
-          {
-            ok = true; 
-            break; 
-          }
-        }
-
-        if (!ok) 
-        {
-          continue; 
-        }
-      }
-        
-
-      //we need a smarter peak finder here... 
-      if ( max_i < 0 ||
-         ( adj_mag2 > max_adj_mag2 && 
-           mag_sum[i] * neighbor_factor2 > TMath::Min(neigh_mag2_low, neigh_mag2_high)
-           )
-         )
-      {
-        
-        max_i = i; 
-        max_adj_mag2 =adj_mag2; 
-        max_f = freq;
+         spectra_x[i] = power_spectra[0]->GetX()[i]; 
+         spectra_y[i] = mag_sum[i]/ntraces; 
       }
     }
 
+    // find the maximum 
+    int max_i = findMaxFreq(spectrum_N, power_spectra[0]->GetX(), &mag_sum[0], &nfails[0]); 
+    double max_f = power_spectra[0]->GetX()[max_i]; 
+
+    if (verbose) 
+      printf("max_freq: %d %g\n", max_i, max_f); 
 
     if ( (abs_maxiter > 0 && nattempts > abs_maxiter)
         || (max_successful_iter > 0 && int(r.freqs.size()) >= max_successful_iter)
@@ -1032,7 +1000,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
     if (ratio < mpr)
     {
-      failed_bins.insert(max_i); 
+      nfails[max_i]++; 
       if (++ntries > maxiter)   
       {
         break;
@@ -1088,6 +1056,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
   for (int i = 0; i < ntraces; i++) 
   { 
+    if (gPadded[i]) delete gPadded[i]; 
     delete power_spectra[i];
     if (fft_phases[i]) delete fft_phases[i]; 
   }
@@ -1246,8 +1215,215 @@ void FFTtools::SineSubtract::makePlots(TCanvas * cpower, TCanvas * cw, int ncols
 
 FFTtools::SineSubtract::~SineSubtract()
 {
+  delete [] power_estimator_params; 
+  delete [] peak_option_params; 
   reset(); 
 }
+
+
+
+
+bool FFTtools::SineSubtract::allowedFreq(double freq, double df) const
+{
+  if (!fmin.size()) return true; 
+ 
+  for (unsigned j = 0; j < fmin.size(); j++) 
+  {
+     if (freq+df >= fmin[j] && freq-df <= fmax[j]) 
+     {
+       return true; 
+     }
+  }
+
+  return false; 
+}
+
+static __thread FFTtools::SavitzkyGolayFilter* savgol = 0; 
+static __thread TSpectrum* tspect = 0; 
+
+int FFTtools::SineSubtract::findMaxFreq(int Nfreq, const double * freq, const double * mag, const int * nfails) const
+{
+
+  int max_i =-1; 
+  double max = 0; 
+  double df = freq[1]-freq[0]; 
+       
+  if (peak_option == GLOBALMAX || peak_option == NEIGHBORFACTOR)   // we can just iterate through and do this
+  {
+    for (int i = 0; i < Nfreq;i++)
+    {
+
+      //TODO this is a very inefficient way to do this 
+      if (!allowedFreq(freq[i],df)) continue; 
+
+      double val =mag[i]; 
+      //check neighbors if we are doing that
+      if (peak_option == NEIGHBORFACTOR) 
+      {
+
+        double neigh_low  = i == 0 ? DBL_MAX : mag[i-1]; 
+        double neigh_high  = i == Nfreq-1 ? DBL_MAX : mag[i+1]; 
+        if (val * peak_option_params[NF_NEIGHBOR_FACTOR] <= TMath::Min(neigh_low, neigh_high)) 
+        {
+          continue;
+        }
+      }
+
+      double adjval = val;
+      /* adjust the value */ 
+      if (nfails[i]) adjval /= pow(1 + nfails[i],nfail_exponent); 
+
+
+      if (adjval > max) 
+      {
+        max = adjval; 
+        max_i = i; 
+      }
+    }
+  }
+
+  else if (peak_option == TSPECTRUM)
+  {
+    if (!tspect) tspect = new TSpectrum(32); //32 peaks should be good enough for anyone! 
+
+    double out[Nfreq]; 
+
+    int npeaks = tspect->SearchHighRes((double*)mag,out,Nfreq,
+        peak_option_params[TS_SIGMA], peak_option_params[TS_THRESHOLD], true,
+        (int) peak_option_params[TS_NDECONV_ITERATIONS], true, (int)
+        peak_option_params[TS_AVERAGE_WINDOW]) ; 
+
+
+    for (int p = 0; p < npeaks; p++) 
+    {
+       int i= tspect->GetPositionX()[p] +0.5;  // I guess round to nearest bin? 
+       if (!allowedFreq(freq[i],df)) continue; 
+
+        double val =mag[i]; 
+        if (nfails[i]) val /= pow(1 + nfails[i],nfail_exponent); 
+
+        if (val > max) 
+        {
+          max = val; 
+          max_i = i; 
+        }
+    }
+
+    // it's possible that none of our peaks are valid, in which case we will just pick the maximum from the
+    // deconvolved array :( 
+
+    if (max_i < 0) 
+    {
+      for (int i = 0; i < Nfreq; i++) 
+      {
+        if (!allowedFreq(freq[i],df)) continue; 
+        double val =mag[i]; 
+        if (nfails[i]) val /= pow(1 + nfails[i],nfail_exponent); 
+        if (val > max) 
+        {
+          max = val; 
+          max_i = i; 
+        }
+      }
+    }
+  }
+
+  else if (peak_option == SAVGOLSUB)
+  {
+
+    //check if we need a new savgol 
+    if (!savgol || 
+        savgol->getOrder() != (int) peak_option_params[SGS_ORDER] || 
+        savgol->getWidthLeft() != (int) peak_option_params[SGS_WIDTH] )
+    {
+      if (savgol) delete savgol; 
+      savgol = new FFTtools::SavitzkyGolayFilter(peak_option_params[SGS_ORDER], peak_option_params[SGS_WIDTH]); 
+    }
+    
+     
+    double bg[Nfreq]; 
+    savgol->filterOut(Nfreq, mag, bg); 
+    
+    for (int i = 0; i < Nfreq; i++)
+    {
+      //TODO this is a very inefficient way of doing this 
+      if (!allowedFreq(freq[i],df)) continue; 
+      double val = mag[i] - bg[i]; 
+
+      if (nfails[i]) val /= pow(1 + nfails[i], nfail_exponent); 
+      if (val > max) 
+      {
+        max = val; 
+        max_i = i; 
+      }
+    }
+  }
+
+
+  return max_i; 
+}
+
+
+static const double default_FFT_params[] = {0.} ; 
+static const double default_LOMBSCARGLE_params[] = {2.} ; 
+static double dummy = 0; 
+
+void FFTtools::SineSubtract::setPowerSpectrumEstimator(PowerSpectrumEstimator estimator, const double * p) 
+{
+  power_estimator = estimator; 
+  int N = estimator == FFT? FFT_NPARAMS : 
+          estimator == LOMBSCARGLE? LS_NPARAMS :
+          0; 
+  
+  if (power_estimator_params) delete [] power_estimator_params; 
+  power_estimator_params = new double[N]; 
+
+  if (N) 
+  {
+    memcpy(power_estimator_params,
+           p? p : 
+           estimator == FFT?  default_FFT_params  : 
+           estimator == LOMBSCARGLE?  default_LOMBSCARGLE_params  : 
+           &dummy,//to avoid compiler warning 
+           sizeof(double) *N); 
+  }
+
+}
+
+static const double default_NEIGHBORFACTOR_params[] = {0.15}; 
+static const double default_TSPECTRUM_params[] = {2,0.05,3,3}; 
+static const double default_SAVGOLSUB_params[] = {3,10}; 
+
+
+
+void FFTtools::SineSubtract::setPeakFindingOption(PeakFindingOption option, const double * p)
+{
+  peak_option = option; 
+
+  int N = option == GLOBALMAX? 0 : 
+          option == NEIGHBORFACTOR? NF_NPARAMS :         
+          option == TSPECTRUM? TS_NPARAMS : 
+          option == SAVGOLSUB ? SGS_NPARAMS : 
+          0; 
+
+  if (peak_option_params) delete[] peak_option_params; 
+
+  peak_option_params = new double[N]; 
+
+  if (N) 
+  {
+    memcpy(peak_option_params, 
+           p? p : 
+           option == NEIGHBORFACTOR?  default_NEIGHBORFACTOR_params : 
+           option == TSPECTRUM?  default_TSPECTRUM_params : 
+           option == SAVGOLSUB?  default_SAVGOLSUB_params : 
+           &dummy ,  //to avoid compiler warning
+           sizeof(double) *N); 
+  }
+}
+
+
+
 
 
 ClassImp(FFTtools::SineSubtractResult); 
