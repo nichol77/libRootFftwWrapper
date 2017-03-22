@@ -8,7 +8,10 @@ class TPad;
 #include <complex>
 #include <cstdlib>
 
-/** Digital Filter Implementation 
+/** 
+ *
+ * Digital Filter Implementation.
+ * 
  *
  * Cosmin Deaconu <cozzyd@kicp.uchicago.edu> 
  *
@@ -155,7 +158,12 @@ namespace FFTtools
 
     }; 
 
-    /* FIR filter*/
+    /* FIR filter
+     *
+     * This is effectively a convolution. This implementation has some non-standard options
+     * that make an FIR filter NOT a subset of an IIR filter (Delay and extend). 
+     *
+     * */
     class FIRFilter : public DigitalFilter
     {
       public:
@@ -166,12 +174,18 @@ namespace FFTtools
         virtual std::complex<double> transfer(std::complex<double> z) const ;  
         virtual void setDelay(int d) { delay = d; } 
         virtual void setExtend(bool ext) { extend = ext; } 
+        size_t getOrder() const { return coeffs.size(); }
+        int getDelay() const { return delay; } 
+        const double* getCoeffs() const { return &(coeffs[0]); } 
 
       protected: 
         std::vector<double> coeffs; 
         int delay; 
         bool extend; 
     }; 
+
+    /** A Savitzky-Golay Filter effectively fits an order n polynomial to 1+nleft+nright points, acting as a sort of
+     * smoothing filter.  */ 
 
     class SavitzkyGolayFilter : public FIRFilter
     {
@@ -217,44 +231,82 @@ namespace FFTtools
         SincFilter(double w, int max_lobes, const FFTWindowType * win = 0, int delay = 0, bool extend = false); 
     }; 
 
-    /** IIR filter implementation */ 
+    /** IIR filter implementation 
+     *
+     *  An IIR Filter is a rational function of z^-1 (which, of course, is e^(-jw), the unit delay) ) 
+     *
+     *           b0 + b1 z^-1 + b2 z^-2 + ... 
+     *  H(z) =  -------------------------------
+     *           a0 + a1 z^-1 + a2 z^-2 + ... 
+     *
+     *  a0 is typically 1 (otherwise b0 and a0 are degenerate), but this isn't enforced.  
+     *
+     *           
+     * */ 
     class IIRFilter : public DigitalFilter 
     {
       public:
-        IIRFilter() {order = 0;}
         /* Initialize filter from coeffs */ 
         IIRFilter(size_t order, const double * acoeffs, const double * bcoeffs) 
-          : order(order+1), acoeffs(acoeffs, acoeffs+order+1), bcoeffs(bcoeffs, bcoeffs + order+1) {; } 
+          : order(order), acoeffs(acoeffs, acoeffs+order+1), bcoeffs(bcoeffs, bcoeffs + order+1), gzero(0), gpole(0) 
+        { computePolesAndZeroes(); } 
 
-        IIRFilter(std::complex<double> gain, size_t nzeroes, std::complex<double> * digi_zeroes, size_t npoles, std::complex<double> * digi_poles) 
+        /** initialize filter from digital zeroes/poles/gain */ 
+        IIRFilter(std::complex<double> gain, size_t nzeroes, const std::complex<double> * digiZeroes, size_t npoles, const std::complex<double> * digiPoles) 
+          : digi_gain(gain), digi_poles(digiPoles, digiPoles + npoles), digi_zeroes(digiZeroes, digiZeroes + nzeroes), gzero(0), gpole(0) 
         {
-          computeCoeffsFromDigiPoles(gain, nzeroes, digi_zeroes, npoles, digi_poles); 
+          computeCoeffsFromDigiPoles(); 
           order = npoles > nzeroes ? npoles : nzeroes; 
 
         }
 
+        /** initialize filter from an FIR filter. 
+         * If the FIR filter has a large delay, this might end up having quite a large order */ 
+        IIRFilter(const FIRFilter& fir); 
+
         virtual void filterOut(size_t n, const double * w, double * out) const; 
         virtual std::complex<double> transfer(std::complex<double> z) const ;  
 
-        /*analytic order, may not be number of coeffs if bandpass or notch */
+        /*analytic order, may not be number of coeffs if bandpass or notch. This is probably mostly useless. */
         size_t getOrder() const { return order; } 
+
         size_t nAcoeffs() const { return acoeffs.size(); } 
         size_t nBcoeffs() const { return bcoeffs.size(); } 
-        const double* getAcoeffs() const { return &acoeffs[0]; } 
-        const double* getBcoeffs() const { return &bcoeffs[0]; } 
+        virtual size_t nDigiPoles() const { return digi_poles.size(); }
+        virtual size_t nDigiZeroes() const { return digi_zeroes.size(); }
+        virtual const std::complex<double> * getDigiPoles() const { return &digi_poles[0]; } 
+        virtual const std::complex<double> * getDigiZeroes()const  { return &digi_zeroes[0]; } 
+        std::complex<double> getDigiGain() const { return digi_gain; } 
         virtual ~IIRFilter() {;}
 
         /* Make a string description of the filter. */
         TString asString() const; 
+        /** Draw pole zero diagram 
+         *
+         *  Allowed options: 
+         *    same  - draw on top 
+         *    circ  - draw unit circle
+         *    pol   - draw polar axis 
+         * */ 
+        virtual void Draw(const char * opt= "", int color=1) const; 
 
 
       protected:
+        IIRFilter() { order = 0; gpole = 0; gzero = 0;} 
         size_t order; 
         std::vector<double> acoeffs; 
         std::vector<double> bcoeffs; 
-        void computeCoeffsFromDigiPoles(std::complex<double> gain, size_t nzeroes, std::complex<double> * zeros, size_t npoles, std::complex<double> * poles); 
+        std::complex<double> digi_gain;
+        std::vector<std::complex<double> > digi_poles; 
+        void computePolesAndZeroes(); 
+        void computeCoeffsFromDigiPoles(); 
+        std::vector<std::complex<double> > digi_zeroes; 
+        mutable TGraph * gzero; 
+        mutable TGraph * gpole; 
     };
 
+
+     
     /* Classic filter topologies */ 
     enum FilterTopology
     {
@@ -269,7 +321,6 @@ namespace FFTtools
     class TransformedZPKFilter : public IIRFilter
     {
       public:
-        TransformedZPKFilter() { ; } 
         TransformedZPKFilter( int npoles, std::complex<double> *poles, int nzeroes, std::complex<double> * zeroes, double gain)
           : poles(poles, poles+npoles), zeroes(zeroes, zeroes+nzeroes), gain(gain) 
         {
@@ -292,23 +343,16 @@ namespace FFTtools
         const std::complex<double> * getZeroes() { return &zeroes[0]; } 
         double getGain() const { return gain; } 
 
-        size_t nDigiPoles() const { return digi_poles.size(); }
-        size_t nDigiZeroes() const { return digi_zeroes.size(); }
-        const std::complex<double> * getDigiPoles() { return &digi_poles[0]; } 
-        const std::complex<double> * getDigiZeroes() { return &digi_zeroes[0]; } 
-        std::complex<double> getDigiGain() const { return digi_gain; } 
 
 
       protected:
         std::vector<std::complex<double> > poles; 
         std::vector<std::complex<double> > zeroes; 
-        std::vector<std::complex<double> > digi_poles; 
-        std::vector<std::complex<double> > digi_zeroes; 
         //transform from prototype filter to low/high/bandpass/notch with given frequency
         void transform(FilterTopology type, double w, double dw = 0); 
         void bilinearTransform(); 
         double gain; 
-        std::complex<double> digi_gain; 
+        TransformedZPKFilter() { ; } 
 
     }; 
 
@@ -363,6 +407,35 @@ namespace FFTtools
 
 
     }; 
+
+    class MinimumPhaseFilter : public IIRFilter
+    {
+    
+      public: 
+
+        /* Construct a minimum phase filter from a general IIRFilter. This will reflect any zeroes and poles
+         * around the unit circle. 
+         *
+         * If a pole or zero is exactly on the unit circle, it is moved inside by eps
+         *
+         * */ 
+        MinimumPhaseFilter( const IIRFilter & other, double eps=1e-3); 
+
+
+
+    }; 
+
+    class InverseFilter : public IIRFilter
+    {
+      public: 
+
+        /* Constructs the inverse of an IIRFilter (poles converted to zeroes and vice versa). It's
+         * slightly more sophisticated than that because it will divide through by the gain to give a
+         * 1 as the first a coeff. */
+        InverseFilter(const IIRFilter &other); 
+    }; 
+
+
 
 }
 
