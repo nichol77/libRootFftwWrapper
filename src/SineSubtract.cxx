@@ -1284,6 +1284,9 @@ int FFTtools::SineSubtract::findMaxFreq(int Nfreq, const double * freq, const do
 
   else if (peak_option == TSPECTRUM)
   {
+#if ROOT_VERSION_CODE <= ROOT_VERSION(6,0,0)
+    fprintf(stderr,"TSPECTRUM option not supported for ROOT < 6 due to API change\n"); 
+#else
     if (!tspect) tspect = new TSpectrum(32); //32 peaks should be good enough for anyone! 
 
     double out[Nfreq]; 
@@ -1326,6 +1329,7 @@ int FFTtools::SineSubtract::findMaxFreq(int Nfreq, const double * freq, const do
         }
       }
     }
+#endif
   }
 
   else if (peak_option == SAVGOLSUB)
