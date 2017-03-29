@@ -54,7 +54,8 @@ static int counter;
 
 
 
-extern int gErrorIgnoreLevel; // who ordered that? 
+#include "TError.h" 
+//extern int gErrorIgnoreLevel; // who ordered that? 
 
 static double guessPhase(const TGraph * g, double freq) 
 {
