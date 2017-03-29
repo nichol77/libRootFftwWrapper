@@ -29,7 +29,7 @@ Double_t FFTtools::welchWindow(Int_t j, Int_t n)
   return 1. -TMath::Power(Double_t(2*j -n)/n,2);
 }
 
-TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
+TGraph *FFTtools::getInterpolatedGraph(const TGraph *grIn, Double_t deltaT)
 {
   //Will use the ROOT::Math::Interpolator function to do this.
   std::vector<double> tVec;
@@ -81,7 +81,7 @@ TGraph *FFTtools::getInterpolatedGraph(TGraph *grIn, Double_t deltaT)
 
 
 
-TGraph *FFTtools::getInterpolatedGraphFreqDom(TGraph *grIn, Double_t deltaT)
+TGraph *FFTtools::getInterpolatedGraphFreqDom(const TGraph *grIn, Double_t deltaT)
 {
    
   Int_t numIn=grIn->GetN();
@@ -567,7 +567,7 @@ Double_t *FFTtools::combineValuesUsingFFTs(Int_t numArrays, Double_t **thePtrPtr
 }
 
 
-TGraph *FFTtools::combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double *theWeights) {
+TGraph *FFTtools::combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr, const double *theWeights) {
 
     double totalWeight=0;
     if(theWeights) {
@@ -624,7 +624,7 @@ TGraph *FFTtools::combineGraphsUsingFFTs(Int_t numGraphs, TGraph **grPtr,double 
     
 }
 
-TGraph *FFTtools::getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *gr2,  Int_t *zeroOffset, Int_t useDtRange, Double_t dtMin, Double_t dtMax) {
+TGraph *FFTtools::getNormalisedCorrelationGraphTimeDomain(const TGraph *gr1, const TGraph *gr2,  Int_t *zeroOffset, Int_t useDtRange, Double_t dtMin, Double_t dtMax) {
   //Will also assume these graphs are zero meaned... may fix this assumption
    //Now we'll extend this up to a power of 2
   int length=gr1->GetN();
@@ -706,7 +706,7 @@ TGraph *FFTtools::getNormalisedCorrelationGraphTimeDomain(TGraph *gr1, TGraph *g
   return grCor;
 }
 
-TGraph *FFTtools::getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset) {
+TGraph *FFTtools::getNormalisedCorrelationGraph(const TGraph *gr1,const  TGraph *gr2, Int_t *zeroOffset) {
   //Will also assume these graphs are zero meaned... may fix this assumption
    //Now we'll extend this up to a power of 2
   int length=gr1->GetN();
@@ -751,7 +751,7 @@ TGraph *FFTtools::getNormalisedCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t 
 
 
 
-TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffset) {
+TGraph *FFTtools::getCorrelationGraph(const TGraph *gr1, const TGraph *gr2, Int_t *zeroOffset) {
    //Now we'll extend this up to a power of 2
     int length=gr1->GetN();
     int length2=gr2->GetN();
@@ -835,7 +835,7 @@ TGraph *FFTtools::getCorrelationGraph(TGraph *gr1, TGraph *gr2, Int_t *zeroOffse
 
 
 
-TGraph *FFTtools::getInterpolatedCorrelationGraph(TGraph *grIn1, TGraph *grIn2, Double_t deltaT)
+TGraph *FFTtools::getInterpolatedCorrelationGraph(const TGraph *grIn1, const TGraph *grIn2, Double_t deltaT)
 {
   TGraph *gr1 = getInterpolatedGraph(grIn1,deltaT);
   TGraph *gr2 = getInterpolatedGraph(grIn2,deltaT);
@@ -849,7 +849,7 @@ TGraph *FFTtools::getInterpolatedCorrelationGraph(TGraph *grIn1, TGraph *grIn2, 
   return grCor;
 }
 
-double *FFTtools::getCorrelation(int length,float *oldY1, float *oldY2) 
+double *FFTtools::getCorrelation(int length,const float *oldY1, const float *oldY2) 
 {
     double *newY1 = new double [length];
     double *newY2 = new double [length];
@@ -865,7 +865,7 @@ double *FFTtools::getCorrelation(int length,float *oldY1, float *oldY2)
 }
 
 
-double *FFTtools::getCorrelation(int length,double *oldY1, double *oldY2) 
+double *FFTtools::getCorrelation(int length,const double *oldY1, const double *oldY2) 
 {
 
 //    cout << "Here in getCorrelation" << endl;
@@ -899,7 +899,7 @@ double *FFTtools::getCorrelation(int length,double *oldY1, double *oldY2)
 }
 
 
-double *FFTtools::getCorrelation(TGraph *gr1, TGraph *gr2,int firstIndex,int lastIndex) {
+double *FFTtools::getCorrelation(const TGraph *gr1,const  TGraph *gr2,int firstIndex,int lastIndex) {
     int tempLength=gr1->GetN();
     if(firstIndex<0 || lastIndex>tempLength) return 0;
     
@@ -916,7 +916,7 @@ double *FFTtools::getCorrelation(TGraph *gr1, TGraph *gr2,int firstIndex,int las
 }
 
 
-TGraph *FFTtools::makeInverseInverseSpectrum(TGraph *grWave) {
+TGraph *FFTtools::makeInverseInverseSpectrum(const TGraph *grWave) {
 
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -948,7 +948,7 @@ double* FFTtools::getHilbertTransform(int length, const double * y)
   delete [] theFFT;
   return hilbert; 
 }
-TGraph *FFTtools::getHilbertTransform(TGraph *grWave)
+TGraph *FFTtools::getHilbertTransform(const TGraph *grWave)
 {
   double *oldY = grWave->GetY();
   double *oldX = grWave->GetX();
@@ -961,7 +961,7 @@ TGraph *FFTtools::getHilbertTransform(TGraph *grWave)
 }
 
 
-TGraph *FFTtools::getHilbertEnvelope(TGraph *grWave)
+TGraph *FFTtools::getHilbertEnvelope(const TGraph *grWave)
 {
   //  cout << "Here" << endl;
   double *realY = grWave->GetY();
@@ -981,7 +981,7 @@ TGraph *FFTtools::getHilbertEnvelope(TGraph *grWave)
   return grEnvelope;
 }
 
-TGraph *FFTtools::getBoxCar(TGraph *grWave, Int_t halfWidth) 
+TGraph *FFTtools::getBoxCar(const TGraph *grWave, Int_t halfWidth) 
 {
   //Just do this the lazy way for now
   Double_t *inY = grWave->GetY();
@@ -1014,7 +1014,7 @@ TGraph *FFTtools::getBoxCar(TGraph *grWave, Int_t halfWidth)
   
 }
 
-TGraph *FFTtools::makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave) {
+TGraph *FFTtools::makePowerSpectrumVoltsSecondsBartlett(const TGraph *grWave) {
   Double_t *oldY=grWave->GetY();
   Double_t *t = grWave->GetX();
   Int_t numPoints = grWave->GetN();
@@ -1028,7 +1028,7 @@ TGraph *FFTtools::makePowerSpectrumVoltsSecondsBartlett(TGraph *grWave) {
 }
 
 
-TGraph *FFTtools::makePowerSpectrum(TGraph *grWave) {
+TGraph *FFTtools::makePowerSpectrum(const TGraph *grWave) {
 
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -1067,7 +1067,7 @@ TGraph *FFTtools::makePowerSpectrum(TGraph *grWave) {
 
 
 
-TGraph *FFTtools::makePowerSpectrumPeriodogram(TGraph *grWave) {
+TGraph *FFTtools::makePowerSpectrumPeriodogram(const TGraph *grWave) {
 
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -1103,7 +1103,7 @@ TGraph *FFTtools::makePowerSpectrumPeriodogram(TGraph *grWave) {
 
 }
 
-TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
+TGraph *FFTtools::makePowerSpectrumVoltsSeconds(const TGraph *grWave) {
 
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -1144,7 +1144,7 @@ TGraph *FFTtools::makePowerSpectrumVoltsSeconds(TGraph *grWave) {
 
 }
 
-TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave) {
+TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(const TGraph *grWave) {
 
 //   double *oldY = grWave->GetY(); //in millivolts
 //   double *oldX = grWave->GetX(); //in nanoseconds
@@ -1238,7 +1238,7 @@ TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(TGraph *grWave) {
 }
 
 
-TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave)
+TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(const TGraph *grWave)
 {
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -1283,7 +1283,7 @@ TGraph *FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(TGraph *grWave)
 
 }
 
-TGraph *FFTtools::makePowerSpectrumVoltsSecondsdB(TGraph *grWave) {
+TGraph *FFTtools::makePowerSpectrumVoltsSecondsdB(const TGraph *grWave) {
 
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -1333,7 +1333,7 @@ TGraph *FFTtools::makePowerSpectrumVoltsSecondsdB(TGraph *grWave) {
 
 }
 
-TGraph *FFTtools::makePowerSpectrumVoltsSecondsPadded(TGraph *grWave, Int_t padFactor) {
+TGraph *FFTtools::makePowerSpectrumVoltsSecondsPadded(const TGraph *grWave, Int_t padFactor) {
 
    TGraph *grPad=padWave(grWave,padFactor);
    TGraph *grPower=makePowerSpectrumVoltsSeconds(grPad);
@@ -1343,7 +1343,7 @@ TGraph *FFTtools::makePowerSpectrumVoltsSecondsPadded(TGraph *grWave, Int_t padF
 }
 
 
-TGraph *FFTtools::makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t padFactor) {
+TGraph *FFTtools::makePowerSpectrumVoltsSecondsPaddeddB(const TGraph *grWave, Int_t padFactor) {
    TGraph *grPad=padWave(grWave,padFactor);
    TGraph *grPower=makePowerSpectrumVoltsSecondsdB(grPad);
    delete grPad;
@@ -1351,7 +1351,7 @@ TGraph *FFTtools::makePowerSpectrumVoltsSecondsPaddeddB(TGraph *grWave, Int_t pa
 }
 
 
-TGraph *FFTtools::makeRawPowerSpectrum(TGraph *grWave) {
+TGraph *FFTtools::makeRawPowerSpectrum(const TGraph *grWave) {
 
     double *oldY = grWave->GetY();
     double *oldX = grWave->GetX();
@@ -1390,7 +1390,7 @@ double FFTtools::getAbs(FFTWComplex &theNum) {
 }
 
 
-Double_t FFTtools::sumPower(TGraph *gr,Int_t firstBin,Int_t lastBin)
+Double_t FFTtools::sumPower(const TGraph *gr,Int_t firstBin,Int_t lastBin)
 {
   Double_t integral=0;
   Double_t freq,power;
@@ -1403,7 +1403,7 @@ Double_t FFTtools::sumPower(TGraph *gr,Int_t firstBin,Int_t lastBin)
   return integral;
 }
 
-Double_t FFTtools::integratePower(TGraph *gr,Int_t firstBin,Int_t lastBin)
+Double_t FFTtools::integratePower(const TGraph *gr,Int_t firstBin,Int_t lastBin)
 {
   Double_t integral=0;
   Double_t freq,power;
@@ -1420,7 +1420,7 @@ Double_t FFTtools::integratePower(TGraph *gr,Int_t firstBin,Int_t lastBin)
   return integral;
 }
 
-Double_t FFTtools::sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin)
+Double_t FFTtools::sumVoltageSquared(const TGraph *gr,Int_t firstBin,Int_t lastBin)
 {
   Double_t integral=0;
   Double_t time,volts;
@@ -1433,7 +1433,7 @@ Double_t FFTtools::sumVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin)
   return integral;
 }
 
-Double_t FFTtools::integrateVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastBin)
+Double_t FFTtools::integrateVoltageSquared(const TGraph *gr,Int_t firstBin,Int_t lastBin)
 {
   Double_t integral=0;
   Double_t this_time=0, next_time=0, this_v=0, next_v=0, dt=0;
@@ -1453,7 +1453,7 @@ Double_t FFTtools::integrateVoltageSquared(TGraph *gr,Int_t firstBin,Int_t lastB
 
 }
 
-Int_t FFTtools::getPeakBin(TGraph *gr) 
+Int_t FFTtools::getPeakBin(const TGraph *gr) 
 {
   Double_t x,y;
   gr->GetPoint(0,x,y);
@@ -1470,7 +1470,7 @@ Int_t FFTtools::getPeakBin(TGraph *gr)
 }
 
 
-Int_t FFTtools::getPeakBin(TGraph *gr, Int_t firstBin, Int_t lastBin) 
+Int_t FFTtools::getPeakBin(const TGraph *gr, Int_t firstBin, Int_t lastBin) 
 {
   if(firstBin<0 || lastBin<0 || firstBin>gr->GetN() || lastBin>gr->GetN() ||
      (lastBin<firstBin))
@@ -1490,7 +1490,7 @@ Int_t FFTtools::getPeakBin(TGraph *gr, Int_t firstBin, Int_t lastBin)
 }
 
 
-Double_t FFTtools::getPeakVal(TGraph *gr, int *index) 
+Double_t FFTtools::getPeakVal(const TGraph *gr, int *index) 
 {
    Double_t x,y;
    gr->GetPoint(0,x,y);
@@ -1509,7 +1509,7 @@ Double_t FFTtools::getPeakVal(TGraph *gr, int *index)
    return peakVal;
 }
 
-Double_t FFTtools::getPeakSqVal(TGraph *gr, int *index) 
+Double_t FFTtools::getPeakSqVal(const TGraph *gr, int *index) 
 {
    Double_t x,y;
    gr->GetPoint(0,x,y);
@@ -1529,7 +1529,7 @@ Double_t FFTtools::getPeakSqVal(TGraph *gr, int *index)
 
 }
 
-void FFTtools::getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index)
+void FFTtools::getPeakRmsSqVal(const TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index)
 {
   Int_t numPoints=gr->GetN();
   Double_t *y = gr->GetY();
@@ -1545,7 +1545,7 @@ void FFTtools::getPeakRmsSqVal(TGraph *gr, Double_t &peak, Double_t &rms, Int_t 
   delete [] ySq;
 }
 
-void FFTtools::getPeakRmsRectified(TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index)
+void FFTtools::getPeakRmsRectified(const TGraph *gr, Double_t &peak, Double_t &rms, Int_t *index)
 {
   TGraph *grRec = rectifyWave(gr);
   Int_t numPoints=grRec->GetN();
@@ -1558,7 +1558,7 @@ void FFTtools::getPeakRmsRectified(TGraph *gr, Double_t &peak, Double_t &rms, In
   delete grRec;
 }
 
-TGraph *FFTtools::subtractGraphs(TGraph *grA, TGraph *grB) 
+TGraph *FFTtools::subtractGraphs(const TGraph *grA, const TGraph *grB) 
 {
   Int_t N1=grA->GetN();
   Int_t N2=grB->GetN();
@@ -1578,7 +1578,7 @@ TGraph *FFTtools::subtractGraphs(TGraph *grA, TGraph *grB)
 }
 
 
-TGraph *FFTtools::translateGraph(TGraph *grWave, Double_t deltaT)
+TGraph *FFTtools::translateGraph(const TGraph *grWave, Double_t deltaT)
 {
   Int_t N = grWave->GetN();
   Double_t *X=grWave->GetX();
@@ -1591,7 +1591,7 @@ TGraph *FFTtools::translateGraph(TGraph *grWave, Double_t deltaT)
   return grOut;
 }
 
-TGraph *FFTtools::divideGraphs(TGraph *grA, TGraph *grB) 
+TGraph *FFTtools::divideGraphs(const TGraph *grA, const TGraph *grB) 
 {
   Int_t N1=grA->GetN();
   Int_t N2=grB->GetN();
@@ -1611,7 +1611,7 @@ TGraph *FFTtools::divideGraphs(TGraph *grA, TGraph *grB)
 }
 
 
-TGraph *FFTtools::ratioSubtractOneGraphs(TGraph *grA, TGraph *grB) 
+TGraph *FFTtools::ratioSubtractOneGraphs(const TGraph *grA, const TGraph *grB) 
 {
    Int_t N1=grA->GetN();
   Int_t N2=grB->GetN();
@@ -1641,7 +1641,7 @@ TGraph *FFTtools::ratioSubtractOneGraphs(TGraph *grA, TGraph *grB)
   return grRat;
 }
 
-TGraph *FFTtools::dbGraphs(TGraph *grA, TGraph *grB) 
+TGraph *FFTtools::dbGraphs(const TGraph *grA, const TGraph *grB) 
 {
   Int_t N1=grA->GetN();
   Int_t N2=grB->GetN();
@@ -1674,7 +1674,7 @@ TGraph *FFTtools::dbGraphs(TGraph *grA, TGraph *grB)
 }
 
 
-TGraph *FFTtools::smoothFFT(TGraph *gr,Int_t factor) 
+TGraph *FFTtools::smoothFFT(const TGraph *gr,Int_t factor) 
 {
   Int_t N=gr->GetN();
   Int_t newN=N/factor;
@@ -1704,7 +1704,7 @@ TGraph *FFTtools::smoothFFT(TGraph *gr,Int_t factor)
   return grSmooth;
 }
 
-TGraph *FFTtools::padWave(TGraph *grWave, Int_t padFactor) {
+TGraph *FFTtools::padWave(const TGraph *grWave, Int_t padFactor) {
    double *oldY = grWave->GetY();
    double *oldX = grWave->GetX();
    double deltaT=oldX[1]-oldX[0];
@@ -1728,7 +1728,7 @@ TGraph *FFTtools::padWave(TGraph *grWave, Int_t padFactor) {
 }
 
 
-TGraph *FFTtools::padWaveToLength(TGraph *grWave, Int_t newLength) {
+TGraph *FFTtools::padWaveToLength(const TGraph *grWave, Int_t newLength) {
    double *oldY = grWave->GetY();
    double *oldX = grWave->GetX();
    double deltaT=oldX[1]-oldX[0];
@@ -1758,7 +1758,7 @@ TGraph *FFTtools::padWaveToLength(TGraph *grWave, Int_t newLength) {
 
 
 
-TGraph *FFTtools::rectifyWave(TGraph *gr, Int_t isNeg) {
+TGraph *FFTtools::rectifyWave(const TGraph *gr, Int_t isNeg) {
   Int_t sign=1;
   if(isNeg) 
     sign=-1;
@@ -1776,7 +1776,7 @@ TGraph *FFTtools::rectifyWave(TGraph *gr, Int_t isNeg) {
 }
 
 
-TGraph *FFTtools::getSimplePowerEnvelopeGraph(TGraph *gr) {
+TGraph *FFTtools::getSimplePowerEnvelopeGraph(const TGraph *gr) {
   Double_t *ySq = new Double_t [gr->GetN()];
   Double_t *xOrig = new Double_t [gr->GetN()];
   Double_t *yEnvelope = new Double_t[gr->GetN()];
@@ -1815,7 +1815,7 @@ TGraph *FFTtools::getSimplePowerEnvelopeGraph(TGraph *gr) {
   return grEnvelope;
 }
 
-TGraph *FFTtools::makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor, Int_t numFreqs)
+TGraph *FFTtools::makePSVSBartlettPaddedOverlap(const TGraph *grWave, Int_t padFactor, Int_t numFreqs)
 {
   TGraph *grPad=padWave(grWave,padFactor);  
   Int_t numTot=grPad->GetN();
@@ -1864,7 +1864,7 @@ TGraph *FFTtools::makePSVSBartlettPaddedOverlap(TGraph *grWave, Int_t padFactor,
   return grRet;
 }
 
-void FFTtools::takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *inputY, Double_t *outputX, Double_t *outputY) {
+void FFTtools::takeDerivative(Int_t numPoints, const Double_t *inputX, const Double_t *inputY, Double_t *outputX, Double_t *outputY) {
   int count=0;
   for(int samp=1;samp<numPoints;samp++) {
     Double_t deltaT=inputX[samp]-inputX[samp-1];
@@ -1876,12 +1876,12 @@ void FFTtools::takeDerivative(Int_t numPoints, Double_t *inputX, Double_t *input
 }
 
 //Legacy misspelling
-TGraph *FFTtools::getDerviative(TGraph *grIn) 
+TGraph *FFTtools::getDerviative(const TGraph *grIn) 
 {
   return getDerivative(grIn);
 }
 
-TGraph *FFTtools::getDerivative(TGraph *grIn)
+TGraph *FFTtools::getDerivative(const TGraph *grIn)
 {
   Int_t numPoints=grIn->GetN();
   if(numPoints<2) return NULL;
@@ -1897,7 +1897,7 @@ TGraph *FFTtools::getDerivative(TGraph *grIn)
 
 }
 
-TGraph *FFTtools::simplePassBandFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq)
+TGraph *FFTtools::simplePassBandFilter(const TGraph *grWave, Double_t minFreq, Double_t maxFreq)
 {
 
     double *oldY = grWave->GetY();
@@ -1934,7 +1934,7 @@ TGraph *FFTtools::simplePassBandFilter(TGraph *grWave, Double_t minFreq, Double_
 
 }
 
-TGraph *FFTtools::simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t maxFreq)
+TGraph *FFTtools::simpleNotchFilter(const TGraph *grWave, Double_t minFreq, Double_t maxFreq)
 {
 
     double *oldY = grWave->GetY();
@@ -1971,7 +1971,7 @@ TGraph *FFTtools::simpleNotchFilter(TGraph *grWave, Double_t minFreq, Double_t m
 
 }
 
-TGraph *FFTtools::cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime)
+TGraph *FFTtools::cropWave(const TGraph *grWave, Double_t minTime, Double_t maxTime)
 {
   Int_t numPoints=grWave->GetN();
   if(numPoints<1) return NULL;
@@ -1997,7 +1997,7 @@ TGraph *FFTtools::cropWave(TGraph *grWave, Double_t minTime, Double_t maxTime)
 }
 
 
-TGraph *FFTtools::multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, Double_t minFreq[], Double_t maxFreq[])
+TGraph *FFTtools::multipleSimpleNotchFilters(const TGraph *grWave, Int_t numNotches,const  Double_t minFreq[],const  Double_t maxFreq[])
 {
 
     double *oldY = grWave->GetY();
@@ -2040,7 +2040,7 @@ TGraph *FFTtools::multipleSimpleNotchFilters(TGraph *grWave, Int_t numNotches, D
 }
 
 //______________________________________________________________
-Double_t FFTtools::getWaveformSNR(TGraph *gr){
+Double_t FFTtools::getWaveformSNR(const TGraph *gr){
   Double_t dummyPeak;
   Double_t dummyRms;
   Double_t snr = getWaveformSNR(gr,dummyPeak,dummyRms);
@@ -2051,7 +2051,7 @@ Double_t FFTtools::getWaveformSNR(TGraph *gr){
 
 
 //______________________________________________________________
-Double_t FFTtools::getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms)
+Double_t FFTtools::getWaveformSNR(const TGraph *gr,Double_t &peakToPeak,Double_t &rms)
 {
   Int_t nRMS=25;
 
@@ -2135,7 +2135,7 @@ Double_t FFTtools::getWaveformSNR(TGraph *gr,Double_t &peakToPeak,Double_t &rms)
 
 
 //______________________________________________________________
-Double_t FFTtools::getWaveformPeak(TGraph *gr)
+Double_t FFTtools::getWaveformPeak(const TGraph *gr)
 {
 
   Int_t nBins = gr->GetN();
@@ -2154,7 +2154,7 @@ Double_t FFTtools::getWaveformPeak(TGraph *gr)
 
 
 //______________________________________________________________
-Double_t FFTtools::getEnvelopeSNR(TGraph *gr){
+Double_t FFTtools::getEnvelopeSNR(const TGraph *gr){
   Double_t dummyPeak;
   Double_t dummyRms;
   Double_t dummyTime;
@@ -2166,7 +2166,7 @@ Double_t FFTtools::getEnvelopeSNR(TGraph *gr){
 
 
 //______________________________________________________________
-Double_t FFTtools::getEnvelopeSNR(TGraph *gr,Double_t &peak,Double_t &rms,Double_t &timeOfPeak)
+Double_t FFTtools::getEnvelopeSNR(const TGraph *gr,Double_t &peak,Double_t &rms,Double_t &timeOfPeak)
 {
 
   Int_t nRMS=25;
@@ -2215,7 +2215,7 @@ Double_t FFTtools::getEnvelopeSNR(TGraph *gr,Double_t &peak,Double_t &rms,Double
 
 
 
-TGraph *FFTtools::convertMagnitudeToTimeDomain(TGraph *inputMag)
+TGraph *FFTtools::convertMagnitudeToTimeDomain(const TGraph *inputMag)
 {
   Double_t *freqs=inputMag->GetX();
   Double_t *newVmmhz=inputMag->GetY();
@@ -2268,7 +2268,7 @@ Double_t FFTtools::simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Doub
   return ((y2 - y1)* ((x - x1) / (x2-x1)) + y1);
 }
 
-TGraph *FFTtools::getConvolution(TGraph *grA, TGraph *grB)
+TGraph *FFTtools::getConvolution(const TGraph *grA, const TGraph *grB)
 {
   Int_t numPointsA=grA->GetN();
   Int_t numPointsB=grB->GetN();
