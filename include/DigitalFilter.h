@@ -112,6 +112,9 @@ namespace FFTtools
         virtual TGraph* phaseResponse(size_t n = 101) const { TGraph *ph = 0; response(n,0,&ph); return ph; }
         virtual TGraph * groupDelay(size_t n = 101) const { TGraph *gd = 0; response(n,0,0,&gd); return gd; }
 
+        /** Computes the average delay in samples between min_freq and max_freq (both in normalized frequency) by taking the weighted average of the group delay */ 
+        double avgDelay(double min_freq = 0, double max_freq = 1, int n = 101) const; 
+
         /** Draws the amplitude, phase, group delay and impulse response into the pad. Returns the pad.  */ 
         virtual TPad* drawResponse(TPad * c = 0, int n = 101, int delay = 50) const; 
 

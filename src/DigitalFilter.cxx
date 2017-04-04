@@ -120,18 +120,16 @@ void FFTtools::DigitalFilter::response(size_t n, TGraph ** amplitude_response, T
   if (ggroup) 
   {
     unwrap(ggroup->GetN(), ggroup->GetY(), 360); 
-    double last = 2*ggroup->GetY()[0];  //TODO do I want this factor of 2? 
-    ggroup->GetY()[0] = 0; 
+    double last = ggroup->GetY()[0];  
+    double dw = (180.  / (n-1)); 
     for (int i = 1; i < ggroup->GetN(); i++) 
     {
-     double current = 2*ggroup->GetY()[i]; 
-     ggroup->GetY()[i] = last - current; 
+     double current = ggroup->GetY()[i]; 
+     ggroup->GetY()[i-1] = (last - current)/dw ; 
      last = current; 
     }
 
     ggroup->RemovePoint(n-1); 
-    ggroup->RemovePoint(0);
-    ggroup->RemovePoint(0);
 
     ggroup->SetTitle("Group Delay"); 
     ggroup->GetXaxis()->SetTitle("Normalized Frequency (f/f_{nyq})"); 
@@ -931,6 +929,31 @@ FFTtools::ThiranFilter::ThiranFilter(double delay, int order)
 
 }
 
+
+double FFTtools::DigitalFilter::avgDelay(double min_freq, double max_freq, int n) const
+{
+  TGraph *grp= 0; 
+  TGraph *amp = 0; 
+  response(n,&amp,0,&grp); 
+
+  double sum = 0; 
+  double sumwgt = 0; 
+
+  for (int i = min_freq*n; i < max_freq*n; i++)
+  {
+    double mag = TMath::Power(10,amp->GetY()[i]/10); 
+    sum += grp->GetY()[i] * mag;
+    sumwgt += mag; 
+
+
+  }
+
+  delete grp; 
+  delete amp; 
+
+  return sum/sumwgt; 
+
+}
 
 
 TPad* FFTtools::DigitalFilter::drawResponse( TPad * c, int n, int delay)  const
