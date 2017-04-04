@@ -38,6 +38,7 @@
 #pragma link C++ class FFTtools::IIRFilter; 
 #pragma link C++ class FFTtools::FIRFilter; 
 #pragma link C++ class FFTtools::SincFilter; 
+#pragma link C++ class FFTtools::LanczosFilter; 
 #pragma link C++ class FFTtools::TransformedZPKFilter; 
 #pragma link C++ class FFTtools::RCFilter; 
 #pragma link C++ class FFTtools::ButterworthFilter; 

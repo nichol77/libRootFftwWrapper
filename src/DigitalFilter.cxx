@@ -497,6 +497,16 @@ std::complex<double> FFTtools::FIRFilter::transfer(std::complex<double> z) const
 
 }
 
+FFTtools::LanczosFilter::LanczosFilter(double w, int a) 
+:  FIRFilter(2*a/w+1)
+{
+  int N = 2 * a / w + 1; 
+  for (int i =0; i < N; i++)
+  {
+     coeffs[i] =  w * sinc (w * (i - N/2)) * sinc(w * (i-N/2) / a); 
+  }
+}
+
 FFTtools::SincFilter::SincFilter(double w, int max_lobes, const FFTWindowType * win, int delay, bool extend) 
   : FIRFilter(2*max_lobes/w + 1, delay, extend)
 

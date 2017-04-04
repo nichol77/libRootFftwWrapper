@@ -208,6 +208,12 @@ namespace FFTtools
         int derivative; 
     }; 
 
+    class LanczosFilter : public FIRFilter
+    {
+      public:
+        LanczosFilter(double w, int a); 
+    }; 
+
 
     class GaussianFilter : public FIRFilter
     {
