@@ -923,11 +923,13 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     double max_f = power_spectra[0]->GetX()[max_i]; 
 
     if (verbose) 
-      printf("max_freq: %d %g\n", max_i, max_f); 
+      printf("max_freq (ntries: %d nattempts: %d): %d %g\n",ntries, nattempts, max_i, max_f); 
+
+
 
     if ( (abs_maxiter > 0 && nattempts > abs_maxiter)
         || (max_successful_iter > 0 && int(r.freqs.size()) >= max_successful_iter)
-        ) 
+        || max_i < 0) 
     {
       if (store) 
       {
@@ -999,10 +1001,10 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     
 
 
-    if (ratio < mpr)
+    if (ratio < mpr || std::isnan(mpr))
     {
       nfails[max_i]++; 
-      if (++ntries > maxiter)   
+      if ((++ntries) > maxiter)   
       {
         break;
       }
