@@ -2474,8 +2474,8 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 
     //    delete grB;
     delete grCorAB;
-    if(graphNum>1)
-      delete grA;
+    //    if(graphNum>1)
+    delete grA;
     grA=grComAB;
     countWaves++;
 
