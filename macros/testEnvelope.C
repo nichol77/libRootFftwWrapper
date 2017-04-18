@@ -17,10 +17,10 @@ void testEnvelope()
 
   for (int i = 0; i < g->GetN(); i++)
   {
-    printf("%g %g",g->GetX()[i],g->GetY()[i]); 
+//    printf("%g %g",g->GetX()[i],g->GetY()[i]); 
     g->GetY()[i] += A * sin(fcarrier *g->GetX()[i] + pcarrier) * sin(f_mod * g->GetX()[i] + p_mod); 
 
-    printf("%g\n",g->GetY()[i]); 
+//    printf("%g\n",g->GetY()[i]); 
   }
 
 

@@ -3308,7 +3308,7 @@ double * FFTtools::peakEnvelope(int N, double min,
       continue; 
     }
 
-    printf("%g %g\n", x[i],y[i]); 
+//    printf("%g %g\n", x[i],y[i]); 
 
     //cool, we are at a local max. let's check if it's the biggest within min
 
@@ -3330,7 +3330,7 @@ double * FFTtools::peakEnvelope(int N, double min,
 
     /* yay, we are at a local max, and there is nothing bigger in within min */ 
     out[i] = fabs(y[i]); 
-    printf( "it's good!\n"); 
+//    printf( "it's good!\n"); 
 
     if (first_out < 0) first_out = i; 
     if (i > last_out) last_out = i; 
@@ -3356,7 +3356,7 @@ double * FFTtools::peakEnvelope(int N, double min,
     double x1 = x[next_out]; 
     double y1 = out[next_out]; 
 
-    printf("(%g %g:%g %g)\n", x0,y0,x1,y1); 
+//    printf("(%g %g:%g %g)\n", x0,y0,x1,y1); 
 
     double m = (y1-y0)/(x1-x0); 
     for ( ; i < next_out; i++)
