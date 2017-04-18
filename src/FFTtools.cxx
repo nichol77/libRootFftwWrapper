@@ -3279,7 +3279,7 @@ double * FFTtools::rmsEnvelope(int N,  double W,
       min_i++; 
     }
 
-    out[i] = sqrt(sumV2/navg);
+    out[i] = sqrt(2*sumV2/navg);
   }
 
   return out; 
