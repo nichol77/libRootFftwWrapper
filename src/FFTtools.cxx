@@ -3256,3 +3256,124 @@ double FFTtools::checkCausality(int N, const FFTWComplex * signal)
 }
 
 
+
+double * FFTtools::rmsEnvelope(int N,  double W, 
+                               const double * __restrict__ x, 
+                               const double * __restrict__ y, 
+                               double * __restrict__ out)
+{
+  if (!out) out = new double[N]; 
+
+  double sumV2 = 0; 
+  int min_i = 0; 
+  int navg = 0; 
+  for (int i = 0; i < N; i++) 
+  {
+    sumV2 += y[i]*y[i]; 
+    navg++; 
+
+    while(x[min_i] < x[i] - W)
+    {
+      sumV2 -= y[min_i]*y[min_i]; 
+      navg--; 
+      min_i++; 
+    }
+
+    out[i] = sqrt(sumV2/navg);
+  }
+
+  return out; 
+}
+
+double * FFTtools::peakEnvelope(int N, double min, 
+                                const double * __restrict__ x, 
+                                const double * __restrict__ y, 
+                                double * __restrict__ out)
+{
+  if (!out) out = new double[N]; 
+
+  /* zero out */ 
+  memset(out,0, N * sizeof(double)); 
+
+  int first_out = -1;
+  int last_out = 0; 
+  /* start by finding out the peaks. We'll put them in out. */ 
+  for (int i = 0; i < N; )
+  {
+
+    //first check if it we are at a local max
+    if (! ((i == 0 || fabs(y[i]) > fabs(y[i-1])) && (i == N-1 || fabs(y[i]) > fabs(y[i+i]))) ) 
+    {
+      i++; 
+      continue; 
+    }
+
+    printf("%g %g\n", x[i],y[i]); 
+
+    //cool, we are at a local max. let's check if it's the biggest within min
+
+    int ii = i+1; 
+
+    while (ii < N && x[ii] < x[i] + min)
+    {
+      if (fabs(y[ii]) > fabs(y[i])) 
+      {
+        /* oh shoot, we're not a max, let's move i to here and break out */ 
+        i = ii; 
+        break; 
+      }
+      ii++; 
+    }
+
+    if (i == ii) /* that means we were not a max */ 
+      continue; 
+
+    /* yay, we are at a local max, and there is nothing bigger in within min */ 
+    out[i] = fabs(y[i]); 
+    printf( "it's good!\n"); 
+
+    if (first_out < 0) first_out = i; 
+    if (i > last_out) last_out = i; 
+
+    i = ii; // skip! 
+  }
+
+
+  /* hold before first max */ 
+  for (int i =0; i < first_out; i++ )
+    out[i] = out[first_out];
+
+  double x0  = x[first_out]; 
+  double y0  = out[first_out]; 
+  int i = first_out;
+
+  /** linearly interpolate between maxes */ 
+  while (i< last_out)
+  {
+    int next_out = i+1; 
+    while(!out[++next_out]); 
+     
+    double x1 = x[next_out]; 
+    double y1 = out[next_out]; 
+
+    printf("(%g %g:%g %g)\n", x0,y0,x1,y1); 
+
+    double m = (y1-y0)/(x1-x0); 
+    for ( ; i < next_out; i++)
+    {
+      out[i] = y0 + (x[i] - x0) * m; 
+    }
+
+    x0 = x1; 
+    y0 = y1; 
+    i = next_out +1; 
+  }
+
+  /* hold after last max */ 
+  for (int i =last_out+1; i < N; i++ )
+    out[i] = out[last_out];
+
+
+  return out; 
+
+}

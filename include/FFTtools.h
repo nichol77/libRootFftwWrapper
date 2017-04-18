@@ -344,6 +344,9 @@ namespace FFTtools
   */
    TGraph *getHilbertEnvelope(const TGraph *grWave);
 
+
+
+
   //Utility functions (not necessarily FFT related but they'll live here for now
 
   //! The linear sum of the power in a TGraph (normally a PSD)
@@ -795,11 +798,36 @@ namespace FFTtools
    FFTWComplex * makeMinimumPhase(int N, const double * G,  double mindb = -100); 
 
 
-   /** Checks if a signal is causal or not by comparing the imaginary part to the hilber transform of the real part and returning the square difference (scaled by N). 
+   /** Checks if a signal is causal or not by comparing the imaginary part to the hilbert transform of the real part and returning the square difference (scaled by N). 
     * A perfectly causal system will return 0, but numerical inaccuracy may make that not true. 
     * */ 
    double checkCausality(int N, const FFTWComplex * signal) ; 
 
+
+   /** Avg RMS envelope 
+    *  Approximates envelope by computing rms in each window 
+    *
+    *  @param N  length of input (and output) arrays
+    *  @param W  window length, in units of the x values (not all windows may contain the same length) 
+    *  @param x  input x values
+    *  @param y  input y values
+    *  @param out output y values, if 0 output will be allocated
+    *  @return output 
+    */ 
+
+   double * rmsEnvelope(int N, double W, const double * x, const double * y, double * out = 0); 
+
+   /** Peak envelope 
+    * Approximates envelope by connecting peaks of |y|. 
+    *
+    * @param N the number of points in input / output arrays
+    * @param min_distance  the minimum distance between peaks. This should be close to the half-period of the carrier wave you expect. 
+    * @param x input x values (times) 
+    * @param y input y values (voltages) 
+    * @param out output y values (voltages) , or 0 to allocate new
+    * @return output values 
+    */
+   double * peakEnvelope(int N, double min_distance, const double * x, const double *y, double * out = 0); 
 }
    
 #endif //FFTTOOLS_H
