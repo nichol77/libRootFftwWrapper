@@ -994,7 +994,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   TGraph * gPadded[ntraces]; 
   memset(gPadded,0,sizeof(gPadded)); 
 
-  double * envelopes[ntraces] = {0}; 
+  // double * envelopes[ntraces] = {0};
+  std::vector<double*> envelopes(ntraces, 0);
 
   for (int ti = 0; ti < ntraces; ti++)
   {
@@ -1182,7 +1183,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       y[i] = g[i]->GetY()+low; 
     }
 
-    fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) envelopes); 
+    // fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) envelopes);
+    fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) &envelopes[0]);
 
 //    printf("power before:%f\n", power); 
     power = fitter.getPower(); 
