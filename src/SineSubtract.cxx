@@ -1,8 +1,10 @@
 #include "SineSubtract.h" 
+
 #include "TGraph.h" 
 #include "TCanvas.h" 
 #include "TStyle.h" 
 #include "TMutex.h" 
+#include "TLinearFitter.h" 
 #include "DigitalFilter.h" 
 #include "TSpectrum.h" 
 
@@ -71,6 +73,80 @@ static double normalize_angle(double phi)
   return  phi - 2*TMath::Pi() * FFTtools::fast_floor((phi+ TMath::Pi()) / (2.*TMath::Pi())); 
 }
 
+
+static __thread TLinearFitter * fitter = 0; 
+static __thread int fitter_order = 0; 
+
+
+
+static const char * order_strings[] = { "1", "1++x", "1++x++x*x","1++x++x*x++x*x*x","1++x++x*x++x*x*x++x*x*x*x" }; 
+
+
+static void computeEnvelopeFit(int order, int N, const double * x, const double * y, double * out) 
+{
+
+  if (!fitter || fitter_order != order) 
+  {
+    fnLock.Lock(); 
+    if (!fitter) 
+    {
+      fitter = new TLinearFitter(order+1,order_strings[order],""); 
+    }
+    else
+    {
+      fitter->SetFormula(order_strings[order]); 
+    }
+    fnLock.UnLock(); 
+  }
+
+  fitter->AssignData(N,1,(double*)x,(double*)y); 
+  fitter->Eval(); 
+
+  double max = 0; 
+  for (int i = 0; i < N; i++)
+  {
+    out[i] = fitter->GetParameter(0);
+    double xx = 1; 
+    for (int j = 1; j <= order; j++) 
+    {
+      xx *= x[i]; 
+      out[i] += fitter->GetParameter(j) * xx; 
+    }
+    if (out[i] > max) max = out[i]; 
+  }
+
+  for (int i = 0; i < N; i++) 
+  {
+    out[i]/=max; 
+  }
+}
+
+/* wrapper around hilbert envelope because need to interpolate to calculate it properly */
+static void computeEnvelopeHilbert(const TGraph * g, double * out, double dt) 
+{
+
+  TGraph * ig = FFTtools::getInterpolatedGraph(g, dt); 
+  TGraph * hilbert = FFTtools::getHilbertEnvelope(ig); 
+  double xmax = ig->GetX()[ig->GetN()-1]; 
+
+  for (int i = 0; i < g->GetN(); i++)
+  {
+    if (g->GetX()[i] < xmax)
+    {
+      out[i] = FFTtools::evalEvenGraph(hilbert, g->GetX()[i]); 
+    }
+    else
+    {
+      out[i] = ig->GetY()[ig->GetN()-1] ; 
+    }
+  }
+
+  delete ig; 
+  delete hilbert; 
+}
+
+
+
 FFTtools::SineFitter::SineFitter()
 {
   min.SetFunction(f); 
@@ -102,9 +178,9 @@ ROOT::Math::IBaseFunctionMultiDim* FFTtools::SineFitter::SineFitFn::Clone() cons
 {
   SineFitFn * fn = new SineFitFn; 
 #if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
-  fn->setXY(nt,ns,xp,yp); //incredibly inefficient, but quick kludge for now. We're probalby never going to clone anyway. 
+  fn->setXY(nt,ns,xp,yp,wgt,envp); //incredibly inefficient, but quick kludge for now. We're probalby never going to clone anyway. 
 #else
-  fn->setXY(nt,ns,x,y); 
+  fn->setXY(nt,ns,x,y,wgt,env); 
 #endif
   return fn; 
 }
@@ -115,13 +191,18 @@ FFTtools::SineFitter::SineFitFn::SineFitFn()
   nt = 0; 
   x= 0; 
   y = 0; 
+  env = 0; 
 #if defined(SINE_SUBTRACT_USE_FLOATS) || defined(SINE_SUBTRACT_FORCE_ALIGNED)
   xp = 0; 
   yp = 0; 
+  envp = 0; 
 #endif
 
 }
 
+
+//here's hoping... 
+__attribute__((optimize("unroll-loops")))
 double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned int coord) const
 {
 
@@ -143,6 +224,7 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 
     VEC vecx(0); 
     VEC vecy(0); 
+    VEC vece(1); 
     VEC vec_ph(ph); 
     VEC vec_w(w); 
     VEC vec_A(A); 
@@ -154,12 +236,15 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 #ifdef SINE_SUBTRACT_FORCE_ALIGNED
     double * xx = (double*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
     double * yy = (double*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+    double * envelope =   (env && env[ti]) ?  (double*) __builtin_assume_aligned(env[ti], VEC_N * sizeof(VEC_T) : 0; 
 #elif defined(SINE_SUBTRACT_USE_FLOATS)
     float * xx = (float*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
     float * yy = (float*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+    float * envelope =   (env && env[ti]) ?  (float*) __builtin_assume_aligned(env[ti], VEC_N * sizeof(VEC_T) : 0; 
 #else
     double * xx = (double*) x[ti]; 
     double * yy = (double*) y[ti]; 
+    double * envelope =   (env && env[ti]) ? (double*) env[ti] : 0; 
 #endif
     
 
@@ -183,6 +268,23 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
       VEC vec_sin = sincos(&vec_cos, vec_ang); 
+
+      if (envelope)
+      {
+
+        if (i < nit -1 || !leftover)
+        {
+          vece.load(envelope + VEC_N*i); 
+        }
+        else
+        {
+          vece.load_partial(leftover, envelope + VEC_N*i); 
+        }
+        vec_sin *= vece; 
+        vec_cos *= vece; 
+      }
+
+
       VEC vec_Y = mul_sub(vec_sin, vec_A, vecy); 
 
       switch (type) 
@@ -197,6 +299,8 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
           dYdp = vec_sin; 
           break; 
       }
+
+
 #ifndef SINE_SUBTRACT_DONT_HORIZONTAL_ADD
       if (i == nit-1 && leftover) //hopefully this gets unrolled? 
       {
@@ -225,6 +329,8 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
       double t = x[ti][i]; 
       double sinang = sin(w*t + ph); 
       double Y = A *sinang; 
+      if (env && env[ti]) Y*= env[ti][i]; 
+
       double dYdp = 0; 
 
       switch(type) 
@@ -239,6 +345,7 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
           dYdp = sinang; 
           break; 
       }
+      if (env && env[ti]) sinang*= env[ti][i]; 
 
       deriv += ((Y-y[ti][i]) * dYdp)/ns[ti]; 
     }
@@ -253,6 +360,8 @@ double FFTtools::SineFitter::SineFitFn::DoDerivative(const double * p, unsigned 
 
 
 
+// yeah, like the compiler is really going to do what I want ... may have to unroll this manually 
+__attribute__((optimize("unroll-loops")))
 double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 {
 
@@ -269,6 +378,7 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 #ifdef ENABLE_VECTORIZE 
     VEC vecx(0); 
     VEC vecy(0); 
+    VEC vece(1); 
     VEC vec_ph(ph); 
     VEC vec_w(w); 
     VEC vec_A(A); 
@@ -276,12 +386,15 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 #ifdef SINE_SUBTRACT_FORCE_ALIGNED
     double * xx = (double*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
     double * yy = (double*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+    double * envelope =   (env && env[ti]) ?  (double*) __builtin_assume_aligned(env[ti], VEC_N * sizeof(VEC_T) : 0; 
 #elif defined(SINE_SUBTRACT_USE_FLOATS)
     float * xx = (float*) __builtin_assume_aligned(x[ti], VEC_N * sizeof(VEC_T)); 
     float * yy = (float*) __builtin_assume_aligned(y[ti], VEC_N * sizeof(VEC_T)); 
+    float * envelope =   (env && env[ti]) ?  (float*) __builtin_assume_aligned(env[ti], VEC_N * sizeof(VEC_T) : 0; 
 #else
     double * xx = (double*) x[ti]; 
     double * yy = (double*) y[ti]; 
+    double * envelope =   (env && env[ti]) ?  (double*) env[ti] : 0; 
 #endif
 
 
@@ -301,8 +414,25 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
         vecy.load_partial(leftover, yy+VEC_N*i); 
       }
 
+
       VEC vec_ang = mul_add(vecx, vec_w, vec_ph); 
       VEC vec_sin = sin(vec_ang); 
+
+      //TODO if branch-prediction hurts, we should have two versions of this loop 
+      if (envelope)
+      {
+
+        if (i < nit -1 || !leftover)
+        {
+          vece.load(envelope + VEC_N*i); 
+        }
+        else
+        {
+          vece.load_partial(leftover, envelope + VEC_N*i); 
+        }
+        vec_sin *= vece; 
+      }
+
       VEC vec_Y = mul_sub(vec_sin, vec_A, vecy); 
 
       VEC vec_Y2 = square(vec_Y); 
@@ -324,7 +454,9 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 #else
     for (int i = 0; i < ns[ti]; i++)
     {
-      VEC_T Y = A * sin(w*x[ti][i] + ph) -y[ti][i]; 
+      VEC_T Y = A * sin(w*x[ti][i] + ph); 
+      if (env && env[ti]) Y*= env[ti][i]; 
+      Y-=y[ti][i]; 
       power += Y*Y/ns[ti]; 
     }
 #endif 
@@ -345,7 +477,7 @@ if (ns) delete [] ns;
 
 }
 
-void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, const double ** xx, const double ** yy, const double * wset) 
+void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, const double ** xx, const double ** yy, const double * wset, const double ** envset) 
 {
   wgt = wset; 
 #ifdef SINE_SUBTRACT_USE_FLOATS
@@ -355,17 +487,24 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
 
     float ** newx = (float**) malloc(ntraces * sizeof(float*)); 
     float ** newy = (float**) malloc(ntraces * sizeof(float*)); 
+    float ** newenv = 0; 
+    if (envset) 
+      new_env = (float**)  emalloc(ntraces * sizeof(float*)); 
     for (int i = 0; i < nt; i++) 
     {
       if (i < ntraces)
       {
         newx[i] = x[i]; 
         newy[i] = y[i]; 
+        if (env) 
+          newenv[i] = env[i]; 
       }
       else
       {
         free(x[i]); 
         free(y[i]); 
+        if (env) 
+          free(env[i]); 
       }
     }
 
@@ -373,13 +512,18 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
     {
       newx[i] = 0; 
       newy[i] = 0; 
+      if (newenv) 
+        newenv[i] = 0; 
     }
 
 
     free(x); 
     free(y); 
+    if (env) 
+      free(env); 
     x = newx; 
     y = newy; 
+    env = newenv; 
   }
    
   for (int i = 0; i < ntraces; i++) 
@@ -390,6 +534,8 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
        x[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(float)); 
        if (y[i]) free(y[i]); 
        y[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(float)); 
+       if (env && env[i]) free(env[i]); 
+       if (env) env[i] = (float*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(float)); 
     }
   }
 
@@ -400,11 +546,14 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
     {
        x[j][i] = xx[j][i]; 
        y[j][i] = yy[j][i]; 
+       if (env && env[j])
+         env[j][i] = envset[j][i];  
     }
   }
 
   xp = xx; 
   yp = yy; 
+  envp = envset; 
   
 #elif SINE_SUBTRACT_FORCE_ALIGNED
   if (nt!=ntraces)
@@ -412,17 +561,25 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
 
     double ** newx = (double**) malloc(ntraces * sizeof(float*)); 
     double ** newy = (double**) malloc(ntraces * sizeof(float*)); 
+
+    double ** newenv = 0;
+
+    if (envset) 
+      newenv = (double**) malloc(ntraces * sizeof(float*)); 
+
     for (int i = 0; i < nt; i++) 
     {
       if (i < ntraces)
       {
         newx[i] = x[i]; 
         newy[i] = y[i]; 
+        if (env) newenv[i] = env[i]; 
       }
       else
       {
         free(x[i]); 
         free(y[i]); 
+        if (env) free(env[i]); 
       }
     }
 
@@ -430,13 +587,18 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
     {
       newx[i] = 0; 
       newy[i] = 0; 
+      if (newenv) newenv[i] = 0; 
     }
 
 
     free(x); 
     free(y); 
+    if (env) 
+      free(env); 
     x = newx; 
     y = newy; 
+
+    env = newenv; 
   }
 
   for (int i = 0; i < ntraces; i++) 
@@ -445,7 +607,10 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
     {
        if (x[i]) free(x[i]); 
        x[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(double)); 
+       if (y[i]) free(y[i]); 
        y[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(double)); 
+       if (env && env[i]) free(env[i]); 
+       if (env) env[i] = (double*) memalign(VEC_N * sizeof(VEC_T), nsamples[i] * sizeof(double)); 
     }
   }
 
@@ -453,16 +618,23 @@ void FFTtools::SineFitter::SineFitFn::setXY(int ntraces, const int * nsamples, c
 
   for (int j = 0; j < ntraces; j++) 
   {
-    memcpy(x[j], xx[j], nsamples[i] * sizeof(double)); 
-    memcpy(y[j], yy[j], nsamples[i] * sizeof(double)); 
+    memcpy(x[j], xx[j], nsamples[j] * sizeof(double)); 
+    memcpy(y[j], yy[j], nsamples[j] * sizeof(double)); 
+    if (envset && envset[j])
+    {
+      memcpy(env[j], envset[j], nsamples[j] * sizeof(double)); 
+    }
   }
 
   xp = xx; 
   yp = yy; 
+  envp = env; 
  
 #else
   x = xx; 
   y = yy;
+  env = envset; 
+
 #endif
 
   if (nsamples)
@@ -519,9 +691,9 @@ static char * arrString(int n, const  double * arr, int sigfigs =8 )
 
 
 
-void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double ** x, const double **y, const double * w)
+void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double ** x, const double **y, const double * w, const double ** env)
 {
-  f.setXY(ntraces,nsamples,x,y,w); 
+  f.setXY(ntraces,nsamples,x,y,w,env); 
 
   if (verbose) 
   {
@@ -630,12 +802,13 @@ void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double
 FFTtools::SineSubtract::SineSubtract(const TGraph * gmp, int maxiter, bool store)
   : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),
   min_power_reduction(gmp->GetMean(2)), store(store),
-  power_estimator_params(0), peak_option_params(0)
+  power_estimator_params(0), peak_option_params(0), envelope_option_params(0) 
 
 {
   g_min_power = gmp; 
   setPowerSpectrumEstimator(FFT); 
   setPeakFindingOption(NEIGHBORFACTOR); 
+  setEnvelopeOption(ENV_NONE); 
   high_factor = 1; 
   verbose = false; 
   tmin = 0; 
@@ -654,12 +827,13 @@ FFTtools::SineSubtract::SineSubtract(const TGraph * gmp, int maxiter, bool store
 FFTtools::SineSubtract::SineSubtract(int maxiter, double min_power_reduction, bool store)
   : abs_maxiter(0), maxiter(maxiter), max_successful_iter(0),
     min_power_reduction(min_power_reduction), store(store),
-    power_estimator_params(0), peak_option_params(0)
+    power_estimator_params(0), peak_option_params(0), envelope_option_params(0) 
 
 {
 
   setPowerSpectrumEstimator(FFT); 
   setPeakFindingOption(NEIGHBORFACTOR); 
+  setEnvelopeOption(ENV_NONE); 
   high_factor = 1; 
   verbose = false; 
   tmin = 0; 
@@ -710,8 +884,13 @@ void FFTtools::SineSubtract::reset()
     {
       delete gs[i][j]; 
     }
+    for (unsigned j = 0; j < env_gs[i].size(); j++) 
+    {
+      delete env_gs[i][j]; 
+    }
   }
   gs.clear(); 
+  env_gs.clear(); 
   for (unsigned i = 0; i < spectra.size(); i++) delete spectra[i]; 
   spectra.clear(); 
 
@@ -767,6 +946,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   if (store) 
   {
     gs.insert(gs.end(), ntraces, std::vector<TGraph*>()); 
+    env_gs.insert(env_gs.end(), ntraces, std::vector<TGraph*>()); 
     for (int i = 0; i < ntraces; i++) 
     {
       g[i]->SetTitle(TString::Format("Initial Waveform %d",i)); 
@@ -814,6 +994,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   TGraph * gPadded[ntraces]; 
   memset(gPadded,0,sizeof(gPadded)); 
 
+  double * envelopes[ntraces] = {0}; 
 
   for (int ti = 0; ti < ntraces; ti++)
   {
@@ -831,7 +1012,18 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       }
     }
 
+    if (envelope_option != ENV_NONE) 
+    {
+      envelopes[ti] = new double[g[ti]->GetN()]; 
+    }
+    else
+    {
+      envelopes[ti] = 0; 
+
+    }
   }
+
+
 
 
   while(true) 
@@ -840,6 +1032,28 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
     for (int ti = 0; ti  < ntraces; ti++)
     {
+
+
+      if (envelope_option == ENV_HILBERT) 
+      {
+         computeEnvelopeHilbert(g[ti], envelopes[ti],dt);  
+      }
+      else if (envelope_option == ENV_RMS)
+      {
+        FFTtools::rmsEnvelope(g[ti]->GetN(), envelope_option_params[ENV_RMS_WINDOW], g[ti]->GetX(), g[ti]->GetY(), envelopes[ti]);
+      }
+      else if (envelope_option == ENV_PEAK)
+      {
+
+        FFTtools::peakEnvelope(g[ti]->GetN(), envelope_option_params[ENV_PEAK_MINDISTANCE], g[ti]->GetX(), g[ti]->GetY(), envelopes[ti]);
+      }
+
+      /*all of the params have the peak order as the first paramter (by construction!) */
+      if (envelope_option != ENV_NONE && envelope_option_params[0] >=0) 
+      {
+        computeEnvelopeFit((int) envelope_option_params[0], g[ti]->GetN(), g[ti]->GetX(), envelopes[ti],  envelopes[ti]); 
+      }
+
 
       TGraph * take_spectrum_of_this = gPadded[ti] ? gPadded[ti] : g[ti];  
 
@@ -968,7 +1182,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       y[i] = g[i]->GetY()+low; 
     }
 
-    fitter.doFit(ntraces, Nuse, x,y,w); 
+    fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) envelopes); 
 
 //    printf("power before:%f\n", power); 
     power = fitter.getPower(); 
@@ -1030,7 +1244,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       double A = w ? w[ti] * fitter.getAmp()[ti] : fitter.getAmp()[ti]; 
       for (int i = 0; i < g[ti]->GetN(); i++) 
       {
-        g[ti]->GetY()[i] -= A* sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
+        double AA = envelopes[ti] ?  A * envelopes[ti][i] : A; 
+        g[ti]->GetY()[i] -= AA* sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
       }
 
       if (store)  
@@ -1050,6 +1265,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
         //add new graph 
         g[ti]->SetTitle(TString::Format("Wf %d after %lu iterations",ti, r.powers.size()-1)); 
         gs[ti].push_back(new TGraph(*g[ti])); 
+
+        if (envelopes[ti]) 
+          env_gs[ti].push_back(new TGraph(g[ti]->GetN(), g[ti]->GetX(), envelopes[ti])); 
       }
 
     }
@@ -1061,6 +1279,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   { 
     if (gPadded[i]) delete gPadded[i]; 
     delete power_spectra[i];
+    if (envelope_option != ENV_NONE) delete envelopes[i]; 
     if (fft_phases[i]) delete fft_phases[i]; 
   }
 #ifdef SINE_SUBTRACT_PROFILE
@@ -1139,6 +1358,11 @@ void FFTtools::SineSubtract::makeSlides(const char * title, const char * filepre
       old_gs_width[j]= gs[j][i]->GetLineWidth(); 
       gs[j][i]->SetLineWidth(3); 
       gs[j][i]->Draw("al"); 
+
+      if ((int) env_gs[j].size() > i) 
+      {
+        env_gs[j][i]->Draw("lsame"); 
+      }
     }
 
 
@@ -1210,6 +1434,8 @@ void FFTtools::SineSubtract::makePlots(TCanvas * cpower, TCanvas * cw, int ncols
     {
       cw->cd((1+gs.size())*i+2+j); 
       ((TGraph*)gs[j][i])->Draw("alp"); 
+      if (env_gs[j].size() > i) 
+        ((TGraph*)env_gs[j][i])->Draw("lsame"); 
     }
   }
 
@@ -1243,6 +1469,8 @@ bool FFTtools::SineSubtract::allowedFreq(double freq, double df) const
 
 static __thread FFTtools::SavitzkyGolayFilter* savgol = 0; 
 static __thread TSpectrum* tspect = 0; 
+
+
 
 int FFTtools::SineSubtract::findMaxFreq(int Nfreq, const double * freq, const double * mag, const int * nfails) const
 {
@@ -1427,8 +1655,38 @@ void FFTtools::SineSubtract::setPeakFindingOption(PeakFindingOption option, cons
            &dummy ,  //to avoid compiler warning
            sizeof(double) *N); 
   }
+
 }
 
+static const double default_ENV_HILBERT_params[] = {3}; 
+static const double default_ENV_RMS_params[] = {3,5}; 
+static const double default_ENV_PEAK_params[] = {3,5}; 
+
+void FFTtools::SineSubtract::setEnvelopeOption(EnvelopeOption option, const double * p) 
+{
+  envelope_option = option; 
+
+  int N = option == ENV_NONE? 0 : 
+          option == ENV_HILBERT? ENV_HILBERT_NPARAMS :         
+          option == ENV_RMS ? ENV_RMS_NPARAMS : 
+          option == ENV_PEAK ? ENV_PEAK_NPARAMS : 
+          0; 
+
+  if (envelope_option_params) delete[] envelope_option_params; 
+
+  envelope_option_params = new double[N]; 
+
+  if (N) 
+  {
+    memcpy(envelope_option_params, 
+           p? p : 
+           option == ENV_HILBERT?  default_ENV_HILBERT_params : 
+           option == ENV_RMS?  default_ENV_RMS_params : 
+           option == ENV_PEAK?  default_ENV_PEAK_params : 
+           &dummy ,  //to avoid compiler warning
+           sizeof(double) *N); 
+  }
+}
 
 
 

@@ -192,10 +192,11 @@ namespace FFTtools
          * @param nsamples the number of samples per trace.
          * @param x x-values of the traces to use. x[0] should be first trace, etc. 
          * @param y y-values of the traces to use. x[0] should be first trace, etc. 
-         * @param w weights of each trace's y value. If 0, all are treated the same. 
+         * @param w weights for each of the traces. This is useful only when fitting multiple traces and you want one to be more important than another.  If 0, all are treated the same. 
+         * @param env Envelopes for each of the traces. This is multipled against the sinusoid and and can be used to favor parts of the waveform over another. 
          *
          **/
-        void doFit(int ntrace, const int * nsamples, const double ** x, const double **y, const double * w = 0); 
+        void doFit(int ntrace, const int * nsamples, const double ** x, const double **y, const double * w = 0, const double ** env = 0); 
 
         /** Get the best fit frequency. Only makes sense to call after doFit */ 
         double getFreq() const {return freq;} 
@@ -270,8 +271,9 @@ namespace FFTtools
              * @param x x-values of the traces to use. x[0] should be first trace, etc. 
              * @param y y-values of the traces to use. x[0] should be first trace, etc. 
              * @param w weights of each trace, or null to always use the same
+             * @param env envelope for each trace, or null to have none (i.e. rectangular envelope)
              */
-            void setXY(int ntraces, const int * nsamples, const double **xx, const double **yy, const double * w = 0); 
+            void setXY(int ntraces, const int * nsamples, const double **xx, const double **yy, const double * w = 0, const double ** env = 0); 
 
             /** This evaluates the objective function for a parameter vector p */ 
             virtual double DoEval(const double *p) const; 
@@ -292,14 +294,17 @@ namespace FFTtools
 #ifdef SINE_SUBTRACT_USE_FLOATS
             float **x; 
             float **y; 
-            const double **xp, **yp; 
+            float **env; 
+            const double **xp, **yp, ***envp; 
 #elif defined(SINE_SUBTRACT_FORCE_ALIGNED)
             double **x; 
             double **y; 
-            const double **xp, **yp; 
+            double **env; 
+            const double **xp, **yp, **envp; 
 #else
             const double ** x; 
             const double ** y; 
+            const double ** env; 
 #endif 
             const double * wgt; 
 
@@ -530,11 +535,45 @@ namespace FFTtools
           SGS_NPARAMS
         }; 
 
-
         /** Set the peak finding option used to seed the sinusoid fitter. See PeakFindingOption for possibilities. 
-         * params depends on the particular peak finder you want (or pass 0 for defaults). */ 
+         *  params depends on the particular peak finder you want (or pass 0 for defaults).
+         **/ 
 
         void setPeakFindingOption(PeakFindingOption peak, const double * params = 0); 
+
+        enum EnvelopeOption
+        {
+          ENV_NONE, /// No envelope is used
+          ENV_HILBERT, //fit to hilbert envelope
+          ENV_RMS, //fit to sliding RMS envelope 
+          ENV_PEAK //fit to sliding RMS envelope 
+        };  
+
+        enum ENV_HILBERT_Params
+        {
+          ENV_HILBERT_FIT_ORDER, //default = 3, if < 0, no fit (just take values) 
+          ENV_HILBERT_NPARAMS
+
+        }; 
+
+        enum ENV_RMS_Params
+        {
+          ENV_RMS_FIT_ORDER, //default = 3, if < 0, no fit (just take envelope values) 
+          ENV_RMS_WINDOW, //default = 5
+          ENV_RMS_NPARAMS
+        }; 
+
+       enum ENV_PEAK_Params
+        {
+          ENV_PEAK_FIT_ORDER, //default = 3, if < 0, no fit (just take envelope values) 
+          ENV_PEAK_MINDISTANCE, //default = 5 (appropriate for ~200 MHz min freq) 
+          ENV_PEAK_NPARAMS
+        }; 
+
+        /** Set the envelope option used to estimate an envelope to modify the sinusoids. See EnvelopeOption for possibilities. 
+         *  params depends on the particular envelope option you want (or pass 0 for defaults).
+         **/ 
+        void setEnvelopeOption(EnvelopeOption env, const double * params = 0); 
 
         /** Returns a pointer to a vector of the sequence of powers vs. iteration */ 
         const std::vector<double> * getPowerSequence() const { return &r.powers; } 
@@ -554,6 +593,7 @@ namespace FFTtools
 
         /** Returns the ith graph in the cth trace */ 
         TGraph* storedGraph(int i, int c) { return gs[c][i]; } 
+        TGraph* storedEnvelope(int i, int c) { return env_gs[c][i]; } 
 
         /** If storage of graphs is enabled, returns the number of stored spectra. (Basically the number of iterations+1). Will be 0 if storage disabled. */ 
         size_t nStoredSpectra() const { return spectra.size(); } 
@@ -642,6 +682,7 @@ namespace FFTtools
         std::vector<double> fmax; 
         double min_power_reduction; 
         std::vector<std::vector<TGraph*> > gs; 
+        std::vector<std::vector<TGraph*> > env_gs; 
         std::vector<TGraph*> spectra; 
         SineSubtractResult r; 
         bool store; 
@@ -651,6 +692,10 @@ namespace FFTtools
         double * power_estimator_params; 
         PeakFindingOption peak_option; 
         double * peak_option_params; 
+
+
+        EnvelopeOption envelope_option; 
+        double * envelope_option_params; 
 
         const TGraph * g_min_power; 
 

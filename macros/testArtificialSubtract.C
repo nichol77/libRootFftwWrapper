@@ -10,13 +10,13 @@ void testArtificialSubtract()
   double dt = 1./2.6; // mean sample period
   double jitter = 0.08; //sample timing jitter in nanoseconds
   double rms = 5; //noise rms 
-  const int nfreq = 5; //number of CW
-  double min_freq = 0.20; 
-  double max_freq = 0.6; 
+  const int nfreq = 1; //number of CW
+  double min_freq = 0.4; 
+  double max_freq = 0.45; 
   double min_noise_freq = 0.2;
   double max_noise_freq = 1.2; 
-  double min_amp = 3.5; //max CW amplitude 
-  double max_amp = 6.5; //min CW amplitude 
+  double min_amp = 30.5; //max CW amplitude 
+  double max_amp = 60.5; //min CW amplitude 
   int max_failed_iterations = 3; //settings for sinesubtract 
   double min_power_ratio = 0.05; 
 
@@ -26,27 +26,33 @@ void testArtificialSubtract()
   int trace_min = 0; 
   int trace_max = 450; 
 
+  bool enable_envelope = true; 
+
 
   bool verbose = true; 
-  gRandom->SetSeed(11); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
+  gRandom->SetSeed(0); // Random seed (0 will pick a new one, do something else if you want something reproducible) 
 
   //end config
 
 
 
   double f[nfreq]; 
+  double fenv[nfreq ] ; 
   double A[ntraces][nfreq]; 
   double ph[ntraces][nfreq]; 
+  double ph_env[ntraces][nfreq]; 
   double fnyq = 1./(2*dt); 
 
   for (int i = 0; i < nfreq; i++) 
   {
     f[i] = gRandom->Uniform( min_freq, max_freq); 
+    fenv[i] = gRandom->Uniform( 0.005, 0.05); 
     double  amp = gRandom->Uniform(min_amp, max_amp); 
     for (int j = 0; j < ntraces; j++)
     {
       A[j][i] = amp * gRandom->Uniform(0.9,1.1); 
-      ph[j][i] = gRandom->Uniform(-TMath::Pi(),TMath::Pi()); 
+      ph[j][i] = gRandom->Uniform(0,2*TMath::Pi()); 
+      ph_env[j][i] = gRandom->Uniform(0,2*TMath::Pi()); 
       printf("True CW %d: f = %f, A = %f, ph = %f\n", i, f[i], A[i], ph[i]); 
     }
   }
@@ -62,7 +68,7 @@ void testArtificialSubtract()
     {
       for (int j = 0; j < nfreq; j++) 
       {
-         g[ti]->GetY()[i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* (g[ti]->GetX()[i] + ph[ti][j])); 
+         g[ti]->GetY()[i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* g[ti]->GetX()[i] + ph[ti][j])  * (enable_envelope ? ( TMath::Sin(2*TMath::Pi() * fenv[j] +  ph_env[ti][j])) : 1); 
       }
     }
 
@@ -73,8 +79,11 @@ void testArtificialSubtract()
   sub->setVerbose(verbose); 
   
   double npad = 0.0; 
-  sub->setPowerSpectrumEstimator(FFTtools::SineSubtract::FFT, &npad); 
-  sub->setPeakFindingOption(FFTtools::SineSubtract::SAVGOLSUB); 
+//  sub->setPowerSpectrumEstimator(FFTtools::SineSubtract::FFT, &npad); 
+//  sub->setPeakFindingOption(FFTtools::SineSubtract::SAVGOLSUB); 
+
+  if (enable_envelope)
+    sub->setEnvelopeOption(FFTtools::SineSubtract::ENV_PEAK); 
 
   if (use_freq_limits)
   {
