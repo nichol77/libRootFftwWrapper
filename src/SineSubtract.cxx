@@ -90,7 +90,7 @@ static void computeEnvelopeFit(int order, int N, const double * x, const double 
     fnLock.Lock(); 
     if (!fitter) 
     {
-      fitter = new TLinearFitter(order+1,order_strings[order],""); 
+      fitter = new TLinearFitter(1,order_strings[order],""); 
     }
     else
     {
@@ -99,6 +99,7 @@ static void computeEnvelopeFit(int order, int N, const double * x, const double 
     fnLock.UnLock(); 
   }
 
+  fitter->ClearPoints(); 
   fitter->AssignData(N,1,(double*)x,(double*)y); 
   fitter->Eval(); 
 
