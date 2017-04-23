@@ -995,7 +995,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   memset(gPadded,0,sizeof(gPadded)); 
 
   // double * envelopes[ntraces] = {0};
-  std::vector<double*> envelopes(ntraces, 0);
+  std::vector<double*> envelopes(ntraces, NULL);  
 
   for (int ti = 0; ti < ntraces; ti++)
   {
