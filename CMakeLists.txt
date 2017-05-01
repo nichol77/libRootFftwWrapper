@@ -174,15 +174,18 @@ endif()
 ################################################################################# 
 
 set (VECTORDIR vectorclass) 
-option(VECTORIZE "Enable Manual SIMD Vectorization" ON) 
-if (VECTORIZE) 
+if (VECTORIZE) #defined in anitaBuildTool, default on
   add_definitions( -DENABLE_VECTORIZE ) 
 
   if(CMAKE_COMPILER_IS_GNUCXX) 
 
     ### someone should do this for clang if they want it to be as fast as possible 
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.1)
-      add_definitions( -march=native) 
+      if(NATIVE_ARCH) #define in anitaBuildTool, default on
+	add_definitions( -march=native)
+      else()
+	add_definitions( -mavx)
+      endif()
     endif()
     add_definitions(  -fabi-version=0 ) 
   endif() 
