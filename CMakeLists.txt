@@ -9,6 +9,7 @@ set (LIBRARY_VERSION_MAJOR 3)
 set (LIBRARY_VERSION_MINOR 0)
 set (LIBRARY_VERSION_PATCH 1)
 set (LIBRARY_VERSION_STRING ${LIBRARY_VERSION_MAJOR}.${LIBRARY_VERSION_MINOR}.${LIBRARY_VERSION_PATCH})
+set (VECTORDIR vectorclass) 
  
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -65,7 +66,9 @@ endif()
 message("ROOT_INCLUDE_DIRS is set to ${ROOT_INCLUDE_DIRS}")
 message("FFTW_INCLUDES is set to ${FFTW_INCLUDES}")
 
-include_directories(${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include ${FFTW_INCLUDES})
+include_directories(${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/${VECTORDIR}
+   ${FFTW_INCLUDES})
 add_definitions(${ROOT_CXX_FLAGS})
 
 file(GLOB HEADER_FILES
@@ -102,7 +105,10 @@ message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
 
 file (GLOB CMAKE_FILES "cmake/modules/*.cmake")
 
+file (GLOB VCL_FILES "vectorclass/*.h") 
+
 install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
+install (FILES ${VCLFILES} DESTINATION ${UTIL_INC_DIR}/${VECTORDIR})
 install (FILES ${CMAKE_FILES} DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
@@ -174,7 +180,6 @@ endif()
 ################################################################################# 
 
 option(VECTORIZE "Enable Manual SIMD Vectorization" ON) 
-set (VECTORDIR vectorclass) 
 if (VECTORIZE) #defined in anitaBuildTool, default on
   add_definitions( -DENABLE_VECTORIZE ) 
 
@@ -188,30 +193,6 @@ if (VECTORIZE) #defined in anitaBuildTool, default on
     endif()
     add_definitions(  -fabi-version=0 ) 
   endif() 
-
-  if (EXISTS ${VECTORDIR}/vectorclass.zip )
-    message (" Found vectorclass already downloaded... ") 
-
-  else () 
-    file(MAKE_DIRECTORY ${VECTORDIR} ) 
-    message (" Downloading vector class...")
-    file(DOWNLOAD http://www.agner.org/optimize/vectorclass.zip ${VECTORDIR}/vectorclass.zip) 
-
-    #TODO there is probably a more cross platform way of doing this... 
-    execute_process(COMMAND unzip ${VECTORDIR}/vectorclass.zip -d ${VECTORDIR} )
-    execute_process(COMMAND unzip ${VECTORDIR}/special.zip -d ${VECTORDIR} ) 
-    
-    #### TERRIBLE TERRIBLE TERRIBLE HACK FOR MISBEHAVING CLANG VERSION REPORTING 
-    FILE(READ ${VECTORDIR}/vectorf128.h INFILE ) 
-    STRING(REGEX REPLACE "6020000" "1000000000" MINFILE ${INFILE} )
-    FILE (WRITE ${VECTORDIR}/vectorf128.h ${MINFILE} )
-
-  endif() 
-
-
-  ## is this right? who knows 
-  include_directories( ${CMAKE_BINARY_DIR}/${VECTORDIR} ) 
-
 
 endif (VECTORIZE) 
 
