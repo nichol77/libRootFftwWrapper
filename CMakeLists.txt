@@ -173,6 +173,7 @@ endif()
 ###  Maybe in the future this can be made a CMake module or something 
 ################################################################################# 
 
+option(VECTORIZE "Enable Manual SIMD Vectorization" ON) 
 set (VECTORDIR vectorclass) 
 if (VECTORIZE) #defined in anitaBuildTool, default on
   add_definitions( -DENABLE_VECTORIZE ) 
@@ -199,6 +200,12 @@ if (VECTORIZE) #defined in anitaBuildTool, default on
     #TODO there is probably a more cross platform way of doing this... 
     execute_process(COMMAND unzip ${VECTORDIR}/vectorclass.zip -d ${VECTORDIR} )
     execute_process(COMMAND unzip ${VECTORDIR}/special.zip -d ${VECTORDIR} ) 
+    
+    #### TERRIBLE TERRIBLE TERRIBLE HACK FOR MISBEHAVING CLANG VERSION REPORTING 
+    FILE(READ ${VECTORDIR}/vectorf128.h INFILE ) 
+    STRING(REGEX REPLACE "6020000" "1000000000" MINFILE ${INFILE} )
+    FILE (WRITE ${VECTORDIR}/vectorf128.h ${MINFILE} )
+
   endif() 
 
 
