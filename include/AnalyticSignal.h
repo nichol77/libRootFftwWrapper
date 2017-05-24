@@ -10,6 +10,8 @@ class TRandom;
 namespace FFTtools
 {
 
+    class FFTWindowType; 
+
     class AnalyticSignal 
     {
       public:
@@ -83,10 +85,12 @@ namespace FFTtools
     {
 
       public: 
-        BandlimitedSampledSignal(size_t n, const double *y, double dt, double t0 = 0); 
+        BandlimitedSampledSignal(size_t n, const double *y, double dt, double t0 = 0, int nlobes = 0, const FFTWindowType * win = 0); 
         virtual void setup() {;}
       protected:
         TGraph g; 
+        int max_lobes; 
+        const FFTWindowType *win; 
         virtual double doEval(double t); 
     }; 
 

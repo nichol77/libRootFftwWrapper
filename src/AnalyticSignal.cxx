@@ -249,8 +249,8 @@ double FFTtools::CompositeSignal::doEval(double t)
 }
 
 
-FFTtools::BandlimitedSampledSignal::BandlimitedSampledSignal(size_t n, const double * y, double dt, double t0)
-  : g(n) 
+FFTtools::BandlimitedSampledSignal::BandlimitedSampledSignal(size_t n, const double * y, double dt, double t0, int lobes, const FFTWindowType * w)
+  : g(n), max_lobes(lobes),win(w)  
 {
   for (size_t i =0; i < n; i++)
   {
@@ -263,7 +263,7 @@ FFTtools::BandlimitedSampledSignal::BandlimitedSampledSignal(size_t n, const dou
 
 double FFTtools::BandlimitedSampledSignal::doEval(double t) 
 {
-  return shannonWhitakerInterpolateValue(t,&g); 
+  return shannonWhitakerInterpolateValue(t,&g,max_lobes,win); 
 }
 
 
