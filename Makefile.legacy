@@ -133,7 +133,7 @@ clean:
 	rm -rf doc/latex
 
 doc: 
-	doxygen doc/doxynew.config
+	doxygen doc/Doxyfile
 
 install: $(ROOT_LIBRARY)
 	install -d $(UTIL_INC_DIR)
