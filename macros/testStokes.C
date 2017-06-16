@@ -27,8 +27,8 @@ void makePols(int N, TGraph * h, TGraph * v, double amplitude_offset , double ph
     for (int j =0; j < N; j++)
     {
       double t = j *dt; 
-      h->GetY()[j] += sin(amplitude_offset) *sin(TMath::Pi() * f*t + phase); 
-      v->GetY()[j] += cos(amplitude_offset) *sin(TMath::Pi() * f*t + phase + phase_offset); 
+      h->GetY()[j] += cos(amplitude_offset) *sin(TMath::Pi() * f*t + phase); 
+      v->GetY()[j] += sin(amplitude_offset) *sin(TMath::Pi() * f*t + phase + phase_offset); 
     }
 
   }
