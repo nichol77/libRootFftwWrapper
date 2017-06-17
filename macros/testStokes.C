@@ -1,5 +1,6 @@
 #include "FFTtools.h" 
 int nfreqs = 100; 
+double noise = 1; 
 double dt = 1; 
 double min_freq = 0.2; 
 double max_freq = 0.5; 
@@ -15,8 +16,8 @@ void makePols(int N, TGraph * h, TGraph * v, double amplitude_offset , double ph
   {
     h->GetX()[j] = j *dt; 
     v->GetX()[j] = j *dt; 
-    h->GetY()[j] = 0;
-    v->GetY()[j] = 0; 
+    h->GetY()[j] = gRandom->Gaus(0,noise);
+    v->GetY()[j] = gRandom->Gaus(0,noise); 
   }
 
   for (int i= 0; i < nfreqs; i++) 
@@ -40,19 +41,33 @@ void makePols(int N, TGraph * h, TGraph * v, double amplitude_offset , double ph
 void testStokes(double polarization_angle =0, double phase_offset = 0) 
 {
 
-  TGraph H;  
-  TGraph V;  
-  makePols(1024,&H,&V,polarization_angle, phase_offset); 
+  gRandom->SetSeed(0); 
 
-  TGraph *hH=FFTtools::getHilbertTransform(&H); 
-  TGraph *hV=FFTtools::getHilbertTransform(&V); 
+  TGraph * H = new TGraph(1024);  
+  TGraph * V = new TGraph(1024);  
+  makePols(1024,H,V,polarization_angle, phase_offset); 
 
-  double i,q,u,v; 
+  TGraph *hH=FFTtools::getHilbertTransform(H); 
+  TGraph *hV=FFTtools::getHilbertTransform(V); 
+
+  TGraph *gI = new TGraph(H->GetN(),H->GetX(), H->GetY()); 
+  TGraph *gQ = new TGraph(H->GetN(),H->GetX(), H->GetY()); 
+  TGraph *gU = new TGraph(H->GetN(),H->GetX(), H->GetY()); 
+  TGraph *gV = new TGraph(H->GetN(),H->GetX(), H->GetY()); 
+
 
   printf("Polarization Angle: %g degrees\nPhase offset: %g degrees\n",polarization_angle *180/TMath::Pi(),phase_offset*180/TMath::Pi()); 
-  FFTtools::stokesParameters(H.GetN(), H.GetY(), hH->GetY(), V.GetY(), hV->GetY(),&i,&q,&u,&v); 
+
+  FFTtools::stokesParameters(H->GetN(), H->GetY(), hH->GetY(), V->GetY(), hV->GetY(),gI->GetY(),gQ->GetY(),gU->GetY(),gV->GetY(),true); 
+  double i,q,u,v; 
+
+  i = gI->GetY()[1023]; 
+  q = gQ->GetY()[1023]; 
+  u = gU->GetY()[1023]; 
+  v = gV->GetY()[1023]; 
 
   printf("I,Q,U,V=(%g,%g,%g,%g)\n",i,q,u,v); 
+  printf("measured polarization angle: %g\n", atan2(u,q)/2); 
 
 
 }

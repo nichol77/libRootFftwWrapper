@@ -745,19 +745,24 @@ namespace FFTtools
 //   TH2 * getPowerVsTimeUsingLombScargle(const TGraph * g, int nbins, double sampling_dt = 0, double oversample_factor = 4, double high_factor = 2, TH2 * useme = 0); 
 
    /* Compute Stokes parameters from hpol / vpol and their hilbert transforms 
+    *
+    * This computes either the integral average, OR  the cumulative average array i.e. the ith entry of a parameter will be the average until that point from the beginning. 
+    * Which one is calculated depends 
+    *
     * @param N number of samples
     * @param hpol hpol waveform (evenly sampled)
     * @param hpol_hat hilbert transform of hpol waveform (evenly sampled)
     * @param vpol vpol waveform (evenly sampled)
     * @param vpol_hat hilbert transform of vpol waveform (evenly sampled)
-    * @param I pointer to where Stokes I will be stored (or null to not store)
-    * @param Q pointer to where Stokes Q will be stored (or null to not store)
-    * @param U pointer to where Stokes U will be stored (or null to not store)
-    * @param V pointer to where Stokes V will be stored (or null to not store)
+    * @param I pointer to where Stokes I integral average OR cumulative average array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
+    * @param Q pointer to where Stokes Q integral average OR cumulative average array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
+    * @param U pointer to where Stokes U integral average OR cumulative average array will be stored (or null to not store). Must be of length N if arra or length 1 if integral average (i.e. pointer to a double)y. 
+    * @param V pointer to where Stokes V integral average OR cumulative average arraywill be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
+    * @param compute_array true if you want to compute the entire array, false if you just want integral average.
     */ 
 
    void stokesParameters(int N, const double * __restrict hpol, const double * __restrict hpol_hat, const double * __restrict vpol, const double * __restrict vpol_hat, 
-                         double * I = 0, double * Q = 0, double * U = 0, double * V = 0); 
+                         double * I = 0, double * Q = 0, double * U = 0, double * V = 0, bool compute_array = false); 
 
 
 

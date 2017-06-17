@@ -2844,6 +2844,67 @@ int FFTtools::loadWisdom(const char * file)
 
 //___________________________________________//
 
+
+
+void FFTtools::stokesParameters(int N, const double * __restrict x, const double *  __restrict xh,
+                             const double *  __restrict y, const double *  __restrict yh, 
+                             double *I, double * Q, double * U, double * V, bool compute_array) 
+{
+  double sumI=0;
+  double sumQ=0;
+  double sumU=0;
+  double sumV=0; 
+
+  for (int i = 0; i <N; i++)
+  {
+    std::complex<double> X(x[i], xh[i]); 
+    std::complex<double> Y(y[i], yh[i]); 
+
+    if (I)
+    {
+      sumI +=std::norm(X) + std::norm(Y);   
+      if (compute_array)
+      {
+        I[i] = sumI/(i+1.); 
+      }
+    }
+    if (Q) 
+    {
+      sumQ +=std::norm(X) - std::norm(Y);   
+      if (compute_array)
+      {
+        Q[i] = sumQ/(i+1.); 
+      }
+    }
+
+    if (U)
+    {
+      sumU +=2 * ( X * std::conj(Y)).real();  
+      if (compute_array)
+      {
+        U[i] = sumU/(i+1.); 
+      }
+    }
+    if (V) 
+    { 
+      sumV += -2* ( X * std::conj(Y)).imag(); 
+      if (compute_array)
+      {
+        V[i] =sumV/(i+1.); 
+      }
+    }
+  }
+
+  if (!compute_array)
+  {
+    if (I) *I = sumI/N; 
+    if (Q) *Q = sumQ/N; 
+    if (U) *U = sumU/N; 
+    if (V) *V = sumV/N; 
+  }
+
+}
+
 #ifdef ENABLE_VECTORIZE
 #include "vectorclass.h"
 #include "vectormath_trig.h"
@@ -2851,96 +2912,6 @@ int FFTtools::loadWisdom(const char * file)
 #define VEC_N 4
 #define VEC_T double
 #endif
-
-
-
-void FFTtools::stokesParameters(int N, const double * __restrict x, const double *  __restrict xh,
-                             const double *  __restrict y, const double *  __restrict yh, 
-                             double *I, double * Q, double * U, double * V) 
-{
-  double sum_x2 = 0; 
-  double sum_xh2 = 0;
-  double sum_y2 = 0; 
-  double sum_yh2 = 0; 
-  double sum_xy = 0; 
-  double sum_xh_yh =0; 
-  double sum_xh_y = 0; 
-  double sum_x_yh = 0; 
-
-#ifdef ENABLE_VECTORIZE
-  int leftover = N % VEC_N; 
-  int nit = N / VEC_N + leftover ? 1 : 0; 
-
-
-  VEC vx; 
-  VEC vxh; 
-  VEC vy; 
-  VEC vyh; 
-  for (int i = 0; i < nit; i++)
-  {
-    vx.load(x + VEC_N * i);
-    vy.load(y + VEC_N * i);
-    vxh.load(xh + VEC_N * i);
-    vyh.load(yh + VEC_N * i);
-
-    if (i == nit-1 && leftover) 
-    {
-      vx.cutoff(leftover); 
-      vy.cutoff(leftover); 
-      vxh.cutoff(leftover); 
-      vyh.cutoff(leftover); 
-    }
-
-    if (I || Q) 
-    {
-      sum_x2 += horizontal_add(vx*vx); 
-      sum_y2 += horizontal_add(vy*vy); 
-      sum_yh2 += horizontal_add(vyh*vyh); 
-      sum_xh2 += horizontal_add(vxh*vxh); 
-    }
-
-    if (U)
-    {
-      sum_xy += horizontal_add(vx*vy); 
-      sum_xh_yh += horizontal_add(vxh*vyh); 
-    }
-
-    if (V)
-    {
-      sum_x_yh += horizontal_add(vx*vyh); 
-      sum_xh_y += horizontal_add(vxh*vy); 
-    }
-  }
-
-#else
-  for (int i = 0; i < N; i++)
-  {
-    if (I || Q)
-    {
-      sum_x2 += x[i]*x[i]; 
-      sum_xh2 += xh[i]*xh[i]; 
-      sum_y2  += y[i]*y[i]; 
-      sum_yh2 += yh[i]*yh[i]; 
-    }
-
-    if (U) 
-    {
-      sum_xy += x[i]*y[i]; 
-      sum_xh_yh += xh[i]*yh[i]; 
-    }
-    if (V)
-    {
-      sum_x_yh += x[i]*yh[i]; 
-      sum_xh_y += xh[i]*y[i]; 
-    }
-  }
-#endif
-
-  if (I) *I = (sum_x2 + sum_xh2 + sum_y2 + sum_yh2) / N; 
-  if (Q) *Q = (sum_x2 + sum_xh2 - sum_y2 - sum_yh2) / N; 
-  if (U) *U = (sum_xy  + sum_xh_yh)*2/ N; 
-  if (V) *V = (sum_xh_y  - sum_x_yh)*2/ N; 
-}
 
 
 void FFTtools::dftAtFreqAndMultiples(const TGraph * g, double f, int nmultiples, double * phase, double *amp, double * real, double * imag)
