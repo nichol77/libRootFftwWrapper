@@ -746,17 +746,19 @@ namespace FFTtools
 
    /* Compute Stokes parameters from hpol / vpol and their hilbert transforms 
     *
-    * This computes either the integral average, OR  the cumulative average array i.e. the ith entry of a parameter will be the average until that point from the beginning. 
-    * Which one is calculated depends 
+    * This computes either the integral average, OR  the cumulative average array i.e. the ith entry of a parameter will be the sum until that point from the beginning. This useful if you want to
+    * later calculate the average based on part of the signal. 
+    *
+    * Which one is calculated depends  on the value of compute_array.
     *
     * @param N number of samples
     * @param hpol hpol waveform (evenly sampled)
     * @param hpol_hat hilbert transform of hpol waveform (evenly sampled)
     * @param vpol vpol waveform (evenly sampled)
     * @param vpol_hat hilbert transform of vpol waveform (evenly sampled)
-    * @param I pointer to where Stokes I integral average OR cumulative average array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
-    * @param Q pointer to where Stokes Q integral average OR cumulative average array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
-    * @param U pointer to where Stokes U integral average OR cumulative average array will be stored (or null to not store). Must be of length N if arra or length 1 if integral average (i.e. pointer to a double)y. 
+    * @param I pointer to where Stokes I integral average OR cumulative array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
+    * @param Q pointer to where Stokes Q integral average OR cumulative array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
+    * @param U pointer to where Stokes U integral average OR cumulative array will be stored (or null to not store). Must be of length N if arra or length 1 if integral average (i.e. pointer to a double)y. 
     * @param V pointer to where Stokes V integral average OR cumulative average arraywill be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
     * @param compute_array true if you want to compute the entire array, false if you just want integral average.
     */ 

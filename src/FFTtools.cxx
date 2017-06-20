@@ -2865,7 +2865,7 @@ void FFTtools::stokesParameters(int N, const double * __restrict x, const double
       sumI +=std::norm(X) + std::norm(Y);   
       if (compute_array)
       {
-        I[i] = sumI/(i+1.); 
+        I[i] = sumI;
       }
     }
     if (Q) 
@@ -2873,7 +2873,7 @@ void FFTtools::stokesParameters(int N, const double * __restrict x, const double
       sumQ +=std::norm(X) - std::norm(Y);   
       if (compute_array)
       {
-        Q[i] = sumQ/(i+1.); 
+        Q[i] = sumQ; 
       }
     }
 
@@ -2882,7 +2882,7 @@ void FFTtools::stokesParameters(int N, const double * __restrict x, const double
       sumU +=2 * ( X * std::conj(Y)).real();  
       if (compute_array)
       {
-        U[i] = sumU/(i+1.); 
+        U[i] = sumU;
       }
     }
     if (V) 
@@ -2890,7 +2890,7 @@ void FFTtools::stokesParameters(int N, const double * __restrict x, const double
       sumV += -2* ( X * std::conj(Y)).imag(); 
       if (compute_array)
       {
-        V[i] =sumV/(i+1.); 
+        V[i] =sumV; 
       }
     }
   }
