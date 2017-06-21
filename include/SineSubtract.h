@@ -285,7 +285,7 @@ namespace FFTtools
             unsigned NDim() const { return 1+2*nt; } 
 
             /** This needs to be implemented to be a proper subclass */ 
-            virtual IBaseFunctionMultiDim * Clone() const; 
+            virtual ROOT::Math::IBaseFunctionMultiDim * Clone() const;
 
 
           private:
