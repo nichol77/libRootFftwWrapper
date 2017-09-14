@@ -387,7 +387,12 @@ namespace FFTtools
     \return The index of the bin with peak value.
   */    
    Int_t getPeakBin(const TGraph *gr); 
- 
+  //! Find the x value associated with the peak (maximum positive) in a TGraph
+  /*!
+    \param gr A pointer to the input TGraph 
+    \return The x value of the bin with peak value.
+  */    
+  Double_t getPeakXvalue(const TGraph *gr); 
 
   //! Find the peak (maximum positive) bin in a TGraph
   /*!

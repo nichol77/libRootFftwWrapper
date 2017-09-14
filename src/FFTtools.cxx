@@ -1470,6 +1470,23 @@ Int_t FFTtools::getPeakBin(const TGraph *gr)
 }
 
 
+Double_t FFTtools::getPeakXvalue(const TGraph *gr) 
+{
+  Double_t x,y;
+  gr->GetPoint(0,x,y);
+  Double_t peakVal=y;
+  Double_t peakX=0;
+  for(int i=1;i<gr->GetN();i++) {
+    gr->GetPoint(i,x,y);
+    if(peakVal<y) {
+      peakVal=y;
+      peakX=x;
+    }      
+  }
+  return peakX;
+}
+
+
 Int_t FFTtools::getPeakBin(const TGraph *gr, Int_t firstBin, Int_t lastBin) 
 {
   if(firstBin<0 || lastBin<0 || firstBin>gr->GetN() || lastBin>gr->GetN() ||
@@ -1729,7 +1746,7 @@ TGraph *FFTtools::padWave(const TGraph *grWave, Int_t padFactor) {
 
 
 TGraph *FFTtools::padWaveToLength(const TGraph *grWave, Int_t newLength) {
-   double *oldY = grWave->GetY();
+  double *oldY = grWave->GetY();
    double *oldX = grWave->GetX();
    double deltaT=oldX[1]-oldX[0];
    int realLength = grWave->GetN();
