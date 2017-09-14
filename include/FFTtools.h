@@ -192,7 +192,7 @@ namespace FFTtools
   //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
   /*!
     \param deltaTInt The time-step to interpolate to before doing the correlation and averaging
-    \param numGraphs Number of graphs to avergae
+    \param numGraphs Number of graphs to average
     \param thePtrPtr A pointer to a two-dimensional array of TGraphs <i>*grPtrArray[numGraphs]</i>.
     \return A pointer to a graph containing the averaged waveform.
   */
