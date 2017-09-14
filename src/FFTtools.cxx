@@ -2485,7 +2485,7 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
 	sumVolts[ind]=aVolts[aIndex];
       }
     }
-    
+  
 
     TGraph *grComAB = new TGraph(numPoints,safeTimeVals,sumVolts);
 
@@ -2511,6 +2511,72 @@ TGraph *FFTtools::correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr)
   return grRet;
 }
 
+TGraph *FFTtools::correlateAndAveragePredeterminedZone(Int_t numGraphs, TGraph **grPtrPtr, Int_t *correlationBinPtr, Int_t binWiggleRoom = 30)
+{  
+  if(numGraphs<2) return NULL;
+
+  TGraph *grA = (TGraph*) grPtrPtr[0]->Clone(); // Make copy of graph rather than using first graph.
+
+  Int_t numPoints=grA->GetN();  
+  Double_t *timeVals= grA->GetX();
+  Double_t *safeTimeVals = new Double_t[numPoints];
+  Double_t *sumVolts = new Double_t [numPoints];
+  for(int i=0;i<numPoints;i++) 
+    safeTimeVals[i]=timeVals[i];  
+
+  int countWaves=1;
+  for(int graphNum=1;graphNum<numGraphs;graphNum++) {
+    TGraph *grB = grPtrPtr[graphNum];
+    if(grB->GetN()<numPoints)
+      numPoints=grB->GetN();
+    TGraph *grCorAB = FFTtools::getCorrelationGraph(grA,grB);
+
+    // Here we limit the correlation graph around the predetermined peak bin
+    // i.e. from a set of multiple waveforms where we have found some event-wide peak bin from correlation
+    Int_t correlationBin = correlationBinPtr[graphNum-1];
+    
+    Int_t peakBin = FFTtools::getPeakBin(grCorAB,correlationBin - binWiggleRoom, correlationBin + binWiggleRoom);
+
+    // End zoned method
+    
+    Int_t offset=peakBin-(grCorAB->GetN()/2);
+ 
+    Double_t *aVolts = grA->GetY();
+    Double_t *bVolts = grB->GetY();
+  
+    for(int ind=0;ind<numPoints;ind++) {
+      int aIndex=ind;
+      int bIndex=ind-offset;
+      
+      if(bIndex>=0 && bIndex<numPoints) {
+	sumVolts[ind]=(aVolts[aIndex]+bVolts[bIndex]);
+      }
+      else {
+	sumVolts[ind]=aVolts[aIndex];
+      }
+    }
+  
+    TGraph *grComAB = new TGraph(numPoints,safeTimeVals,sumVolts);
+
+    delete grCorAB;
+    delete grA;
+    grA=grComAB;
+    countWaves++;
+
+  }
+  for(int i=0;i<numPoints;i++) {
+    sumVolts[i]/=countWaves;
+  }
+  Double_t meanVal=TMath::Mean(numPoints,sumVolts);
+  for(int i=0;i<numPoints;i++) {
+    sumVolts[i]-=meanVal;
+  }
+  delete grA;
+  TGraph *grRet = new TGraph(numPoints,safeTimeVals,sumVolts);
+  delete [] safeTimeVals;
+  delete [] sumVolts;
+  return grRet;
+}
 
 
 

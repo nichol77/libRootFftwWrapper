@@ -169,12 +169,26 @@ namespace FFTtools
 
   //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
   /*!
-    \param numGraphs Number of graphs to avergae
+    \param numGraphs Number of graphs to average
     \param thePtrPtr A pointer to a two-dimensional array of TGraphs <i>*grPtrArray[numGraphs]</i>.
     \return A pointer to a graph containing the averaged waveform.
   */
    TGraph *correlateAndAverage(Int_t numGraphs, TGraph **grPtrPtr);
 
+  //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
+  //! This is intended to be used for a set of multiple waveforms where we have found some event-wide peak bin from previous correlation
+  //! Using this method assures that the bin associated with the maximum correlation value is found within a limited range of the predetermined event wide peak bin
+  /*!
+    \param numGraphs Number of graphs to average
+    \param thePtrPtr A pointer to a two-dimensional array of TGraphs <i>*grPtrArray[numGraphs]</i>.
+    \param correlationBinPtr A pointer to the pre-determined average correlation on an event-by-event basis
+    \param binWiggleRoom How many bins either side of the bin associated with the peak value in the reduced range used to find the max correlation,
+    with the default set to 20 bins
+    \return A pointer to a graph containing the averaged waveform.
+  */
+
+  TGraph *correlateAndAveragePredeterminedZone(Int_t numGraphs, TGraph **grPtrPtr, Int_t *correlationBinPtr, Int_t binWiggleRoom);
+  
   //! This is designed for when you want to average a number of graphs of the same thing together. It uses a correlation to find the deltaT between graphs and then shifts the graphs and coherently sums them. The return is the average of the input graphs
   /*!
     \param deltaTInt The time-step to interpolate to before doing the correlation and averaging
@@ -277,7 +291,7 @@ namespace FFTtools
 
    //! Returns the normalised correlation of two TGraphs
   /*!
-    \param gr1 The first input TGrap  (must be zero meaned)
+    \param gr1 The first input TGraph (must be zero meaned)
     \param gr2 The second input TGraph (must be zero meaned)
     \return A pointer to a TGraph containing the correlation of <i>gr1</i> and <i>gr2</i> where each point is normalised by the number of valid samples in the correlation and by the product of the RMS of the input graphs.
   */    
@@ -285,7 +299,7 @@ namespace FFTtools
 
    //! Returns the normalised correlation of two TGraphs
   /*!
-    \param gr1 The first input TGrap  (must be zero meaned)
+    \param gr1 The first input TGraph (must be zero meaned)
     \param gr2 The second input TGraph (must be zero meaned)
     \param zeroOffset A pointer to an integer where the sample corresponding to zero offset will be stored
     \param useDtRange A flag to enable the setting of a limited range of deltat's to try
