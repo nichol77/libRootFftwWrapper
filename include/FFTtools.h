@@ -358,9 +358,6 @@ namespace FFTtools
   */
    TGraph *getHilbertEnvelope(const TGraph *grWave);
 
-
-
-
   //Utility functions (not necessarily FFT related but they'll live here for now
 
   //! The linear sum of the power in a TGraph (normally a PSD)
@@ -401,20 +398,20 @@ namespace FFTtools
     \return The index of the bin with peak value.
   */    
    Int_t getPeakBin(const TGraph *gr); 
-  //! Find the x value associated with the peak (maximum positive) in a TGraph
+  //! Find the peak (maximum positive) bin in a TGraph
+  /*!
+    \param gr A pointer to the input TGraph 
+    \param firstBin The first bin to include.
+    \param lastBin The last bin to include.
+    \return The index of the bin with peak value.
+  */    
+   Int_t getPeakBin(const TGraph *gr, Int_t firstBin, Int_t lastBin);  
+    //! Find the x value associated with the peak (maximum positive) in a TGraph
   /*!
     \param gr A pointer to the input TGraph 
     \return The x value of the bin with peak value.
   */    
   Double_t getPeakXvalue(const TGraph *gr); 
-
-  //! Find the peak (maximum positive) bin in a TGraph
-  /*!
-    \param gr A pointer to the input TGraph 
-    \return The index of the bin with peak value.
-  */    
-   Int_t getPeakBin(const TGraph *gr, Int_t firstBin, Int_t lastBin);  
-  
   //! Find the peak (maximum positive) in a TGraph.
   /*!
     \param gr A pointer to the input TGraph.
@@ -422,12 +419,22 @@ namespace FFTtools
     \return The peak value.
   */    
    Double_t getPeakVal(const TGraph *gr, int *index=0);
+  //! Find the peak (maximum positive) in a TGraph.
+  /*!
+    \param gr A pointer to the input TGraph.
+    \param firstBin The first bin to include.
+    \param lastBin The last bin to include.
+    \param index An optional pointer in which the peak bin can be stored.
+    \return The peak value.
+  */    
+  Double_t getPeakVal(const TGraph *gr, Int_t firstBin, Int_t lastBin, int *index=0);
   //! Find the peak (v^2) in a TGraph.
   /*!
     \param gr A pointer to the input TGraph.
     \param index An optional pointer in which the peak bin can be stored.
     \return The peak (v^2)value.
-  */    
+  */
+  
    Double_t getPeakSqVal(const TGraph *gr, int *index=0);
   //! Find the peak (v^2) and RMS (of v^2) in a TGraph.
   /*!
