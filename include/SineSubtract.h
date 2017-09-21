@@ -161,7 +161,7 @@ namespace FFTtools
                                freq_start_error(freq_start_error_)  
                              {;} 
 
-
+     
              
    }; 
 
@@ -228,7 +228,28 @@ namespace FFTtools
         /** Set the limit parameters */ 
         void setLimitOptions(const SineFitterLimits * lims) { limits = *lims; }
 
-        ROOT::Minuit2::Minuit2Minimizer * minimizer() { return &min; } 
+        ROOT::Minuit2::Minuit2Minimizer * minimizer() { return &min; }
+
+      /** 
+       * Access the i-th record of doEval in the minimization
+       * 
+       * @param i is the record to access, default is -1 (will try to find most recent for i < 0)
+       * 
+       * @return pointer to record graph if it exists, otherwise NULL. DO NOT DELETE
+       */
+
+      
+        TGraph* getEvalRecordGraph(int i = -1){
+          i = i < 0 ? grEvalRecords.size() - 1 : i;
+          if(i >= 0 && i < grEvalRecords.size()){
+            return grEvalRecords[i];
+          }
+          return NULL;
+        }
+        size_t nEvalRecords(){return grEvalRecords.size();}
+        void SetDoEvalRecord(bool doEvalRecord){fDoEvalRecord = doEvalRecord;}
+        Bool_t GetDoEvalRecord() const {return fDoEvalRecord;}
+        void deleteEvalRecords();
 
       private:
         ROOT::Minuit2::Minuit2Minimizer min; 
@@ -239,12 +260,15 @@ namespace FFTtools
         std::vector<double> amp; 
         double freq_err;
         std::vector<double> phase_err;
-        std::vector<double> amp_err; 
-
+        std::vector<double> amp_err;
+        bool fDoEvalRecord;
+        std::vector<TGraph*> grEvalRecords;
+      
         double freq_factor; 
         double min_amp_mean, max_amp_mean;  
         double min_amp_guess, max_amp_guess; 
         SineFitterLimits limits; 
+
 
 
 #ifndef __CINT__ //CINT is stupid about subclasses 
@@ -258,8 +282,8 @@ namespace FFTtools
         {
           public:
 
-            /** Initialize. No options */ 
-            SineFitFn(); 
+            /** Initialize. Optional pointer to parent, used to record eval function results. */ 
+            SineFitFn(SineFitter* parent = NULL); 
 
             /** Destroy */
             virtual ~SineFitFn(); 
@@ -286,10 +310,11 @@ namespace FFTtools
 
             /** This needs to be implemented to be a proper subclass */ 
             virtual ROOT::Math::IBaseFunctionMultiDim * Clone() const;
-
-
+          
           private:
-            int *ns; 
+            SineFitter* fContainer; // pointer to parent
+          
+            int *ns;
             int nt; 
 #ifdef SINE_SUBTRACT_USE_FLOATS
             float **x; 
@@ -308,10 +333,11 @@ namespace FFTtools
 #endif 
             const double * wgt; 
 
-        } f; 
+          
+        };
 #endif
 
-
+      SineFitFn f;
     }; 
 
     /* This class stores the minimization result. It would be a struct if CINT weren't
@@ -683,7 +709,7 @@ namespace FFTtools
         double min_power_reduction; 
         std::vector<std::vector<TGraph*> > gs; 
         std::vector<std::vector<TGraph*> > env_gs; 
-        std::vector<TGraph*> spectra; 
+        std::vector<TGraph*> spectra;
         SineSubtractResult r; 
         bool store; 
         double high_factor; 

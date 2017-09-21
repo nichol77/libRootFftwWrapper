@@ -148,17 +148,28 @@ static void computeEnvelopeHilbert(const TGraph * g, double * out, double dt)
 
 
 
-FFTtools::SineFitter::SineFitter()
+FFTtools::SineFitter::SineFitter() : f(this)
 {
-  min.SetFunction(f); 
+  min.SetFunction(f);
   verbose = false; 
 
+}
+
+
+void FFTtools::SineFitter::deleteEvalRecords(){
+  for(unsigned i=0; i < grEvalRecords.size(); i++){
+    if(grEvalRecords[i]){
+      delete grEvalRecords[i];
+      grEvalRecords[i] = NULL;
+    }
+  }
+  grEvalRecords.clear();
 }
 
 FFTtools::SineFitter::~SineFitter()
 {
 
-
+  deleteEvalRecords();
 }
 
 void FFTtools::SineFitter::setGuess(double fg, int ntrace, const double * phg, double ampg)
@@ -183,10 +194,12 @@ ROOT::Math::IBaseFunctionMultiDim* FFTtools::SineFitter::SineFitFn::Clone() cons
 #else
   fn->setXY(nt,ns,x,y,wgt,env); 
 #endif
+  fn->fContainer = fContainer;
   return fn; 
 }
 
-FFTtools::SineFitter::SineFitFn::SineFitFn() 
+FFTtools::SineFitter::SineFitFn::SineFitFn(SineFitter* parent)
+    : ROOT::Math::IGradientFunctionMultiDim(), fContainer(parent)
 {
   ns = NULL; 
   nt = 0; 
@@ -463,8 +476,20 @@ double FFTtools::SineFitter::SineFitFn::DoEval(const double * p) const
 #endif 
 
   }
-//  printf("P(f=%f, ph=%f, A=%f) = %f\n", p[0], ph, A, power);  
-  return power/nt;
+
+
+  double evalResult = power/nt;
+  if(fContainer && fContainer->GetDoEvalRecord()){
+    TGraph* grEval = fContainer->getEvalRecordGraph();
+    if(grEval){
+      int numEvals = grEval->GetN();
+      grEval->SetPoint(numEvals, numEvals, evalResult);
+    }
+  }
+
+//  printf("P(f=%f, ph=%f, A=%f) = %f\n", p[0], ph, A, power);
+
+  return evalResult;
 
 }
 
@@ -785,6 +810,9 @@ void FFTtools::SineFitter::doFit(int ntraces, const int * nsamples, const double
   {
     gErrorIgnoreLevel = 1001; 
   }
+  if(fDoEvalRecord){
+    grEvalRecords.push_back(new TGraph());
+  }
   min.Minimize(); 
   gErrorIgnoreLevel = old_level; 
   if(verbose)  min.PrintResults(); 
@@ -911,7 +939,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
 
 #ifdef SINE_SUBTRACT_PROFILE
-  TStopwatch sw; 
+  TStopwatch sw;
+  fitter.SetDoEvalRecord(true);
+  fitter.deleteEvalRecords();
 #endif
   reset(); 
   double orig_dt = dt; 
