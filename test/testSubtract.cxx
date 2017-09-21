@@ -2,10 +2,13 @@
 #include "SineSubtract.h"
 #include "TCanvas.h" 
 #include "AnalyticSignal.h"
-#include "TRandom.h" 
+#include "TRandom.h"
+#include "TApplication.h"
 
 int main (int nargs, char ** args) 
 {
+
+  
   FFTtools::loadWisdom("wisdom.dat"); 
   bool reinterpolate = true;  
   const int N = 256;  //nsamples
@@ -54,8 +57,10 @@ int main (int nargs, char ** args)
     }
   }
 
-  TGraph * g[ntraces]; 
-
+  TGraph * g[ntraces];
+  TGraph * g2[ntraces];  
+  TGraph * g_before[ntraces];
+  
   for (int ti = 0; ti < ntraces; ti++)
   {
 
@@ -68,11 +73,13 @@ int main (int nargs, char ** args)
          g[ti]->GetY()[i] += A[ti][j] * TMath::Sin( 2*TMath::Pi()*f[j]* (g[ti]->GetX()[i] + ph[ti][j])); 
       }
     }
-
+    g_before[ti] = dynamic_cast<TGraph*>(g[ti]->Clone());
+    g2[ti] = dynamic_cast<TGraph*>(g[ti]->Clone());
   }
   bool store = nargs> 1; 
 
 
+  
   FFTtools::SineSubtract * sub = new FFTtools::SineSubtract(max_failed_iterations,min_power_ratio,store); 
   FFTtools::SineFitterLimits lims; 
   lims.max_n_df_relative_to_guess = 2; 
@@ -86,7 +93,15 @@ int main (int nargs, char ** args)
     sub->setFreqLimits(min_freq, max_freq); 
   }
 
-  sub->subtractCW(ntraces, g, reinterpolate ?  dt : 0); 
+  sub->subtractCW(ntraces, g, reinterpolate ?  dt : 0);
+  const FFTtools::SineSubtractResult* r1 = sub->getResult();
+
+  FFTtools::SineSubtractResult r2 = *r1;
+
+  std::cout << r1->powers[0] << std::endl;
+  std::cout << r2.powers[0] << std::endl;
+
+  sub->subtractCW(ntraces, g2, reinterpolate ? dt : 0, NULL, &r2); // fingers crossed
 
   if (store) 
   {
@@ -154,5 +169,23 @@ int main (int nargs, char ** args)
       }
     }
   }
-  FFTtools::saveWisdom("wisdom.dat"); 
+  FFTtools::saveWisdom("wisdom.dat");  
+
+  
+  TApplication* theApp = new TApplication("theApp", &nargs, args);
+  for (int ti = 0; ti < ntraces; ti++){
+    TCanvas* c1 = new TCanvas();
+    g_before[ti]->SetLineColor(kRed);
+    g_before[ti]->Draw();
+    g[ti]->Draw("lsame");
+
+    g2[ti]->SetLineColor(kMagenta);
+    g2[ti]->SetLineStyle(3);
+    g2[ti]->Draw("lsame");
+    
+    c1->Modified();
+    c1->Update();
+  }  
+  theApp->Run(); // you'll need to manually quit
+  return 0;
 }

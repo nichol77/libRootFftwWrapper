@@ -426,7 +426,7 @@ namespace FFTtools
          * @param dt The nominal sample rate for uneven waveforms. If <=0, then the graph is assumed to be even and dt is computed from the first time step. 
          * @return The subtracted Graph.  
          */
-        TGraph * subtractCW(const TGraph * g, double dt); 
+        TGraph * subtractCW(const TGraph * g, double dt, const SineSubtractResult* result = NULL);
 
 
         /** Subtract CW from one or more traces. Sine Subtraction can handle both evenly-spaced and unevenly-spaced waveforms.
@@ -441,7 +441,7 @@ namespace FFTtools
          *  @param w Scales for the input values. If the y-axis have different scales (different gains or units) you should pass an array here. If 0, everything is equally-weighted. 
          *
          */
-        void subtractCW(int ng, TGraph ** g, double dt, const double * w = 0); 
+        void subtractCW(int ng, TGraph ** g, double dt, const double * w = 0, const SineSubtractResult* result = NULL); 
 
         /** Set limits on the frequencies to try to subtract. If the units of the graph are in ns, the frequencies should be in GHz. 
          *

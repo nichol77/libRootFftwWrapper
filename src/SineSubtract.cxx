@@ -926,15 +926,15 @@ void FFTtools::SineSubtract::reset()
 
 }
 
-TGraph * FFTtools::SineSubtract::subtractCW(const TGraph * g, double dt) 
+TGraph * FFTtools::SineSubtract::subtractCW(const TGraph * g, double dt, const SineSubtractResult* result) 
 {
   TGraph * gcopy = new TGraph(g->GetN(), g->GetX(), g->GetY()); 
   gcopy->SetTitle(TString::Format("%s (subtracted)", g->GetTitle())); 
-  subtractCW(1,&gcopy,dt); 
+  subtractCW(1,&gcopy,dt, NULL, result);
   return gcopy; 
 }
 
-void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, const double * w) 
+void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, const double * w, const SineSubtractResult* result) 
 {
 
 
@@ -944,7 +944,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   fitter.deleteEvalRecords();
 #endif
   reset(); 
-  double orig_dt = dt; 
+  double orig_dt = dt;
 
   if (!dt) dt = g[0]->GetX()[1] - g[0]->GetX()[0]; 
 
@@ -972,7 +972,18 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     }
   }
 
-  r.powers.push_back(power/ntraces); 
+  r.powers.push_back(power/ntraces);
+
+  if(result){
+    double diff = TMath::Abs(power/ntraces - result->powers.at(0));
+    if( diff > 1e-12){
+      std::cerr << "Warning in " << __PRETTY_FUNCTION__
+                << ",  potential mismatch between input result and calculated power. Difference is "
+                << diff << std::endl;
+      std::cerr << "Will do recalculation!" << std::endl;
+    }
+    result = NULL;
+  }
 
   if (store) 
   {
@@ -1056,9 +1067,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   }
 
 
-
-
-  while(true) 
+  int rIter = 0; // only gets incremented inside this while loop in the case of non-NULL input result
+  const int nRIter = result ? result->freqs.size() : 1; // effectively making this a while(true) loop for NULL input result
+  while(rIter < nRIter) 
   {
     nattempts++; 
 
@@ -1130,7 +1141,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
       }
 
       
-    }
+    } // got a power estimate for it in ntraces, and calculated envelope parameters!
 
 
 
@@ -1215,70 +1226,90 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
     }
 
     // fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) envelopes);
-    fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) &envelopes[0]);
 
-//    printf("power before:%f\n", power); 
-    power = fitter.getPower(); 
-//    printf("power after:%f\n", power); 
+    if(!result){
+      fitter.doFit(ntraces, Nuse, x,y,w, envelope_option == ENV_NONE? 0 : (const double **) &envelopes[0]);
 
-    double ratio = 1. - power /r.powers[r.powers.size()-1]; 
-    if (verbose) printf("Power Ratio: %f\n", ratio); 
-
-
-    double mpr = g_min_power ? g_min_power->Eval(max_f) : min_power_reduction; 
+      //    printf("power before:%f\n", power); 
+      power = fitter.getPower(); 
+      //    printf("power after:%f\n", power);
 
 
-    if(store && (ratio >= mpr || ntries == maxiter))
-    {
-      spectra.push_back(new TGraph(spectrum_N,spectra_x, spectra_y)); 
-      if (r.powers.size() > 1)
+      double ratio = 1. - power /r.powers[r.powers.size()-1]; 
+      if (verbose) printf("Power Ratio: %f\n", ratio); 
+
+
+      double mpr = g_min_power ? g_min_power->Eval(max_f) : min_power_reduction; 
+
+
+      if(store && (ratio >= mpr || ntries == maxiter))
       {
-        spectra[spectra.size()-1]->SetTitle(TString::Format("Spectrum after %lu iterations",r.powers.size()-1)); 
-      }
-      else
-      {
-        spectra[spectra.size()-1]->SetTitle("Initial spectrum"); 
-      }
+        spectra.push_back(new TGraph(spectrum_N,spectra_x, spectra_y)); 
+        if (r.powers.size() > 1)
+        {
+          spectra[spectra.size()-1]->SetTitle(TString::Format("Spectrum after %lu iterations",r.powers.size()-1)); 
+        }
+        else
+        {
+          spectra[spectra.size()-1]->SetTitle("Initial spectrum"); 
+        }
 
-      delete [] spectra_x; 
-      delete [] spectra_y; 
-    }
+        delete [] spectra_x; 
+        delete [] spectra_y; 
+      }
 
 
     
 
 
-    if (ratio < mpr || std::isnan(mpr))
-    {
-      nfails[max_i]++; 
-      if ((++ntries) > maxiter)   
+      if (ratio < mpr || std::isnan(mpr))
       {
-        break;
+        nfails[max_i]++; 
+        if ((++ntries) > maxiter)   
+        {
+          break;
+        }
+        continue; 
       }
-      continue; 
+      ntries = 0; // restart clock
+
+      r.powers.push_back(power); 
+      r.freqs.push_back(fitter.getFreq()); 
+      r.freqs_errs.push_back(fitter.getFreqErr()); 
+
+
+      for (int i = 0; i < ntraces; i++) 
+      {
+        r.phases[i].push_back(fitter.getPhase()[i]); 
+        r.phases_errs[i].push_back(fitter.getPhaseErr()[i]); 
+        r.amps[i].push_back(fitter.getAmp()[i]); 
+        r.amps_errs[i].push_back( fitter.getAmpErr()[i]); 
+      }
+    } // if(!result)
+    else{ // we have an input result, so use it
+      
+      r.powers.push_back(result->powers[rIter+1]);
+      r.freqs.push_back(result->freqs[rIter]);
+      r.freqs_errs.push_back(result->freqs_errs[rIter]); 
+
+      for (int i = 0; i < ntraces; i++) 
+      {
+        r.phases[i].push_back(result->phases[i][rIter]); 
+        r.phases_errs[i].push_back(result->phases_errs[i][rIter]); 
+        r.amps[i].push_back(result->amps[i][rIter]);
+        r.amps_errs[i].push_back(result->amps_errs[i][rIter]);
+      }
+      rIter++; // increment this iter
     }
-    ntries = 0; // restart clock
-
-    r.powers.push_back(power); 
-    r.freqs.push_back(fitter.getFreq()); 
-    r.freqs_errs.push_back(fitter.getFreqErr()); 
-
-
-    for (int i = 0; i < ntraces; i++) 
-    {
-      r.phases[i].push_back(fitter.getPhase()[i]); 
-      r.phases_errs[i].push_back(fitter.getPhaseErr()[i]); 
-      r.amps[i].push_back(fitter.getAmp()[i]); 
-      r.amps_errs[i].push_back( fitter.getAmpErr()[i]); 
-    }
+    
 
     for (int ti = 0; ti < ntraces; ti++) 
     {
-      double A = w ? w[ti] * fitter.getAmp()[ti] : fitter.getAmp()[ti]; 
+      double A = w ? w[ti] * r.amps[ti].back() : r.amps[ti].back(); 
       for (int i = 0; i < g[ti]->GetN(); i++) 
       {
         double AA = envelopes[ti] ?  A * envelopes[ti][i] : A; 
-        g[ti]->GetY()[i] -= AA* sin(2*TMath::Pi() * fitter.getFreq() *g[ti]->GetX()[i] + fitter.getPhase()[ti]); 
+        g[ti]->GetY()[i] -= AA* sin(2*TMath::Pi() * r.freqs.back() *g[ti]->GetX()[i] + r.phases[ti].back()); 
       }
 
       if (store)  
@@ -1289,9 +1320,9 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
         fnLock.Lock(); 
         TF1 * fn = new TF1(TString::Format("fitsin_%d_%lu_%d",fnCount++, r.powers.size(),ti), "[0] * sin(2*pi*[1] * x + [2])",g[ti]->GetX()[0], g[ti]->GetX()[g[ti]->GetN()-1]); 
         fnLock.UnLock(); 
-        fn->SetParameter(0,fitter.getAmp()[ti]); 
-        fn->SetParameter(1,fitter.getFreq()); 
-        fn->SetParameter(2,fitter.getPhase()[ti]); 
+        fn->SetParameter(0,r.amps[ti].back()); 
+        fn->SetParameter(1,r.freqs.back()); 
+        fn->SetParameter(2,r.phases[ti].back()); 
         fn->SetNpx(2*g[ti]->GetN()); 
         gs[ti][gs[ti].size()-1]->GetListOfFunctions()->Add(fn); 
 
