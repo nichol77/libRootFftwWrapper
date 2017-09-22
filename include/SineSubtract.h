@@ -1,3 +1,4 @@
+
 #ifndef _SINE_SUBTRACT_H
 #define _SINE_SUBTRACT_H
 
@@ -334,10 +335,9 @@ namespace FFTtools
             const double * wgt; 
 
           
-        };
+        } f;
 #endif
 
-      SineFitFn f;
     }; 
 
     /* This class stores the minimization result. It would be a struct if CINT weren't
