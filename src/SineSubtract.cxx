@@ -148,7 +148,7 @@ static void computeEnvelopeHilbert(const TGraph * g, double * out, double dt)
 
 
 
-FFTtools::SineFitter::SineFitter() : f(this)
+FFTtools::SineFitter::SineFitter() : fDoEvalRecord(false), f(this)
 {
   min.SetFunction(f);
   verbose = false; 
@@ -941,8 +941,8 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 #ifdef SINE_SUBTRACT_PROFILE
   TStopwatch sw;
   fitter.SetDoEvalRecord(true);
-  fitter.deleteEvalRecords();
 #endif
+  fitter.deleteEvalRecords();
   reset(); 
   double orig_dt = dt;
 
