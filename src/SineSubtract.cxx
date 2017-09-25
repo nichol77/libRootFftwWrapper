@@ -976,11 +976,16 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
   if(result){
     double diff = TMath::Abs(power/ntraces - result->powers.at(0));
-    if( diff > 1e-12){
-      std::cerr << "Warning in " << __PRETTY_FUNCTION__
-                << ",  potential mismatch between input result and calculated power. Difference is "
-                << diff << std::endl;
-      std::cerr << "Will do recalculation!" << std::endl;
+    if(diff > 1e-12){
+      static int numError = 0;
+      const int maxError = 100;
+      if(numError < maxError){
+        std::cerr << "Warning " <<  (numError+1) << " of " << maxError << " in " << __PRETTY_FUNCTION__
+                  << ",  potential mismatch between input result and calculated power. Difference is "
+                  << diff << std::endl;
+        std::cerr << "Will do recalculation!" << std::endl;
+        numError++;
+      }
     }
     result = NULL;
   }
