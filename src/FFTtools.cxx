@@ -2950,9 +2950,11 @@ int FFTtools::loadWisdom(const char * file)
 
 
 
+
 void FFTtools::stokesParameters(int N, const double * __restrict x, const double *  __restrict xh,
                              const double *  __restrict y, const double *  __restrict yh, 
-                             double *I, double * Q, double * U, double * V, bool compute_array) 
+                             double *I, double * Q, double * U, double * V, 
+                             double * __restrict Ivec, double * __restrict Qvec, double * __restrict Uvec, double * __restrict Vvec)
 {
   double sumI=0;
   double sumQ=0;
@@ -2964,48 +2966,45 @@ void FFTtools::stokesParameters(int N, const double * __restrict x, const double
     std::complex<double> X(x[i], xh[i]); 
     std::complex<double> Y(y[i], yh[i]); 
 
-    if (I)
+    if (I || Ivec)
     {
-      sumI +=std::norm(X) + std::norm(Y);   
-      if (compute_array)
-      {
-        I[i] = sumI;
-      }
+      double dI = std::norm(X) + std::norm(Y); 
+      sumI +=dI; 
+      if (Ivec) Ivec[i] = dI; 
     }
-    if (Q) 
+
+    if (Q || Qvec) 
     {
-      sumQ +=std::norm(X) - std::norm(Y);   
-      if (compute_array)
+      double dQ =   std::norm(X) - std::norm(Y);   
+      sumQ += dQ; 
+      if (Qvec) Qvec[i] = dQ; 
+    }
+
+    if (U || Uvec)
+    {
+      double dU = 2 * ( X * std::conj(Y)).real();  
+      sumU += dU; 
+      if (Uvec)
       {
-        Q[i] = sumQ; 
+        Uvec[i] = dU;
       }
     }
 
-    if (U)
-    {
-      sumU +=2 * ( X * std::conj(Y)).real();  
-      if (compute_array)
-      {
-        U[i] = sumU;
-      }
-    }
-    if (V) 
+    if (V || Vvec) 
     { 
-      sumV += -2* ( X * std::conj(Y)).imag(); 
-      if (compute_array)
+      double dV =-2* ( X * std::conj(Y)).imag(); 
+      sumV += dV;
+      if (Vvec)
       {
-        V[i] =sumV; 
+        Vvec[i] =sumV; 
       }
     }
   }
 
-  if (!compute_array)
-  {
-    if (I) *I = sumI/N; 
-    if (Q) *Q = sumQ/N; 
-    if (U) *U = sumU/N; 
-    if (V) *V = sumV/N; 
-  }
+  if (I) *I = sumI/N; 
+  if (Q) *Q = sumQ/N; 
+  if (U) *U = sumU/N; 
+  if (V) *V = sumV/N; 
 
 }
 

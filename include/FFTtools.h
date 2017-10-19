@@ -782,15 +782,20 @@ namespace FFTtools
     * @param hpol_hat hilbert transform of hpol waveform (evenly sampled)
     * @param vpol vpol waveform (evenly sampled)
     * @param vpol_hat hilbert transform of vpol waveform (evenly sampled)
-    * @param I pointer to where Stokes I integral average OR cumulative array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
-    * @param Q pointer to where Stokes Q integral average OR cumulative array will be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
-    * @param U pointer to where Stokes U integral average OR cumulative array will be stored (or null to not store). Must be of length N if arra or length 1 if integral average (i.e. pointer to a double)y. 
-    * @param V pointer to where Stokes V integral average OR cumulative average arraywill be stored (or null to not store). Must be of length N if array or length 1 if integral average (i.e. pointer to a double). 
-    * @param compute_array true if you want to compute the entire array, false if you just want integral average.
+    * @param Iavg pointer to where Stokes I integral average  will be stored (or null to not store). 
+    * @param Qavg pointer to where Stokes Q integral average  will be stored (or null to not store). 
+    * @param Uavg pointer to where Stokes U integral average  will be stored (or null to not store).
+    * @param Vavg pointer to where Stokes V integral average  will be stored (or null to not store). 
+    * @param Ivec pointer to where Stokes I instantaneous value  will be stored (or null to not store). Must be of length N;  
+    * @param Qvec pointer to where Stokes Q instantaneous value  will be stored (or null to not store).  Must be of length N; 
+    * @param Uvec pointer to where Stokes U instantaneous value  will be stored (or null to not store). Must be of length N; 
+    * @param Vvec pointer to where Stokes V instantaneous value  will be stored (or null to not store).  Must be of length N; 
     */ 
 
    void stokesParameters(int N, const double * __restrict hpol, const double * __restrict hpol_hat, const double * __restrict vpol, const double * __restrict vpol_hat, 
-                         double * I = 0, double * Q = 0, double * U = 0, double * V = 0, bool compute_array = false); 
+                         double * Iavg = 0, double * Qavg = 0, double * Uavg = 0, double * Vavg = 0, 
+                         double * __restrict Ivec = 0, double *  __restrict Qvec = 0, double * __restrict Uvec = 0, double *  __restrictVvec = 0 
+                         ); 
 
 
 
