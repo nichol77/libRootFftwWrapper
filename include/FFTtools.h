@@ -782,20 +782,20 @@ namespace FFTtools
     * @param hpol_hat hilbert transform of hpol waveform (evenly sampled)
     * @param vpol vpol waveform (evenly sampled)
     * @param vpol_hat hilbert transform of vpol waveform (evenly sampled)
-    * @param Iavg pointer to where Stokes I integral average  will be stored (or null to not store). 
-    * @param Qavg pointer to where Stokes Q integral average  will be stored (or null to not store). 
-    * @param Uavg pointer to where Stokes U integral average  will be stored (or null to not store).
-    * @param Vavg pointer to where Stokes V integral average  will be stored (or null to not store). 
-    * @param Ivec pointer to where Stokes I instantaneous value  will be stored (or null to not store). Must be of length N;  
-    * @param Qvec pointer to where Stokes Q instantaneous value  will be stored (or null to not store).  Must be of length N; 
-    * @param Uvec pointer to where Stokes U instantaneous value  will be stored (or null to not store). Must be of length N; 
-    * @param Vvec pointer to where Stokes V instantaneous value  will be stored (or null to not store).  Must be of length N; 
+    * @param Iavg pointer to where Stokes I integral average will be stored (or null to not store). 
+    * @param Qavg pointer to where Stokes Q integral average will be stored (or null to not store). 
+    * @param Uavg pointer to where Stokes U integral average will be stored (or null to not store).
+    * @param Vavg pointer to where Stokes V integral average will be stored (or null to not store). 
+    * @param Iins pointer to where Stokes I instantaneous value will be stored (or null to not store). Must be of length N unless only_store_max_instantaneous is true 
+    * @param Qins pointer to where Stokes Q instantaneous value will be stored (or null to not store).  Must be of length N unless only_store_max_instantaneous is true
+    * @param Uins pointer to where Stokes U instantaneous value will be stored (or null to not store). Must be of length N unless only_store_max_instantaneous is true
+    * @param Vins pointer to where Stokes V instantaneous value will be stored (or null to not store).  Must be of length N unless only_store_max_instantaneous is true
+    * @param only_max_instantaneous  if true,  only returns the maximum of the instantaneous quantities (at the maximum I in the range) 
     */ 
-
    void stokesParameters(int N, const double * __restrict hpol, const double * __restrict hpol_hat, const double * __restrict vpol, const double * __restrict vpol_hat, 
-                         double * Iavg = 0, double * Qavg = 0, double * Uavg = 0, double * Vavg = 0, 
-                         double * __restrict Ivec = 0, double *  __restrict Qvec = 0, double * __restrict Uvec = 0, double *  __restrictVvec = 0 
-                         ); 
+                         double * __restrict Iavg = 0, double * __restrict Qavg = 0, double * __restrict Uavg = 0, double * __restrict Vavg = 0, 
+                         double * __restrict Iins = 0, double * __restrict Qins = 0, double * __restrict Uins = 0, double * __restrict Vins = 0 , 
+                         bool only_max_instantaneous = true ); 
 
 
 

@@ -2954,50 +2954,62 @@ int FFTtools::loadWisdom(const char * file)
 void FFTtools::stokesParameters(int N, const double * __restrict x, const double *  __restrict xh,
                              const double *  __restrict y, const double *  __restrict yh, 
                              double *I, double * Q, double * U, double * V, 
-                             double * __restrict Ivec, double * __restrict Qvec, double * __restrict Uvec, double * __restrict Vvec)
+                             double * __restrict Iins, double * __restrict Qins, double * __restrict Uins, double * __restrict Vins, 
+                             bool only_max
+                             )
 {
   double sumI=0;
   double sumQ=0;
   double sumU=0;
   double sumV=0; 
 
+  double max_dI = 0; 
+
   for (int i = 0; i <N; i++)
   {
     std::complex<double> X(x[i], xh[i]); 
     std::complex<double> Y(y[i], yh[i]); 
+    
+    bool is_max = false; 
 
-    if (I || Ivec)
+    if (I || Iins || only_max)
     {
       double dI = std::norm(X) + std::norm(Y); 
       sumI +=dI; 
-      if (Ivec) Ivec[i] = dI; 
+
+      if (only_max && dI > max_dI) 
+      {
+          is_max = true; 
+          max_dI =dI;  
+      }
+
+      if (Iins && !only_max) Iins[i] = dI; 
+      if (Iins && is_max) *Iins = dI; 
+
     }
 
-    if (Q || Qvec) 
+    if (Q || Qins) 
     {
       double dQ =   std::norm(X) - std::norm(Y);   
       sumQ += dQ; 
-      if (Qvec) Qvec[i] = dQ; 
+      if (Qins && !only_max) Qins[i] = dQ; 
+      if (Qins && is_max) *Qins = dQ; 
     }
 
-    if (U || Uvec)
+    if (U || Uins)
     {
       double dU = 2 * ( X * std::conj(Y)).real();  
       sumU += dU; 
-      if (Uvec)
-      {
-        Uvec[i] = dU;
-      }
+      if (Uins && !only_max) Uins[i] = dU;
+      if (Uins && is_max)  *Uins = dU; 
     }
 
-    if (V || Vvec) 
+    if (V || Vins) 
     { 
       double dV =-2* ( X * std::conj(Y)).imag(); 
       sumV += dV;
-      if (Vvec)
-      {
-        Vvec[i] =sumV; 
-      }
+      if (Vins && !only_max) Vins[i] = dV; 
+      if (Vins && is_max) *Vins = dV; 
     }
   }
 
