@@ -792,9 +792,9 @@ namespace FFTtools
     * @param Vins pointer to where Stokes V instantaneous value will be stored (or null to not store).  Must be of length N unless only_store_max_instantaneous is true
     * @param only_max_instantaneous  if true,  only returns the maximum of the instantaneous quantities (at the maximum I in the range) 
     */ 
-   void stokesParameters(int N, const double * __restrict hpol, const double * __restrict hpol_hat, const double * __restrict vpol, const double * __restrict vpol_hat, 
-                         double * __restrict Iavg = 0, double * __restrict Qavg = 0, double * __restrict Uavg = 0, double * __restrict Vavg = 0, 
-                         double * __restrict Iins = 0, double * __restrict Qins = 0, double * __restrict Uins = 0, double * __restrict Vins = 0 , 
+   void stokesParameters(int N, const double *  hpol, const double *  hpol_hat, const double *  vpol, const double *  vpol_hat, 
+                         double *  Iavg = 0, double *  Qavg = 0, double *  Uavg = 0, double *  Vavg = 0, 
+                         double *  Iins = 0, double *  Qins = 0, double *  Uins = 0, double *  Vins = 0 , 
                          bool only_max_instantaneous = true ); 
 
 

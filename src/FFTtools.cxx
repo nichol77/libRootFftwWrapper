@@ -2953,7 +2953,7 @@ int FFTtools::loadWisdom(const char * file)
 
 void FFTtools::stokesParameters(int N, const double * __restrict x, const double *  __restrict xh,
                              const double *  __restrict y, const double *  __restrict yh, 
-                             double *I, double * Q, double * U, double * V, 
+                             double * __restrict I, double *  __restrict Q, double * __restrict  U, double * __restrict  V, 
                              double * __restrict Iins, double * __restrict Qins, double * __restrict Uins, double * __restrict Vins, 
                              bool only_max
                              )
