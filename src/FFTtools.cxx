@@ -3279,8 +3279,8 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
   double min = log(minval); 
 
 
-  double * logmag = (double*) fftw_malloc(sizeof(double) * N); 
-  FFTWComplex * output = (FFTWComplex*) fftw_malloc(N * sizeof(FFTWComplex)); 
+  double * logmag = new double[N]; 
+  FFTWComplex * output = new FFTWComplex[N]; 
 
   for (int i = 0; i < N; i++)
   {
@@ -3306,8 +3306,8 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
     }
   }
 
-  delete logmag; 
-  delete phase; 
+  delete [] logmag;
+  delete [] phase; 
   return output; 
 }
 
