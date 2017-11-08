@@ -16,7 +16,7 @@ double * FFTtools::getCrossCov(int length, const double * oldY1, const double * 
     FFTWComplex * theFFT2 = FFTtools::doFFT(adjLength, oldY2);
 
     FFTWComplex * tempStep = new FFTWComplex[newLength];
-    for (int i = 0; i < newLength; i++) {
+    for (int i = 0; i < newLength; ++i) {
 
         //  Evaluate the real and imaginary parts of tempStep independently.
     		tempStep[i].re = theFFT1[i].re * theFFT2[i].re + theFFT1[i].im * theFFT2[i].im;
@@ -50,7 +50,7 @@ double * FFTtools::getCrossCorr(int length, const double * oldY1, const double *
 }
 
 
-TGraph * FFTtools::getCrossCovGraph(const TGraph * gr1, const TGraph * gr2, int & zeroOffset) {
+TGraph * FFTtools::getCovGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset) {
 
 	//  Double graph's length from next power of 2.
 	int length1 = gr1 -> GetN();
@@ -64,7 +64,7 @@ TGraph * FFTtools::getCrossCovGraph(const TGraph * gr1, const TGraph * gr2, int 
 	//  Zero padding the waveforms.
 	double * padY1 = new double[N];
 	double * padY2 = new double[N];
-	for (int i = 0; i < N; i++) {
+	for (int i = 0; i < N; ++i) {
 
 		padY1[i] = (i < firstRealSamp || i >= firstRealSamp + length1) ? 0 : gr1 -> GetY()[i - firstRealSamp];
 		padY2[i] = (i < firstRealSamp || i >= firstRealSamp + length2) ? 0 : gr2 -> GetY()[i - firstRealSamp];
@@ -74,7 +74,7 @@ TGraph * FFTtools::getCrossCovGraph(const TGraph * gr1, const TGraph * gr2, int 
 	double waveOffset = gr2 -> GetX()[0] - gr1 -> GetX()[0];
 
 	//  Optional return of zero offset index.
-	if (zeroOffset) zeroOffset = N / 2 - int(waveOffset / deltaT);
+	if (zeroOffset) * zeroOffset = N / 2 - int(waveOffset / deltaT);
 
 	//  Generating the TGraph to be returned.
 	double * covVals = FFTtools::getCrossCov(N, padY1, padY2);
@@ -82,7 +82,7 @@ TGraph * FFTtools::getCrossCovGraph(const TGraph * gr1, const TGraph * gr2, int 
 	TGraph * grCov = new TGraph(N);
 	double * XCov = grCov -> GetX();
 	double * YCov = grCov -> GetY();
-	for (int i = 0; i < N; i++) {
+	for (int i = 0; i < N; ++i) {
 
 		XCov[i] = (i - N / 2) * deltaT - waveOffset;
 		//  Weird wrapping follows. Perhaps from the zero padding at the beginning of the arrays?
@@ -97,9 +97,9 @@ TGraph * FFTtools::getCrossCovGraph(const TGraph * gr1, const TGraph * gr2, int 
 }
 
 
-TGraph * FFTtools::getCrossCorrGraph(const TGraph * gr1, const TGraph * gr2, int & zeroOffset) {
+TGraph * FFTtools::getCorrGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset) {
 
-	TGraph * grCorr = FFTtools::getCrossCovGraph(gr1, gr2, zeroOffset);
+	TGraph * grCorr = FFTtools::getCovGraph(gr1, gr2, zeroOffset);
 
 	//  Calculating the normalization. Assuming GetY() arrays for gr1 and gr2 have zero mean.
 	double norm = sqrt(gr1 -> GetN() * gr2 -> GetN()) * gr1 -> GetRMS(2) * gr2 -> GetRMS(2);
@@ -108,4 +108,28 @@ TGraph * FFTtools::getCrossCorrGraph(const TGraph * gr1, const TGraph * gr2, int
 	for (int i = 0; i < grCorr -> GetN(); ++i) YCorr[i] /= norm;
 
 	return grCorr;
+}
+
+
+TGraph * FFTtools::getInterpCovGraph(const TGraph * gr1, const TGraph * gr2, double deltaT) {
+
+	TGraph * gr1Interp = FFTtools::getInterpolatedGraph(gr1, deltaT);
+	TGraph * gr2Interp = FFTtools::getInterpolatedGraph(gr2, deltaT);
+	TGraph * grOut = FFTtools::getCovGraph(gr1Interp, gr2Interp);
+
+	delete gr1Interp, delete gr2Interp;
+
+	return grOut;
+}
+
+
+TGraph * FFTtools::getInterpCorrGraph(const TGraph * gr1, const TGraph * gr2, double deltaT) {
+
+	TGraph * gr1Interp = FFTtools::getInterpolatedGraph(gr1, deltaT);
+	TGraph * gr2Interp = FFTtools::getInterpolatedGraph(gr2, deltaT);
+	TGraph * grOut = FFTtools::getCorrGraph(gr1Interp, gr2Interp);
+
+	delete gr1Interp, delete gr2Interp;
+
+	return grOut;
 }

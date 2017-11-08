@@ -18,21 +18,32 @@ namespace FFTtools {
 	 */
 	double * getCrossCov(int length, const double * oldY1, const double * oldY2);
 
-	/*  This does what FFTtools::getCorrelation() tries to do. By dividing getCrossCov() by the geometric mean
-	 *  of sum of the squares of oldY1 and oldY2, we then have the cross-correlation. We assume oldY1 and oldY2
-	 *  are of the same length.
+	/*  This does what FFTtools::getCorrelation() tries to do. By dividing FFTtools::getCrossCov() by the
+	 *  geometric mean of sum of the squares of oldY1 and oldY2, we then have the cross-correlation.
+	 *  We assume oldY1 and oldY2 are of the same length.
 	 */
 	double * getCrossCorr(int length, const double * oldY1, const double * oldY2);
 
-	/*  Since FFTtools::getCorrelation() is replaced above with crossCov(), it stands to reason
-	 *  that method changes means replacing getCorrelationGraph() as well. We do that here with covGraph().
+	/*  Since FFTtools::getCorrelation() is replaced above with FFTtools::getCrossCov(), it stands to reason
+	 *  that method changes means replacing FFTtools::getCorrelationGraph() as well. We do that here with
+	 *  FFTtools::getCovGraph().
 	 */
-	TGraph * getCrossCovGraph(const TGraph * gr1, const TGraph * gr2, int & zeroOffset);
+	TGraph * getCovGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset = 0);
 
 	/*  This is to replace FFTtools::getCorrelation(), or FFTtools::getNormalisedCorrelation() since this
 	 *  returns the cross-correlation graph as opposed to the cross-covariance graph.
 	 */
-	TGraph * getCrossCorrGraph(const TGraph * gr1, const TGraph * gr2, int & zeroOffset);
+	TGraph * getCorrGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset = 0);
+
+	/*  Prior to calling FFTtools::getCovGraph(), the input gr1 and gr2 are Akima spline interpolated to a
+	 *  uniform time step size of deltaT nanoseconds.
+	 */
+	TGraph * getInterpCovGraph(const TGraph * gr1, const TGraph * gr2, double deltaT);
+
+	/*  Prior to calling FFTtools::getCorrGraph(), the input gr1 and gr2 are Akima spline interpolated to a
+	 *  uniform time step size of deltaT nanoseconds.
+	 */
+	TGraph * getInterpCorrGraph(const TGraph * gr1, const TGraph * gr2, double deltaT);
 }
 
 #endif
