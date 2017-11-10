@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 2.8.10)
 
 project(RootFftwWrapper)
 set(libname "RootFftwWrapper")
+set(compatlibname "RootFftwWrapperCompat")
 
 set (LIBRARY_VERSION_MAJOR 3)
 set (LIBRARY_VERSION_MINOR 0)
@@ -78,19 +79,34 @@ file(GLOB HEADER_FILES
 file(GLOB_RECURSE SOURCE_FILES src/*.cxx)
 #file(GLOB_RECURSE THIS_LD LinkDef.h)
 
+set (COMPAT_SOURCE_FILES src/FFTtools.cxx src/FFTWComplex.cxx src/RFSignal.cxx
+  src/RFFilter.cxx ) 
+
+set (COMPAT_HEADER_FILES include/FFTtools.h include/FFTWComplex.h
+  include/RFSignal.h include/RFFilter.h ) 
+
+
+
 
 set(DICTNAME G__${libname})
+set(DICTNAMECOMPAT G__${compatlibname})
 
 ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h)
+ROOT_GENERATE_DICTIONARY(${DICTNAMECOMPAT} ${COMPAT_HEADER_FILES} LINKDEF
+  LinkDef.h OPTIONS -DFFTTOOLS_COMPAT_MODE)
 
 #---Create a shared library with geneated dictionary
 add_library(${libname} SHARED ${SOURCE_FILES} ${DICTNAME}.cxx)
 set_target_properties(${libname} PROPERTIES VERSION ${LIBRARY_VERSION_STRING}
   SOVERSION ${LIBRARY_VERSION_MAJOR})
 
+add_library(${compatlibname} SHARED ${COMPAT_SOURCE_FILES} ${DICTNAMECOMPAT}.cxx) 
+target_compile_definitions(${compatlibname} PUBLIC FFTTOOLS_COMPAT_MODE) 
+
 
 #target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
 target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} )
+target_link_libraries(${compatlibname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} )
 
 
 if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
@@ -110,7 +126,7 @@ file (GLOB VCL_FILES "vectorclass/*.h")
 install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
 install (FILES ${VCL_FILES} DESTINATION ${UTIL_INC_DIR}/${VECTORDIR})
 install (FILES ${CMAKE_FILES} DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
-install (TARGETS ${libname}
+install (TARGETS ${libname} ${compatlibname} 
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
 	LIBRARY DESTINATION ${UTIL_LIB_DIR}
 	RUNTIME DESTINATION ${UTIL_BIN_DIR})
@@ -269,7 +285,6 @@ endmacro()
 
 
 
-
 #### Random Sine Subtraction options #### 
 stupid_option(SINE_SUBTRACT_USE_FLOATS  "Use floats for vectorized sine subtraction") 
 mark_as_advanced(SINE_SUBTRACT_USE_FLOATS)
@@ -301,7 +316,6 @@ mark_as_advanced(FFTW_USE_PATIENT)
 #if (USE_PATIENT_PLANS) 
 #  add_definitions ( -DFFTW_USE_PATIENT ) 
 #endif() 
-
 
 
 

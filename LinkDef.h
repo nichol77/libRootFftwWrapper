@@ -4,10 +4,16 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ namespace FFTtools;
 #pragma link C++ class FFTWComplex+;
 #pragma link C++ class RFSignal+;
 #pragma link C++ class RFFilter+;
+
+
+#ifdef FFTTOOLS_COMPAT_MODE
+#pragma link C++ class FFTtools+;
+#else
+#pragma link C++ namespace FFTtools;
+
 
 //window stuff
 #pragma link C++ class FFTtools::FFTWindow;
@@ -62,6 +68,7 @@
 
 
 #pragma link C++ class FFTtools::Averager; 
+#endif
 
 #endif
 
