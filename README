@@ -34,6 +34,8 @@ iii) To build the code:
   Trying to mix the two build systems might get things confused 
 
 
+
+
 Mac Users
 =========
 For Mac OS X I would recommned usinge homebrew to install FFTW, ROOT and cmake. See http://brew.sh After installing brew you can get all the prerequisites by doing
@@ -54,9 +56,24 @@ c) The FFTWComplex and FFTtools classes should now be accessible from the ROOT p
 
 FFTtools Description
 ======================
-All of the FFTtools functions as static member functions so they can be called without instantiating the class. Typical usage is:
-TGraph *grPowerSpectrum = makePowerSpectrum(grInput);
-where grInput is a pointer to a TGraph containing the input waveform.
-
 Most of the member functions have fairly descriptive names, the documentation is at present somewhat lacking.
+
+
+Compatibility Mode (cmake only) 
+===========================
+
+At some point, FFTtools changed from a static-method-only class to a namespace
+so that other things could be added to the FFTtools namespace.  This was
+thought not to adversely affect anyone, since the FFTtools::doFFT, etc. usage
+would remain the same. However, apparently some users had code which did things
+like: FFTtools tools; tools.doFFT( );. Even though the instance is extraneous,
+it may be a pain to go through a lot of legacy code to fix it. For this reason, 
+a libRootFftwWrapperCompat shared library is also created, which should be compatible with 
+old uses of the library. To compile old code against it, you will need to define FFTTOOLS_COMPAT_MODE somehow, either like:
+
+#define FFTTOOLS_COMPAT_MODE
+#include "FFTtools.h" 
+
+or by adding -DFFTTOOLS_COMPAT_MODE to your compilation flags (either with CXX_FLAGS or in the build system) 
+
 

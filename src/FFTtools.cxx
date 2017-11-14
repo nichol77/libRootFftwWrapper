@@ -1,7 +1,6 @@
 #include "FFTtools.h"
 
 #include <fftw3.h>
-#include "FFTWindow.h"
 #include "TRandom.h" 
 #include <assert.h>
 #include "TF1.h" 
@@ -23,6 +22,7 @@ Double_t FFTtools::bartlettWindow(Int_t j, Int_t n)
 { 
 return 1. - TMath::Abs(Double_t(2*j -n)/n);
 }
+
 
 Double_t FFTtools::welchWindow(Int_t j, Int_t n)
 { 
@@ -2708,11 +2708,13 @@ double * FFTtools::FFTCorrelation(int length, const FFTWComplex * A, const FFTWC
 }
 
 
+#ifndef FFTTOOLS_COMPAT_MODE
 //___________________________________________//
 void FFTtools::applyWindow(TGraph *g, const FFTWindowType* win)
 {
   win->apply(g->GetN(), g->GetY()); 
 }
+#endif 
 
 
 //___________________________________________//
