@@ -182,7 +182,7 @@ double * FFTtools::getBrickWalledCrossCov(int length, const double * oldY1, cons
 }
 
 
-double * FFTtools::getBrickWalledCrossCorr(int length, const double * oldY1, const double * oldY2, int idxStart, int idxEnd) {
+double * FFTtools::getBrickWalledCrossCorr(int length, const double * oldY1, const double * oldY2, unsigned int idxStart, unsigned int idxEnd) {
 
 	//  For normalization purposes, calculate brick-walled variance of oldY1 and oldY2. Assumes oldY1 and oldY2 are zero meaned.
 	double brickWalledY1Var = FFTtools::getBrickWalledCrossCov(length, oldY1, oldY1, idxStart, idxEnd)[0];
@@ -199,7 +199,7 @@ double * FFTtools::getBrickWalledCrossCorr(int length, const double * oldY1, con
 }
 
 
-TGraph * FFTtools::getBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset, double fStart, double fEnd) {
+TGraph * FFTtools::getBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, int * zeroOffset) {
 
 	//  Double graph's length from next power of 2.
 	int length1 = gr1 -> GetN();
@@ -248,13 +248,13 @@ TGraph * FFTtools::getBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2
 }
 
 
-TGraph * FFTtools::getBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset, double fStart, double fEnd) {
+TGraph * FFTtools::getBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, int * zeroOffset) {
 
-	TGraph * grCorr = FFTtools::getBrickWalledCovGraph(gr1, gr2, zeroOffset, fStart, fEnd);
+	TGraph * grCorr = FFTtools::getBrickWalledCovGraph(gr1, gr2, fStart, fEnd, zeroOffset);
 
-	//  For normalization purposes, calculate variance for brick-walled gr1 and gr2. Assumes gr1 and gr2 have zero mean.
-	double brickWalledGr1Var = FFTtools::getBrickWalledCovGraph(gr1, gr1, zeroOffset, fStart, fEnd) -> Eval(0);
-	double brickWalledGr2Var = FFTtools::getBrickWalledCovGraph(gr2, gr2, zeroOffset, fStart, fEnd) -> Eval(0);
+	//  For normalization purposes, calculate brick-walled variance for gr1 and gr2. Assumes gr1 and gr2 have zero mean.
+	double brickWalledGr1Var = FFTtools::getBrickWalledCovGraph(gr1, gr1, fStart, fEnd) -> Eval(0);
+	double brickWalledGr2Var = FFTtools::getBrickWalledCovGraph(gr2, gr2, fStart, fEnd) -> Eval(0);
 
 	//  Calculating the normalization.
 	double norm = sqrt(brickWalledGr1Var * brickWalledGr2Var);
@@ -266,11 +266,11 @@ TGraph * FFTtools::getBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr
 }
 
 
-TGraph * FFTtools::getInterpBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double deltaT, double fStart, double fEnd) {
+TGraph * FFTtools::getInterpBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, double deltaT) {
 
 	TGraph * gr1Interp = FFTtools::getInterpolatedGraph(gr1, deltaT);
 	TGraph * gr2Interp = FFTtools::getInterpolatedGraph(gr2, deltaT);
-	TGraph * grOut = FFTtools::getBrickWalledCorrGraph(gr1Interp, gr2Interp);
+	TGraph * grOut = FFTtools::getBrickWalledCovGraph(gr1Interp, gr2Interp, fStart, fEnd);
 
 	delete gr1Interp, delete gr2Interp;
 
@@ -278,11 +278,11 @@ TGraph * FFTtools::getInterpBrickWalledCovGraph(const TGraph * gr1, const TGraph
 }
 
 
-TGraph * FFTtools::getInterpBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double deltaT, double fStart, double fEnd) {
+TGraph * FFTtools::getInterpBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, double deltaT) {
 
 	TGraph * gr1Interp = FFTtools::getInterpolatedGraph(gr1, deltaT);
 	TGraph * gr2Interp = FFTtools::getInterpolatedGraph(gr2, deltaT);
-	TGraph * grOut = FFTtools::getBrickWalledCorrGraph(gr1Interp, gr2Interp);
+	TGraph * grOut = FFTtools::getBrickWalledCorrGraph(gr1Interp, gr2Interp, fStart, fEnd);
 
 	delete gr1Interp, delete gr2Interp;
 

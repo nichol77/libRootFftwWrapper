@@ -59,24 +59,24 @@ namespace FFTtools {
 	/*  Basically does FFTtools::getCovGraph(), but uses FFTtools::getBrickWalledCrossCov() instead.
 	 *  fStart and fEnd are the frequencies corresponding to the beginning and end of the brick wall filter.
 	 */
-	TGraph * getBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset = 0, double fStart, double fEnd);
+	TGraph * getBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, int * zeroOffset = 0);
 
 	/*  Basically does FFTtools::getCorrGraph(), but uses FFTtools::getBrickWalledCrossCov() instead.
 	 *  fStart and fEnd are the GHz frequencies corresponding to the beginning and end of the brick wall filter.
 	 */
-	TGraph * getBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, int * zeroOffset = 0, double fStart, double fEnd);
+	TGraph * getBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, int * zeroOffset = 0);
 
 	/*  Prior to calling FFTtools::getBrickWalledCovGraph(), the input gr1 and gr2 are Akima spline interpolated to a
 	 *  uniform time step size of deltaT nanoseconds.
 	 *  fStart and fEnd are the GHz frequencies corresponding to the beginning and end of the brick wall filter.
 	 */
-	TGraph * getBrickWalledWeightedCovGraph(const TGraph * gr1, const TGraph * gr2, double deltaT, double fStart, double fEnd);
+	TGraph * getInterpBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, double deltaT);
 
 	/*  Prior to calling FFTtools::getBrickWalledCorrGraph(), the input gr1 and gr2 are Akima spline interpolated to a
 	 *  uniform time step size of deltaT nanoseconds.
 	 *  fStart and fEnd are the GHz frequencies corresponding to the beginning and end of the brick wall filter.
 	 */
-	TGraph * getInterpBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double deltaT, double fStart, double fEnd);
+	TGraph * getInterpBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, double deltaT);
 }
 
 #endif
