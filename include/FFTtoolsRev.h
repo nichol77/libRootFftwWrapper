@@ -44,39 +44,6 @@ namespace FFTtools {
 	 *  uniform time step size of deltaT nanoseconds.
 	 */
 	TGraph * getInterpCorrGraph(const TGraph * gr1, const TGraph * gr2, double deltaT);
-
-	/*  This does the same as FFTtools::getCrossCov() above, except it applies a brick-wall filter in the
-	 *  Fourier domain over the input index range before inverting back in the original domain.
-	 *  Disclaimer: You have to know the range of bin indices in the Fourier domain you want to consider!
-	 */
-	double * getBrickWalledCrossCov(int length, const double * oldY1, const double * oldY2, unsigned int idxStart, unsigned int idxEnd);
-
-	/*  What FFTtools::getCrossCorr() does for FFTtools::getCrossCov(), this does for FFTtools::getWeightedCrossCov().
-	 *  Disclaimer: You have to know the range of bin indices in the Fourier domain you want to consider!
-	 */
-	double * getBrickWalledCrossCorr(int length, const double * oldY1, const double * oldY2, unsigned int idxStart, unsigned int idxEnd);
-
-	/*  Basically does FFTtools::getCovGraph(), but uses FFTtools::getBrickWalledCrossCov() instead.
-	 *  fStart and fEnd are the frequencies corresponding to the beginning and end of the brick wall filter.
-	 */
-	TGraph * getBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, int * zeroOffset = 0);
-
-	/*  Basically does FFTtools::getCorrGraph(), but uses FFTtools::getBrickWalledCrossCov() instead.
-	 *  fStart and fEnd are the GHz frequencies corresponding to the beginning and end of the brick wall filter.
-	 */
-	TGraph * getBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, int * zeroOffset = 0);
-
-	/*  Prior to calling FFTtools::getBrickWalledCovGraph(), the input gr1 and gr2 are Akima spline interpolated to a
-	 *  uniform time step size of deltaT nanoseconds.
-	 *  fStart and fEnd are the GHz frequencies corresponding to the beginning and end of the brick wall filter.
-	 */
-	TGraph * getInterpBrickWalledCovGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, double deltaT);
-
-	/*  Prior to calling FFTtools::getBrickWalledCorrGraph(), the input gr1 and gr2 are Akima spline interpolated to a
-	 *  uniform time step size of deltaT nanoseconds.
-	 *  fStart and fEnd are the GHz frequencies corresponding to the beginning and end of the brick wall filter.
-	 */
-	TGraph * getInterpBrickWalledCorrGraph(const TGraph * gr1, const TGraph * gr2, double fStart, double fEnd, double deltaT);
 }
 
 #endif
