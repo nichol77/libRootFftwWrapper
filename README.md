@@ -1,3 +1,5 @@
+# libRootFftwWrapper 
+
 libRootFftwWrapper -- A ROOT wrapper for FFTW3
 Ryan Nichol (rjn@hep.ucl.ac.uk)  -- December 2007
 ###############################################################################
