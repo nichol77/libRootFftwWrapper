@@ -204,10 +204,16 @@ if (VECTORIZE) #defined in anitaBuildTool, default on
     ### someone should do this for clang if they want it to be as fast as possible 
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.1)
       if(NATIVE_ARCH) #define in anitaBuildTool, default on
-	add_definitions( -march=native)
+	add_definitions(-march=native)
       endif()
     endif()
-    add_definitions(  -fabi-version=0 ) 
+
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+      # Vectorize docs...
+      # If you are using the Gnu compiler version 3.x or 4.x then you must
+      # set the ABI version to 4 or more, or 0 for a reasonable default
+      add_definitions(-fabi-version=0)
+    endif()
   endif() 
 
 endif (VECTORIZE) 
