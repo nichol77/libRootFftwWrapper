@@ -778,7 +778,6 @@ FFTtools
     *
     */ 
    TGraph * welchPeriodogram(const TGraph * gin, int segment_size, double overlap_fraction = 0.5, const FFTWindowType * window = &GAUSSIAN_WINDOW , bool truncate_extra = true, TGraph * gout = 0); 
-#endif
 
 
 
@@ -793,6 +792,8 @@ FFTtools
                                    const double * __restrict y, double oversample_factor  = 4 , 
                                    double high_factor = 2, TGraph * replaceme = 0, int extirpolation_factor = 4)  ; 
 
+
+#endif
 
 //   TH2 * getPowerVsTimeUsingLombScargle(const TGraph * g, int nbins, double sampling_dt = 0, double oversample_factor = 4, double high_factor = 2, TH2 * useme = 0); 
 

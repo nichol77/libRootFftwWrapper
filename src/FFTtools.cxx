@@ -2056,7 +2056,7 @@ TGraph *FFTtools::multipleSimpleNotchFilters(const TGraph *grWave, Int_t numNotc
       //      std::cout << tempF << "\t" << theFFT[i].re << "\t" << theFFT[i].im << "\n";
       for(int notch=0;notch<numNotches;notch++) {
 	if(tempF>minFreq[notch] && tempF<maxFreq[notch]) {
-	  std::cout << "notching " << tempF << " notch num " << notch << " min " << minFreq[notch] << " max " << maxFreq[notch] << std::endl;
+	  //	  std::cout << "notching " << tempF << " notch num " << notch << " min " << minFreq[notch] << " max " << maxFreq[notch] << std::endl;
 	  theFFT[i].re=0;
 	  theFFT[i].im=0;
 	}      
