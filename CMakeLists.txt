@@ -50,7 +50,18 @@ endif()
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net
   Minuit  Minuit2 Spectrum )
-find_package(FFTW REQUIRED)
+
+#--- Check if the user wants to use MKL, otherwise fallback to FFTW ---#
+if(DEFINED ENV{USE_MKL})
+  message("Using MKL.")
+  set(MKL_ROOT "/opt/intel/mkl/")
+  include_directories(${MKL_ROOT}/include)
+  link_directories(${MKL_ROOT}/lib/intel64/)
+  set(MKL_LIBRARIES -Wl,--start-group mkl_intel_ilp64.a mkl_tbb_thread.a mkl_core.a -Wl,--end-group tbb stdc++ pthread m dl)
+else()
+  message("Using FFTW.")
+  find_package(FFTW REQUIRED)
+endif()
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 
@@ -105,8 +116,8 @@ target_compile_definitions(${compatlibname} PUBLIC FFTTOOLS_COMPAT_MODE)
 
 
 #target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} MathMore Minuit2)
-target_link_libraries(${libname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} )
-target_link_libraries(${compatlibname} ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} )
+target_link_libraries(${libname} ${ROOT_LIBRARIES} ${MKL_LIBRARIES} ${FFTW_LIBRARIES} )
+target_link_libraries(${compatlibname} ${ROOT_LIBRARIES} ${MKL_LIBRARIES} ${FFTW_LIBRARIES} )
 
 
 if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
@@ -146,7 +157,7 @@ endif()
 set (BINSRCDIR test) 
 macro( do_binary binary_name ) 
   add_executable(${binary_name} ${BINSRCDIR}/${binary_name}.cxx) 
-  target_link_libraries(${binary_name}  ${ROOT_LIBRARIES} ${FFTW_LIBRARIES} ${libname})
+  target_link_libraries(${binary_name} ${ROOT_LIBRARIES} ${MKL_LIBRARIES} ${FFTW_LIBRARIES} ${libname})
 endmacro() 
 
 do_binary(testFFTtools) 
