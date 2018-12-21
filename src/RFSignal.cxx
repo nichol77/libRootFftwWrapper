@@ -49,7 +49,7 @@ RFSignal::RFSignal(TGraph *grWave,Int_t mvNs)
   //  fillFreqStuff();
 }
 
-RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,Int_t mvNs) 
+RFSignal::RFSignal(Int_t numFreqs, const Double_t *freqVals, const FFTWComplex *complexNums,Int_t mvNs) 
   :TGraph(2*(numFreqs-1)),fMvNs(mvNs)
 {
   ///  std::cerr << "Here\t" << numFreqs << "\t" << fNpoints << "\n";
@@ -71,7 +71,7 @@ RFSignal::RFSignal(Int_t numFreqs, Double_t *freqVals, FFTWComplex *complexNums,
   extractFromComplex();
 }
 
-RFSignal::RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals,Int_t mvNs)
+RFSignal::RFSignal(Int_t numPoints,const Double_t *tVals,const Double_t *vVals,Int_t mvNs)
   :TGraph(numPoints,tVals,vVals),fGotFreqs(0),fMvNs(mvNs)
 {
   ///<Assignnment constructor
