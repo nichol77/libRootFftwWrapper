@@ -3303,8 +3303,8 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
     }
     else
     {
-      output[i].re = mag/sqrt(2) * cos(phase[i]); 
-      output[i].im = mag/sqrt(2) * sin(phase[i]); //TODO check if this negative sign should be here!!! Might be a convention thing. 
+      output[i].re = mag * cos(phase[i]); 
+      output[i].im = mag * sin(phase[i]); //TODO check if this negative sign should be here!!! Might be a convention thing. 
     }
   }
 
@@ -3313,6 +3313,25 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
   return output; 
 }
 
+
+TGraph * FFTtools::makeMinimumPhase(const TGraph * gin,double mindb) 
+{
+
+  FFTWComplex * G = doFFT(gin->GetN(), gin->GetY());
+  int nfft = gin->GetN()/2+1;
+  double * mag = new double[nfft];
+  for (int i = 0; i < nfft; i++) mag[i] = G[i].getAbs(); 
+  FFTWComplex * Y = makeMinimumPhase(nfft, mag, mindb);
+  TGraph * out = new TGraph(*gin); 
+  double * y = doInvFFT(out->GetN(), Y); 
+  for (int i = 0; i < out->GetN(); i++) out->GetY()[i] = y[i]; 
+
+  delete [] mag;
+  delete [] Y; 
+  delete [] G; 
+  delete [] y; 
+  return out; 
+}
 
 
 double FFTtools::checkCausality(int N, const FFTWComplex * signal)

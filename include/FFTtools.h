@@ -861,6 +861,14 @@ FFTtools
    FFTTOOLS_METHOD FFTWComplex * makeMinimumPhase(int N, const double * G,  double mindb = -100); 
 
 
+   /** Compute a minimum phase version of a time-domain signal.
+    * 
+    * @param g the time-domain signal, probably needs to be zero-padded
+    * @param mindb, an absolute zero in the frequency response cannot be represented with a minimum phase filter. Anything with a (power) magnitude smaller than mindb will be made equal to mindb 
+    */
+   FFTTOOLS_METHOD TGraph * makeMinimumPhase(const TGraph *g, double mindb=-100); 
+
+
    /** Checks if a signal is causal or not by comparing the imaginary part to the hilbert transform of the real part and returning the square difference (scaled by N). 
     * A perfectly causal system will return 0, but numerical inaccuracy may make that not true. 
     * */ 
