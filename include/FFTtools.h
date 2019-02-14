@@ -865,8 +865,18 @@ FFTtools
     * 
     * @param g the time-domain signal, probably needs to be zero-padded
     * @param mindb, an absolute zero in the frequency response cannot be represented with a minimum phase filter. Anything with a (power) magnitude smaller than mindb will be made equal to mindb 
+    * @returns minimum phase version of g 
     */
    FFTTOOLS_METHOD TGraph * makeMinimumPhase(const TGraph *g, double mindb=-100); 
+
+
+   /** Compute a fixed group delay version of a time-domain signal.
+    * 
+    * @param g the time-domain signal, probably needs to be zero-padded
+    * @param phase the phase (in radians) of the output
+    * @returns fixed phase version of g 
+    */
+   FFTTOOLS_METHOD TGraph * makeFixedDelay(const TGraph *g, double delay = 1); 
 
 
    /** Checks if a signal is causal or not by comparing the imaginary part to the hilbert transform of the real part and returning the square difference (scaled by N). 
