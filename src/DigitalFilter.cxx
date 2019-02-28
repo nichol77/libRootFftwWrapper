@@ -269,10 +269,10 @@ static void poly(unsigned int n, const std::complex<double> * zeroes, std::compl
 void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, double dw)
 {
 
-  double W=tan(TMath::Pi()*w/2);   // prewarp frequencies 
-  double Wh = tan(TMath::Pi()*(w+dw)/2);  
-  double Wl = tan(TMath::Pi()*(w-dw)/2);  
-  double dW = (Wh - Wl)/2 ; 
+  std::complex<double> W=tan(TMath::Pi()*w/2);   // prewarp frequencies 
+  std::complex<double> Wh = tan(TMath::Pi()*(w+dw)/2);  
+  std::complex<double> Wl = tan(TMath::Pi()*(w-dw)/2);  
+  std::complex<double> dW = (Wh - Wl)/2. ; 
 
   std::vector<std::complex<double> > new_zeroes; 
   std::vector<std::complex<double> > new_poles; 
@@ -310,7 +310,7 @@ void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, d
     for (size_t i = 0; i < poles.size(); i++) 
     {
       new_poles.push_back(W/poles[i]); 
-      new_gain *= -1./poles[i]; 
+      new_gain /= -poles[i]; 
     }
 
     //extend poles to zeroes, if necessary
@@ -322,7 +322,7 @@ void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, d
   }
   else
   {
-    assert(dW); 
+    assert(dW!=0.); 
     if (type == BANDPASS)
     {
       for (size_t i = 0; i < zeroes.size(); i++) 
@@ -331,7 +331,7 @@ void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, d
         std::complex<double> x = sqrt(b*b - Wh*Wl); 
         new_zeroes.push_back(b + x); 
         new_zeroes.push_back(b - x); 
-        new_gain *= 1./(2*dW); 
+        new_gain *= 1./(2.*dW); 
       }
       for (size_t i = zeroes.size(); i < poles.size(); i++) 
       {
@@ -344,7 +344,7 @@ void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, d
         std::complex<double> x = sqrt(b*b - Wh*Wl); 
         new_poles.push_back(b + x); 
         new_poles.push_back(b - x); 
-        new_gain *= 2*dW; 
+        new_gain *= 2.*dW; 
       }
 
       for (size_t i = poles.size(); i < zeroes.size(); i++) 
@@ -376,7 +376,7 @@ void FFTtools::TransformedZPKFilter::transform(FilterTopology type , double w, d
         std::complex<double> x = sqrt(b*b - Wh*Wl); 
         new_poles.push_back(b + x); 
         new_poles.push_back(b - x); 
-        new_gain *= -1./poles[i]; 
+        new_gain /= -poles[i]; 
       }
 
       for (size_t i = poles.size(); i < zeroes.size(); i++) 

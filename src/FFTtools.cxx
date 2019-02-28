@@ -3303,14 +3303,68 @@ FFTWComplex * FFTtools::makeMinimumPhase(int N, const double * G, double mindb)
     }
     else
     {
-      output[i].re = mag/sqrt(2) * cos(phase[i]); 
-      output[i].im = mag/sqrt(2) * sin(phase[i]); //TODO check if this negative sign should be here!!! Might be a convention thing. 
+      output[i].re = mag * cos(phase[i]); 
+      output[i].im = mag * sin(phase[i]); 
     }
   }
 
   delete [] logmag;
   delete [] phase; 
   return output; 
+}
+
+
+TGraph * FFTtools::makeMinimumPhase(const TGraph * gin,double mindb) 
+{
+
+  FFTWComplex * G = doFFT(gin->GetN(), gin->GetY());
+  int nfft = gin->GetN()/2+1;
+  double * mag = new double[nfft];
+  for (int i = 0; i < nfft; i++) mag[i] = G[i].getAbs(); 
+  FFTWComplex * Y = makeMinimumPhase(nfft, mag, mindb);
+  TGraph * out = new TGraph(*gin); 
+  TString str; 
+  str.Form("minphase_%s",gin->GetName()); 
+  out->SetName(str.Data());
+  str.Form("Minimum Phase %s",gin->GetTitle()); 
+  out->SetTitle(str.Data()); 
+  double * y = doInvFFT(out->GetN(), Y); 
+  for (int i = 0; i < out->GetN(); i++) out->GetY()[i] = y[i]; 
+
+  delete [] mag;
+  delete [] Y; 
+  delete [] G; 
+  delete [] y; 
+  return out; 
+}
+
+TGraph * FFTtools::makeFixedDelay(const TGraph * gin, double delay) 
+{
+
+  TGraph * out = new TGraph(*gin); 
+  TString str; 
+
+  str.Form("fixeddelay%s",gin->GetName()); 
+  out->SetName(str.Data());
+  str.Form("Fixed Delay (%g) %s",delay, gin->GetTitle()); 
+  out->SetTitle(str.Data());
+
+  double dt = gin->GetX()[1] - gin->GetX()[0]; 
+  double dw = TMath::Pi()*2/(gin->GetN() * dt); 
+  FFTWComplex * G = doFFT(gin->GetN(), gin->GetY());
+  for (int i = 0; i < gin->GetN()/2; i++) 
+  {
+    double mag = G[i].getAbs(); 
+    double ph = -delay * i*dw; 
+    G[i] = FFTWComplex(mag*cos(ph), mag*sin(ph)); 
+  }
+  double * y = doInvFFT(out->GetN(), G); 
+  for (int i = 0; i < out->GetN(); i++) out->GetY()[i] = y[i]; 
+
+  delete [] G;
+  delete [] y;
+
+  return out;
 }
 
 

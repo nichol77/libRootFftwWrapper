@@ -14,8 +14,8 @@ public:
   RFSignal(); ///<Default constructor
   RFSignal(TGraph *grWave, Int_t mvNs=0); ///<Assignnment constructor
   RFSignal(RFSignal *rfWave); ///<Assignnment constructor
-  RFSignal(Int_t numPoints,Double_t *tVals,Double_t *vVals, Int_t mvNs=0);
-  RFSignal(Int_t numFreqs, Double_t *freqVals,FFTWComplex *complexNums, Int_t mvNs=0);
+  RFSignal(Int_t numPoints,const Double_t *tVals, const Double_t *vVals, Int_t mvNs=0);
+  RFSignal(Int_t numFreqs, const  Double_t *freqVals, const FFTWComplex *complexNums, Int_t mvNs=0);
   ~RFSignal(); ///<Destructor
   
   TGraph *getFreqMagGraph();
