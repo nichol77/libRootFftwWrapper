@@ -116,6 +116,15 @@ namespace FFTtools
   static const GaussianWindow GAUSSIAN_WINDOW; 
 
 
+  class TukeyWindow : public FFTWindowType
+  {
+    public: 
+      TukeyWindow(double defaultAlpha = 0.5) : alpha(defaultAlpha) {}  
+      virtual double value(double i, size_t N) const; 
+    private: 
+      double alpha;
+  }; 
+
 }
 
 #endif

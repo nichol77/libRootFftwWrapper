@@ -92,3 +92,13 @@ double FFTtools::GaussianWindow::value(double i, size_t N) const
 
 
 
+double FFTtools::TukeyWindow::value(double i, size_t N) const
+{
+  double T = alpha *(N-1)/2.; 
+  int n = i + (N-1)/2; 
+  if ( n < T) return 0.5  * ( 1+ cos(TMath::Pi() * (n / T- 1))) ; 
+  if ( n >= N) return 0; 
+  if (n >= N - T) return 0.5 * ( 1 + cos(TMath::Pi() * ( n/T - 2 /alpha  + 1)));  
+  return 1; 
+}
+

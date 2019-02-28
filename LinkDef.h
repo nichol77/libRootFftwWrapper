@@ -26,6 +26,7 @@
 #pragma link C++ class FFTtools::BlackmanHarrisWindow; 
 #pragma link C++ class FFTtools::KaiserWindow; 
 #pragma link C++ class FFTtools::GaussianWindow; 
+#pragma link C++ class FFTtools::TukeyWindow; 
 
 
 //sin subtract stuff
