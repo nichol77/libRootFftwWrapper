@@ -29,11 +29,13 @@
 #pragma link C++ class FFTtools::TukeyWindow; 
 
 
+#ifndef DONT_HAVE_MINUIT2
 //sin subtract stuff
 #pragma link C++ class FFTtools::SineSubtract;
 #pragma link C++ class FFTtools::SineFitter;
 #pragma link C++ class FFTtools::SineSubtractResult+;
 #pragma link C++ class FFTtools::SineFitterLimits;
+#endif
 
 // filter stuff
 #pragma link C++ class FFTtools::DigitalFilter; 

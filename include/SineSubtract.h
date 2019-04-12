@@ -1,7 +1,9 @@
-
 #ifndef _SINE_SUBTRACT_H
 #define _SINE_SUBTRACT_H
 
+#ifdef DONT_HAVE_MINUIT2
+#warning "Need Minuit2 for SineSubtract." 
+#else
 
 
 /**************************************************************************************
@@ -738,5 +740,5 @@ namespace FFTtools
 
 }
 
-
+#endif
 #endif 

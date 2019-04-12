@@ -1,4 +1,6 @@
+#ifndef DONT_HAVE_MINUIT2
 #include "SineSubtract.h" 
+
 
 #include "TGraph.h" 
 #include "TCanvas.h" 
@@ -1762,4 +1764,5 @@ void FFTtools::SineSubtract::setEnvelopeOption(EnvelopeOption option, const doub
 
 ClassImp(FFTtools::SineSubtractResult); 
 
+#endif
 

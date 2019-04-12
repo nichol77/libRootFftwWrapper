@@ -49,10 +49,11 @@ endif()
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net
-  Minuit  Minuit2 Spectrum )
+  Minuit Spectrum OPTIONAL_COMPONENTS Minuit2)
 find_package(FFTW REQUIRED)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
+
 
 message("ROOT_VERSION is set to ${ROOT_VERSION}")
 if( ${ROOT_VERSION} VERSION_GREATER "5.99/99")
@@ -63,6 +64,14 @@ else()
      add_definitions(${ROOT_DEFINITIONS})	
 endif()
 
+set (DICTIONARY_OPTIONS )
+if(ROOT_Minuit2_LIBRARY)
+  message("Found Minuit2!")  
+else()
+  message("Could not find Minuit2. Disabling anything that requires it...") 
+  add_definitions(-DDONT_HAVE_MINUIT2)
+  set (DICTIONARY_OPTIONS ${DICTIONARY_OPTIONS} -DDONT_HAVE_MINUIT2)
+endif()
 
 message("ROOT_INCLUDE_DIRS is set to ${ROOT_INCLUDE_DIRS}")
 message("FFTW_INCLUDES is set to ${FFTW_INCLUDES}")
@@ -91,7 +100,8 @@ set (COMPAT_HEADER_FILES include/FFTtools.h include/FFTWComplex.h
 set(DICTNAME G__${libname})
 set(DICTNAMECOMPAT G__${compatlibname})
 
-ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h)
+ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h OPTIONS
+  ${DICTIONARY_OPTIONS})
 ROOT_GENERATE_DICTIONARY(${DICTNAMECOMPAT} ${COMPAT_HEADER_FILES} LINKDEF
   LinkDef.h OPTIONS -DFFTTOOLS_COMPAT_MODE)
 
@@ -150,7 +160,10 @@ macro( do_binary binary_name )
 endmacro() 
 
 do_binary(testFFTtools) 
+
+if(ROOT_Minuit2_LIBRARY)
 do_binary(testSubtract) 
+endif() 
 
 
 
