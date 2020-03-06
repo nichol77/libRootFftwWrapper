@@ -103,8 +103,17 @@ TGraph * FFTtools::getCorrGraph(const TGraph * gr1, const TGraph * gr2, int * ze
 
 	TGraph * grCorr = FFTtools::getCovGraph(gr1, gr2, zeroOffset);
 
-	//  Calculating the normalization. Assuming GetY() arrays for gr1 and gr2 have zero mean.
-	double norm = sqrt(gr1 -> GetN() * gr2 -> GetN()) * gr1 -> GetRMS(2) * gr2 -> GetRMS(2);
+	//  Calculating normalization.
+	double * Y1 = gr1 -> GetY();
+	double totPow1 = 0;
+	for (int i = 0; i < gr1 -> GetN(); ++i) totPow1 += Y1[i] * Y1[i];
+
+	double * Y2 = gr2 -> GetY();
+	double totPow2 = 0;
+	for (int i = 0; i < gr2 -> GetN(); ++i) totPow2 += Y2[i] * Y2[i];
+
+	double norm = sqrt(totPow1 * totPow2);
+
 	//  Applying the normalization.
 	double * YCorr = grCorr -> GetY();
 	for (int i = 0; i < grCorr -> GetN(); ++i) YCorr[i] /= norm;
