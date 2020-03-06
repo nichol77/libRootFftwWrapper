@@ -7,27 +7,27 @@
 
 double * FFTtools::getCrossCov(int length, const double * oldY1, const double * oldY2) {
 
-	//  Assure FFTs are done for next power of 2 at or above length.
-	int adjLength = pow(2, ceil(log2(length)));
-	int newLength = adjLength / 2;  //  Half the adjusted length, for summation purposes and output.
-
 	//  Do FFTs on input arrays.
-    FFTWComplex * theFFT1 = FFTtools::doFFT(adjLength, oldY1);
-    FFTWComplex * theFFT2 = FFTtools::doFFT(adjLength, oldY2);
+	FFTWComplex * theFFT1 = FFTtools::doFFT(length, oldY1);
+	FFTWComplex * theFFT2 = FFTtools::doFFT(length, oldY2);
 
-    FFTWComplex * tempStep = new FFTWComplex[newLength];
-    for (int i = 0; i < newLength; ++i) {
+	int newLength = length / 2 + 1;  //  Following the same convention in the initial FFTtools.cxx. Follows from FFTW3 using unused padding when "newLength" is odd numbered.
 
-        //  Evaluate the real and imaginary parts of tempStep independently.
+	FFTWComplex * tempStep = new FFTWComplex[newLength];
+
+	for (int i = 0; i < newLength; ++i) {
+
+        	//  Evaluate the real and imaginary parts of tempStep independently.
     		tempStep[i].re = theFFT1[i].re * theFFT2[i].re + theFFT1[i].im * theFFT2[i].im;
     		tempStep[i].im = theFFT1[i].im * theFFT2[i].re - theFFT1[i].re * theFFT2[i].im;
-    }
-    double * theOutput = FFTtools::doInvFFT(adjLength, tempStep);
+    	}
 
-    delete [] tempStep;
-    delete [] theFFT1, delete [] theFFT2;
+	double * theOutput = FFTtools::doInvFFT(length, tempStep);
 
-    return theOutput;
+	delete [] tempStep;
+	delete [] theFFT1, delete [] theFFT2;
+
+	return theOutput;
 }
 
 
@@ -35,16 +35,18 @@ double * FFTtools::getCrossCorr(int length, const double * oldY1, const double *
 
 	//  Calculating the normalization. Assuming the arrays have a zero mean.
 	double oldY1SqSum = 0, oldY2SqSum = 0;
+
 	for (int i = 0; i < length; ++i) {
 
 		oldY1SqSum += oldY1[i] * oldY1[i];
 		oldY2SqSum += oldY2[i] * oldY2[i];
 	}
+
 	double norm = sqrt(oldY1SqSum * oldY2SqSum);
 
 	double * theOutput = FFTtools::getCrossCov(length, oldY1, oldY2);
-	int adjLength = pow(2, ceil(log2(length)));  //  Adjusted length of theOutput.
-	for (int i = 0; i < adjLength; ++i) theOutput[i] /= norm;
+
+	for (int i = 0; i < length; ++i) theOutput[i] /= norm;
 
 	return theOutput;
 }
@@ -55,7 +57,7 @@ TGraph * FFTtools::getCovGraph(const TGraph * gr1, const TGraph * gr2, int * zer
 	//  Double graph's length from next power of 2.
 	int length1 = gr1 -> GetN();
 	int length2 = gr2 -> GetN();
-	int length = (length1 > length2) ? length1 : length2;
+	int length = (length1 >= length2) ? length1 : length2;
 	int N = pow(2, ceil(log2(length)) + 1);
 
 	//  Sample index relative to gr1.
