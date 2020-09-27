@@ -2116,26 +2116,26 @@ Double_t FFTtools::getWaveformSNR(const TGraph *gr,Double_t &peakToPeak,Double_t
     y=yVals[i];
     if(i>0){
       if(y<yVals[i-1] && trending==0){
-	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	if(TMath::Abs(y-yVals[firstBin])>p2p){
 	  p2p=TMath::Abs(y-yVals[firstBin]);
 	}
       }
       else if(y<yVals[i-1] && (trending==1 || trending==2)){
 	trending=0;
 	firstBin=i-1;
-	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	if(TMath::Abs(y-yVals[firstBin])>p2p){
 	  p2p=TMath::Abs(y-yVals[firstBin]);
 	}
       }
       else if(y>yVals[i-1] && (trending==0 || trending==2)){
 	trending=1;
 	firstBin=i-1;
-	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	if(TMath::Abs(y-yVals[firstBin])>p2p){
 	  p2p=TMath::Abs(y-yVals[firstBin]);
 	}
       }
       else if(y>yVals[i-1] && trending==1){
-	if(TMath::Abs(y-yVals[firstBin]>p2p)){
+	if(TMath::Abs(y-yVals[firstBin])>p2p){
 	  p2p=TMath::Abs(y-yVals[firstBin]);
 	}
       }
