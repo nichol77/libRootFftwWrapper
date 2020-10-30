@@ -426,9 +426,21 @@ namespace FFTtools
          *
          * @param g The input TGraph to subtract from 
          * @param dt The nominal sample rate for uneven waveforms. If <=0, then the graph is assumed to be even and dt is computed from the first time step. 
+         * @param result if you already have the result, this just performs the transformations in the result 
          * @return The subtracted Graph.  
          */
         TGraph * subtractCW(const TGraph * g, double dt, const SineSubtractResult* result = NULL);
+
+        /* Convenience method to subtract CW from an evenly-sampled array 
+         *  (note that for now this just makes a TGraph copy internally, in the future this will be reversed for efficiency); 
+         *  
+         *  @param N number of samples
+         *  @param y input y-values
+         *  @param dt sampling period
+         *  @param result if you already have the result, this just performs the transformations in the result 
+         *  @returns waveform with subtracted CW. Either allocates new or uses y_out, depending on if y_out is NULL
+         * */ 
+        double * subtractCW(int N, const double * y, double dt, double * y_out = NULL, const SineSubtractResult *result = NULL ); 
 
 
         /** Subtract CW from one or more traces. Sine Subtraction can handle both evenly-spaced and unevenly-spaced waveforms.

@@ -936,6 +936,26 @@ TGraph * FFTtools::SineSubtract::subtractCW(const TGraph * g, double dt, const S
   return gcopy; 
 }
 
+
+double * FFTtools::SineSubtract::subtractCW(int N, const double * y, double dt, double * yout,  const SineSubtractResult* result) 
+{
+  TGraph g(N); 
+  for (int i = 0; i < N;i ++) 
+  {
+    g.GetX()[i] = i*dt; 
+    g.GetY()[i] = y[i]; 
+  }
+  TGraph *gptr = &g;
+  subtractCW(1,&gptr,0.,NULL,result); 
+  if (!yout) 
+  {
+    yout = new double[N]; 
+  }
+  memcpy(yout, g.GetY(), N*sizeof(double)); 
+  return yout; 
+}
+
+
 void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, const double * w, const SineSubtractResult* result) 
 {
 
