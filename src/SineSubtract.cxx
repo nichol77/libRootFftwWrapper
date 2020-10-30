@@ -946,7 +946,7 @@ double * FFTtools::SineSubtract::subtractCW(int N, const double * y, double dt, 
     g.GetY()[i] = y[i]; 
   }
   TGraph *gptr = &g;
-  subtractCW(1,&gptr,0.,NULL,result); 
+  subtractCW(1,&gptr,-1,NULL,result); 
   if (!yout) 
   {
     yout = new double[N]; 
