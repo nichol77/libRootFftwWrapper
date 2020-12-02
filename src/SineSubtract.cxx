@@ -968,7 +968,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
   reset(); 
   double orig_dt = dt;
 
-  if (!dt) dt = g[0]->GetX()[1] - g[0]->GetX()[0]; 
+  if (dt<=0) dt = g[0]->GetX()[1] - g[0]->GetX()[0]; 
 
   int low = tmin < 0 || tmin >= g[0]->GetN() ? 0 : tmin; 
   int high[ntraces];  
