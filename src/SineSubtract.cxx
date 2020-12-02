@@ -1161,7 +1161,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
         delete [] the_fft; 
 
-        if (dt > 0)
+        if (orig_dt > 0)
         {
           delete ig; 
         }
