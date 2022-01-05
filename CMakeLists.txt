@@ -20,32 +20,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 
-if(DEFINED ENV{ANITA_UTIL_INSTALL_DIR})
-    message("ANITA_UTIL_INSTALL_DIR is set to $ENV{ANITA_UTIL_INSTALL_DIR}")
-    set(UTIL_LIB_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
-    set(UTIL_INC_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/include)
-    set(UTIL_BIN_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/bin)
-    set(UTIL_SHARE_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/share)
-    set(LD_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
-    set(INC_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/include)
-elseif(DEFINED ENV{ARA_UTIL_INSTALL_DIR})
-    message("ARA_UTIL_INSTALL_DIR is set to $ENV{ARA_UTIL_INSTALL_DIR}")
-    set(UTIL_LIB_DIR $ENV{ARA_UTIL_INSTALL_DIR}/lib)
-    set(UTIL_INC_DIR $ENV{ARA_UTIL_INSTALL_DIR}/include)
-    set(UTIL_BIN_DIR $ENV{ARA_UTIL_INSTALL_DIR}/bin)
-    set(UTIL_SHARE_DIR $ENV{ARA_UTIL_INSTALL_DIR}/share)
-    set(LD_UTIL $ENV{ARA_UTIL_INSTALL_DIR}/lib)
-    set(INC_UTIL $ENV{ARA_UTIL_INSTALL_DIR}/include)
-else()
-    message("Will install to /usr/local  ANITA_UTIL_INSTALL_DIR not set")
-    set(UTIL_LIB_DIR /usr/local/lib)
-    set(UTIL_INC_DIR /usr/local/include)
-    set(UTIL_BIN_DIR /usr/local/bin)
-    set(UTIL_SHARE_DIR /usr/local/share)
-    set(LD_UTIL /usr/local/lib)
-    set(INC_UTIL /usr/local/include)
-endif()
-
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net
@@ -124,29 +98,76 @@ if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
 endif()
 
 
-message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
-message("DICTNAME is set to ${DICTNAME}" )
-message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
+macro (do_install)
+      message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
+      message("DICTNAME is set to ${DICTNAME}" )
+      message("PROJECT_BINARY_DIR is set to ${PROJECT_BINARY_DIR}")
+
+      file (GLOB CMAKE_FILES "cmake/modules/*.cmake")
+
+      file (GLOB VCL_FILES "vectorclass/*.h") 
+
+      install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
+      install (FILES ${VCL_FILES} DESTINATION ${UTIL_INC_DIR}/${VECTORDIR})
+      install (FILES ${CMAKE_FILES} DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
+      install (TARGETS ${libname} ${compatlibname} 
+      ARCHIVE DESTINATION ${UTIL_LIB_DIR}
+      LIBRARY DESTINATION ${UTIL_LIB_DIR}
+      RUNTIME DESTINATION ${UTIL_BIN_DIR})
+      #Only needed for ROOT6
+      if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
+      	  install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
+	  #install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
+      endif() 
+endmacro()
 
 
-file (GLOB CMAKE_FILES "cmake/modules/*.cmake")
+# Install in any and all available locations.
+# This might lead to some unnecessary re-installation (if you're running both ANITA and PUEO software, e.g.
+# To avoid this, disable the irrelevant environmental variable when building either
+if(DEFINED ENV{PUEO_UTIL_INSTALL_DIR})
+    message("PUEO_UTIL_INSTALL_DIR is set to $ENV{PUEO_UTIL_INSTALL_DIR}")
+    set(UTIL_LIB_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/lib)
+    set(UTIL_INC_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/include)
+    set(UTIL_BIN_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/bin)
+    set(UTIL_SHARE_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/share)
+    set(LD_UTIL $ENV{PUEO_UTIL_INSTALL_DIR}/lib)
+    set(INC_UTIL $ENV{PUEO_UTIL_INSTALL_DIR}/include)
+    do_install()
+endif()
+    
+if(DEFINED ENV{ANITA_UTIL_INSTALL_DIR})
+    message("ANITA_UTIL_INSTALL_DIR is set to $ENV{ANITA_UTIL_INSTALL_DIR}")
+    set(UTIL_LIB_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
+    set(UTIL_INC_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/include)
+    set(UTIL_BIN_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/bin)
+    set(UTIL_SHARE_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/share)
+    set(LD_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
+    set(INC_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/include)
+    do_install()
+endif()
 
-file (GLOB VCL_FILES "vectorclass/*.h") 
+if(DEFINED ENV{ARA_UTIL_INSTALL_DIR})
+    message("ARA_UTIL_INSTALL_DIR is set to $ENV{ARA_UTIL_INSTALL_DIR}")
+    set(UTIL_LIB_DIR $ENV{ARA_UTIL_INSTALL_DIR}/lib)
+    set(UTIL_INC_DIR $ENV{ARA_UTIL_INSTALL_DIR}/include)
+    set(UTIL_BIN_DIR $ENV{ARA_UTIL_INSTALL_DIR}/bin)
+    set(UTIL_SHARE_DIR $ENV{ARA_UTIL_INSTALL_DIR}/share)
+    set(LD_UTIL $ENV{ARA_UTIL_INSTALL_DIR}/lib)
+    set(INC_UTIL $ENV{ARA_UTIL_INSTALL_DIR}/include)
+    do_install()
+endif()
 
-install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
-install (FILES ${VCL_FILES} DESTINATION ${UTIL_INC_DIR}/${VECTORDIR})
-install (FILES ${CMAKE_FILES} DESTINATION ${UTIL_SHARE_DIR}/cmake/modules)
-install (TARGETS ${libname} ${compatlibname} 
-	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
-	LIBRARY DESTINATION ${UTIL_LIB_DIR}
-	RUNTIME DESTINATION ${UTIL_BIN_DIR})
-#Only needed for ROOT6
-if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
-  install (FILES ${PROJECT_BINARY_DIR}/${DICTNAME}_rdict.pcm DESTINATION ${UTIL_LIB_DIR})
-#  install (FILES ${PROJECT_BINARY_DIR}/lib${libname}.rootmap DESTINATION ${UTIL_LIB_DIR})
-endif() 
-
-
+if(NOT DEFINED UTIL_LIB_DIR)
+    message("No environmental installation directory exists, will install to /usr/local")
+    set(UTIL_LIB_DIR /usr/local/lib)
+    set(UTIL_INC_DIR /usr/local/include)
+    set(UTIL_BIN_DIR /usr/local/bin)
+    set(UTIL_SHARE_DIR /usr/local/share)
+    set(LD_UTIL /usr/local/lib)
+    set(INC_UTIL /usr/local/include)
+    do_install()
+endif()
 
 ###############################################################################################
 ### Binaries
