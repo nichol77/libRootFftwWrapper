@@ -24,7 +24,12 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 find_package(ROOT REQUIRED COMPONENTS MathMore MathCore RIO Hist Tree Net
   Minuit Spectrum OPTIONAL_COMPONENTS Minuit2)
-find_package(FFTW REQUIRED)
+if(FFTW_INCLUDES)
+  find_package(FFTW REQUIRED)
+else()
+  set(FFTW_LIBRARIES "$ENV{FFTWSYS}/lib/libfftw3.so.3.6.9")
+  set(FFTW_INCLUDES "$ENV{FFTWSYS}/include")
+endif()
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 
