@@ -1151,7 +1151,7 @@ void FFTtools::SineSubtract::subtractCW(int ntraces, TGraph ** g, double dt, con
 
         for (int i = 0; i < spectrum_N; i++)
         {
-          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / NuseMax / 16 / pad_scale_factor; //why was this factor of 16 here? 
+          power_spectra[ti]->GetY()[i] = the_fft[i].getAbsSq() / NuseMax / pad_scale_factor; 
           if (i > 0 && i <spectrum_N-1) power_spectra[ti]->GetY()[i] *=2; 
           fft_phases[ti]->GetY()[i] = the_fft[i].getPhase(); 
           power_spectra[ti]->GetX()[i] = df *i; 
