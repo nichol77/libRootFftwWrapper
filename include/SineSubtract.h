@@ -153,9 +153,9 @@ namespace FFTtools
 
 
 
-       SineFitterLimits(double maxA_relative_to_guess_ = 4, double minA_relative_to_guess_ = 0.25, 
+       SineFitterLimits(double maxA_relative_to_guess_ = 1, double minA_relative_to_guess_ = 0.0625, 
                         double max_n_df_relative_to_guess_ = 1, double phase_start_error_ = TMath::Pi() / 16, 
-                        double amp_start_error_ = 0.1, double freq_start_error_  = 0.1) : 
+                        double amp_start_error_ = 0.025, double freq_start_error_  = 0.1) : 
                                maxA_relative_to_guess(maxA_relative_to_guess_), 
                                minA_relative_to_guess(minA_relative_to_guess_),
                                max_n_df_relative_to_guess(max_n_df_relative_to_guess_) , 
