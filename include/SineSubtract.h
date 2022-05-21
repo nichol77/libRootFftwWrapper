@@ -647,6 +647,11 @@ namespace FFTtools
         /* Return the number of traces fit for */
         int getNGraphs() const { return r.phases.size(); } 
 
+        /** Get array of the sequence of powers vs. iteration 
+         * lighter version of getPowerSequence()
+         **/
+        const double * getPowers() const {return &r.powers[0];}
+
         /** Get array of fit phases for the ith trace */
         const double * getPhases(int g) const { return &r.phases[g][0]; }
 
